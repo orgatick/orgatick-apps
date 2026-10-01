@@ -1,0 +1,25 @@
+{
+  "name": "orgatick",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "biome format --write .",
+    "check": "biome check --write .",
+    "check-types": "turbo run check-types",
+    "typecheck": "turbo run check-types",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "tunnel": "cloudflared tunnel run orgatick-dev"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.8",
+    "turbo": "^2.11.3",
+    "typescript": "5.9.2"
+  },
+  "packageManager": "pnpm@11.23.0",
+  "engines": {
+    "node": ">=24"
+  }
+}

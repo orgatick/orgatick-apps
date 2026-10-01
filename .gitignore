@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Turborepo
+.turbo/
+
+# React Email preview build
+.react-email/
+
+.vscode/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Debug
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

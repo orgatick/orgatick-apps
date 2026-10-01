@@ -1,0 +1,690 @@
+[
+  {
+    "name": "Technology & Software",
+    "slug": "technology-software",
+    "level": 1,
+    "description": "Technology companies, software platforms, IT consulting, and digital products.",
+    "children": [
+      {
+        "name": "Software & SaaS",
+        "slug": "software-saas",
+        "level": 2,
+        "description": "Software products, cloud SaaS platforms, and enterprise applications."
+      },
+      {
+        "name": "Artificial Intelligence & ML",
+        "slug": "artificial-intelligence-ml",
+        "level": 2,
+        "description": "Organizations working in AI models, machine learning, and data intelligence."
+      },
+      {
+        "name": "IT Services & Consulting",
+        "slug": "it-services-consulting",
+        "level": 2,
+        "description": "IT consulting, system integration, software development, and managed services."
+      },
+      {
+        "name": "Cybersecurity & InfoSec",
+        "slug": "cybersecurity-infosec",
+        "level": 2,
+        "description": "Cybersecurity solutions, network protection, and security compliance."
+      },
+      {
+        "name": "Fintech & Payments",
+        "slug": "fintech-payments",
+        "level": 2,
+        "description": "Financial technologies, digital wallets, payment gateways, and open banking."
+      },
+      {
+        "name": "Cloud Computing & DevOps",
+        "slug": "cloud-computing-devops",
+        "level": 2,
+        "description": "Cloud infrastructure providers, hosting, and DevOps automation."
+      },
+      {
+        "name": "Web3 & Blockchain",
+        "slug": "web3-blockchain",
+        "level": 2,
+        "description": "Blockchain networks, smart contracts, decentralized apps, and Web3."
+      },
+      {
+        "name": "Hardware, IoT & Robotics",
+        "slug": "hardware-iot-robotics",
+        "level": 2,
+        "description": "Hardware engineering, Internet of Things (IoT) devices, and robotics."
+      },
+      {
+        "name": "Gaming & Interactive Media",
+        "slug": "gaming-interactive-media",
+        "level": 2,
+        "description": "Game development studios, publishers, and immersive AR/VR experiences."
+      },
+      {
+        "name": "Data Analytics & Business Intelligence",
+        "slug": "data-analytics-bi",
+        "level": 2,
+        "description": "Big data analytics, data science, visualization, and business intelligence."
+      }
+    ]
+  },
+  {
+    "name": "Education & Learning",
+    "slug": "education-learning",
+    "level": 1,
+    "description": "Educational institutions, academies, e-learning platforms, and training centers.",
+    "children": [
+      {
+        "name": "School (K-12)",
+        "slug": "school-k12",
+        "level": 2,
+        "description": "Primary, middle, and high schools offering standard K-12 curriculum."
+      },
+      {
+        "name": "College & University",
+        "slug": "college-university",
+        "level": 2,
+        "description": "Colleges, universities, and higher education degree-granting institutions."
+      },
+      {
+        "name": "Coaching & Test Prep",
+        "slug": "coaching-test-prep",
+        "level": 2,
+        "description": "Coaching centers, entrance exam prep, and competitive training institutes."
+      },
+      {
+        "name": "Vocational & Skill Development",
+        "slug": "vocational-skill-development",
+        "level": 2,
+        "description": "Vocational training, trade schools, and professional skill bootcamps."
+      },
+      {
+        "name": "Online Education & EdTech",
+        "slug": "online-education-edtech",
+        "level": 2,
+        "description": "Online courses, digital learning platforms, and educational technologies."
+      },
+      {
+        "name": "Research & Academic Institutes",
+        "slug": "research-academic-institutes",
+        "level": 2,
+        "description": "Scientific, academic research centers, think tanks, and laboratories."
+      },
+      {
+        "name": "Language & Arts Academies",
+        "slug": "language-arts-academies",
+        "level": 2,
+        "description": "Language institutes, music, art, and drama schools."
+      }
+    ]
+  },
+  {
+    "name": "Healthcare & Medical",
+    "slug": "healthcare-medical",
+    "level": 1,
+    "description": "Healthcare providers, medical institutions, pharma, and wellness organizations.",
+    "children": [
+      {
+        "name": "Hospitals & Medical Centers",
+        "slug": "hospitals-medical-centers",
+        "level": 2,
+        "description": "Multi-specialty hospitals, healthcare systems, and surgical centers."
+      },
+      {
+        "name": "Clinics & Outpatient Care",
+        "slug": "clinics-outpatient-care",
+        "level": 2,
+        "description": "General practice clinics, dental clinics, and specialized outpatient care."
+      },
+      {
+        "name": "Pharmaceuticals & Biotechnology",
+        "slug": "pharmaceuticals-biotechnology",
+        "level": 2,
+        "description": "Pharmaceutical manufacturing, life sciences research, and biotech."
+      },
+      {
+        "name": "Mental Health & Counseling",
+        "slug": "mental-health-counseling",
+        "level": 2,
+        "description": "Psychological counseling, mental health centers, and therapy services."
+      },
+      {
+        "name": "Diagnostic Laboratories & Imaging",
+        "slug": "diagnostic-laboratories-imaging",
+        "level": 2,
+        "description": "Pathology labs, radiological imaging, and medical diagnostics."
+      },
+      {
+        "name": "Telehealth & Digital Health",
+        "slug": "telehealth-digital-health",
+        "level": 2,
+        "description": "Remote healthcare platforms, telemedicine, and health tracking apps."
+      },
+      {
+        "name": "Veterinary & Animal Care",
+        "slug": "veterinary-animal-care",
+        "level": 2,
+        "description": "Veterinary clinics, animal hospitals, and pet health services."
+      }
+    ]
+  },
+  {
+    "name": "Events, Arts & Entertainment",
+    "slug": "events-arts-entertainment",
+    "level": 1,
+    "description": "Organizations involved in events, live performances, media, arts, and culture.",
+    "children": [
+      {
+        "name": "Event Management & Production",
+        "slug": "event-management-production",
+        "level": 2,
+        "description": "Professional event planners, organizers, and production agencies."
+      },
+      {
+        "name": "Conferences, Summits & Meetups",
+        "slug": "conferences-summits-meetups",
+        "level": 2,
+        "description": "Organizations managing business summits, conferences, and community meetups."
+      },
+      {
+        "name": "Concerts & Live Music",
+        "slug": "concerts-live-music",
+        "level": 2,
+        "description": "Music concert organizers, bands, orchestras, and music festivals."
+      },
+      {
+        "name": "Film, TV & Media Production",
+        "slug": "film-tv-media-production",
+        "level": 2,
+        "description": "Film studios, broadcast media, and video production houses."
+      },
+      {
+        "name": "Arts, Theater & Culture",
+        "slug": "arts-theater-culture",
+        "level": 2,
+        "description": "Theater groups, cultural organizations, museums, and art galleries."
+      },
+      {
+        "name": "Festivals & Expos",
+        "slug": "festivals-expos",
+        "level": 2,
+        "description": "Organizers of food, trade, cultural festivals, and large-scale expos."
+      }
+    ]
+  },
+  {
+    "name": "Sports, Fitness & Recreation",
+    "slug": "sports-fitness-recreation",
+    "level": 1,
+    "description": "Sports leagues, athletic clubs, fitness centers, and recreational activities.",
+    "children": [
+      {
+        "name": "Sports Clubs & Teams",
+        "slug": "sports-clubs-teams",
+        "level": 2,
+        "description": "Professional and amateur sports clubs, teams, and associations."
+      },
+      {
+        "name": "Sports Academies & Coaching",
+        "slug": "sports-academies-coaching",
+        "level": 2,
+        "description": "Athletic training academies, coaching institutes, and youth development."
+      },
+      {
+        "name": "Gyms & Fitness Centers",
+        "slug": "gyms-fitness-centers",
+        "level": 2,
+        "description": "Gymnasiums, CrossFit boxes, and fitness studios."
+      },
+      {
+        "name": "Yoga, Pilates & Wellness",
+        "slug": "yoga-pilates-wellness",
+        "level": 2,
+        "description": "Yoga studios, pilates centers, meditation, and holistic health."
+      },
+      {
+        "name": "Tournament & League Organizers",
+        "slug": "tournament-league-organizers",
+        "level": 2,
+        "description": "Organizations running athletic tournaments, leagues, and championships."
+      },
+      {
+        "name": "Outdoor, Adventure & Recreation",
+        "slug": "outdoor-adventure-recreation",
+        "level": 2,
+        "description": "Trekking, water sports, outdoor adventures, and recreation parks."
+      },
+      {
+        "name": "Esports & Gaming Leagues",
+        "slug": "esports-gaming-leagues",
+        "level": 2,
+        "description": "Competitive esports teams, tournament organizers, and gaming clans."
+      }
+    ]
+  },
+  {
+    "name": "Non-Profit, NGO & Social Impact",
+    "slug": "non-profit-ngo-social-impact",
+    "level": 1,
+    "description": "Non-profit organizations, NGOs, foundations, and social impact groups.",
+    "children": [
+      {
+        "name": "NGOs & Non-Profits",
+        "slug": "ngos-non-profits",
+        "level": 2,
+        "description": "Non-governmental organizations working for public and social welfare."
+      },
+      {
+        "name": "Charitable Foundations & Trusts",
+        "slug": "charitable-foundations-trusts",
+        "level": 2,
+        "description": "Philanthropic foundations, charitable trusts, and grant-making bodies."
+      },
+      {
+        "name": "Community & Social Services",
+        "slug": "community-social-services",
+        "level": 2,
+        "description": "Community centers, local support groups, and neighborhood welfare associations."
+      },
+      {
+        "name": "Environmental & Conservation",
+        "slug": "environmental-conservation",
+        "level": 2,
+        "description": "Environmental protection, climate action, and wildlife conservation groups."
+      },
+      {
+        "name": "Humanitarian Aid & Disaster Relief",
+        "slug": "humanitarian-aid-disaster-relief",
+        "level": 2,
+        "description": "Emergency response, refugee support, and disaster relief organizations."
+      },
+      {
+        "name": "Animal Welfare & Rescue",
+        "slug": "animal-welfare-rescue",
+        "level": 2,
+        "description": "Animal shelters, rescue operations, and wildlife rehabilitation centers."
+      }
+    ]
+  },
+  {
+    "name": "Business & Professional Services",
+    "slug": "business-professional-services",
+    "level": 1,
+    "description": "Corporate consulting, legal, accounting, marketing, and business support services.",
+    "children": [
+      {
+        "name": "Management & Strategy Consulting",
+        "slug": "management-strategy-consulting",
+        "level": 2,
+        "description": "Business strategy, operational consulting, and organizational advisory."
+      },
+      {
+        "name": "Marketing, Advertising & PR",
+        "slug": "marketing-advertising-pr",
+        "level": 2,
+        "description": "Digital marketing agencies, creative advertising, and public relations firms."
+      },
+      {
+        "name": "Legal Services & Law Firms",
+        "slug": "legal-services-law-firms",
+        "level": 2,
+        "description": "Law firms, corporate legal counsels, and intellectual property agencies."
+      },
+      {
+        "name": "Accounting, Tax & Audit",
+        "slug": "accounting-tax-audit",
+        "level": 2,
+        "description": "Chartered accountants, tax consultants, and financial audit firms."
+      },
+      {
+        "name": "Human Resources & Recruitment",
+        "slug": "human-resources-recruitment",
+        "level": 2,
+        "description": "Staffing agencies, executive search, and HR management consulting."
+      },
+      {
+        "name": "Architecture & Interior Design",
+        "slug": "architecture-interior-design",
+        "level": 2,
+        "description": "Architectural design, interior decoration, and urban planning firms."
+      },
+      {
+        "name": "Real Estate & Property Management",
+        "slug": "real-estate-property-management",
+        "level": 2,
+        "description": "Commercial and residential real estate agencies, and property managers."
+      }
+    ]
+  },
+  {
+    "name": "Finance, Banking & Insurance",
+    "slug": "finance-banking-insurance",
+    "level": 1,
+    "description": "Banking institutions, venture capital, investment funds, and insurance providers.",
+    "children": [
+      {
+        "name": "Banking & Financial Institutions",
+        "slug": "banking-financial-institutions",
+        "level": 2,
+        "description": "Commercial banks, retail banking, and central credit institutions."
+      },
+      {
+        "name": "Venture Capital & Private Equity",
+        "slug": "venture-capital-private-equity",
+        "level": 2,
+        "description": "VC funds, angel investment networks, and private equity investors."
+      },
+      {
+        "name": "Insurance & Risk Management",
+        "slug": "insurance-risk-management",
+        "level": 2,
+        "description": "Life, health, property, and general insurance providers and brokers."
+      },
+      {
+        "name": "Wealth Management & Financial Advisory",
+        "slug": "wealth-management-advisory",
+        "level": 2,
+        "description": "Portfolio management, investment advisors, and family offices."
+      },
+      {
+        "name": "Microfinance & Credit Unions",
+        "slug": "microfinance-credit-unions",
+        "level": 2,
+        "description": "Community lending institutions, microfinance, and credit unions."
+      }
+    ]
+  },
+  {
+    "name": "Retail, Consumer Goods & E-Commerce",
+    "slug": "retail-consumer-ecommerce",
+    "level": 1,
+    "description": "Retail stores, consumer brands, wholesale distributors, and e-commerce businesses.",
+    "children": [
+      {
+        "name": "Fashion, Apparel & Footwear",
+        "slug": "fashion-apparel-footwear",
+        "level": 2,
+        "description": "Clothing brands, fashion designers, accessories, and footwear retailers."
+      },
+      {
+        "name": "Consumer Electronics & Appliances",
+        "slug": "consumer-electronics-appliances",
+        "level": 2,
+        "description": "Electronics stores, consumer gadget retailers, and home appliance vendors."
+      },
+      {
+        "name": "Supermarkets & Groceries",
+        "slug": "supermarkets-groceries",
+        "level": 2,
+        "description": "Grocery stores, supermarkets, and specialty food markets."
+      },
+      {
+        "name": "Beauty, Cosmetics & Personal Care",
+        "slug": "beauty-cosmetics-personal-care",
+        "level": 2,
+        "description": "Cosmetic brands, salons, skincare, and beauty product retailers."
+      },
+      {
+        "name": "Home, Furniture & Living",
+        "slug": "home-furniture-living",
+        "level": 2,
+        "description": "Furniture retailers, home decor, kitchenware, and lifestyle brands."
+      },
+      {
+        "name": "E-Commerce Marketplaces & D2C",
+        "slug": "ecommerce-marketplaces-d2c",
+        "level": 2,
+        "description": "Direct-to-consumer (D2C) brands and online marketplaces."
+      }
+    ]
+  },
+  {
+    "name": "Hospitality, Food & Tourism",
+    "slug": "hospitality-food-tourism",
+    "level": 1,
+    "description": "Hotels, dining establishments, culinary services, travel, and tourism.",
+    "children": [
+      {
+        "name": "Hotels, Resorts & Lodging",
+        "slug": "hotels-resorts-lodging",
+        "level": 2,
+        "description": "Hotels, luxury resorts, boutique stays, bed and breakfasts, and hostels."
+      },
+      {
+        "name": "Restaurants, Cafes & Bars",
+        "slug": "restaurants-cafes-bars",
+        "level": 2,
+        "description": "Fine dining, casual restaurants, cafes, bakeries, and bars."
+      },
+      {
+        "name": "Catering & Cloud Kitchens",
+        "slug": "catering-cloud-kitchens",
+        "level": 2,
+        "description": "Event catering services, food trucks, and cloud kitchens."
+      },
+      {
+        "name": "Travel Agencies & Tour Operators",
+        "slug": "travel-agencies-tour-operators",
+        "level": 2,
+        "description": "Travel booking agencies, guided tour companies, and excursion planners."
+      },
+      {
+        "name": "Event Venues & Banquet Halls",
+        "slug": "event-venues-banquet-halls",
+        "level": 2,
+        "description": "Venues for weddings, corporate gatherings, conventions, and parties."
+      }
+    ]
+  },
+  {
+    "name": "Manufacturing, Logistics & Construction",
+    "slug": "manufacturing-logistics-construction",
+    "level": 1,
+    "description": "Manufacturing plants, transport, freight, warehousing, and construction.",
+    "children": [
+      {
+        "name": "Industrial Manufacturing & Machinery",
+        "slug": "industrial-manufacturing-machinery",
+        "level": 2,
+        "description": "Heavy machinery, equipment manufacturing, and industrial plants."
+      },
+      {
+        "name": "Logistics, Freight & Warehousing",
+        "slug": "logistics-freight-warehousing",
+        "level": 2,
+        "description": "Third-party logistics, freight forwarders, cargo, and warehousing facilities."
+      },
+      {
+        "name": "Automotive & Mobility",
+        "slug": "automotive-mobility",
+        "level": 2,
+        "description": "Automobile manufacturers, EV charging, dealerships, and fleet services."
+      },
+      {
+        "name": "Construction & Infrastructure",
+        "slug": "construction-infrastructure",
+        "level": 2,
+        "description": "Civil engineering, building contractors, and infrastructure developers."
+      },
+      {
+        "name": "Aerospace & Aviation",
+        "slug": "aerospace-aviation",
+        "level": 2,
+        "description": "Airlines, aircraft maintenance, aerospace engineering, and airport operations."
+      }
+    ]
+  },
+  {
+    "name": "Government, Public Sector & Civic",
+    "slug": "government-public-sector-civic",
+    "level": 1,
+    "description": "Government bodies, municipal services, civic associations, and international agencies.",
+    "children": [
+      {
+        "name": "Government Ministries & Agencies",
+        "slug": "government-ministries-agencies",
+        "level": 2,
+        "description": "National and regional government ministries, departments, and statutory bodies."
+      },
+      {
+        "name": "Municipalities & Local Councils",
+        "slug": "municipalities-local-councils",
+        "level": 2,
+        "description": "City councils, municipal corporations, and district administrative bodies."
+      },
+      {
+        "name": "Embassies & Consulates",
+        "slug": "embassies-consulates",
+        "level": 2,
+        "description": "Diplomatic missions, embassies, consulates, and international delegations."
+      },
+      {
+        "name": "Public Safety & Emergency Services",
+        "slug": "public-safety-emergency-services",
+        "level": 2,
+        "description": "Fire departments, law enforcement, rescue squads, and emergency services."
+      },
+      {
+        "name": "Civic & Policy Organizations",
+        "slug": "civic-policy-organizations",
+        "level": 2,
+        "description": "Public policy think tanks, civic advocacy groups, and voter awareness bodies."
+      }
+    ]
+  },
+  {
+    "name": "Religious & Spiritual Organizations",
+    "slug": "religious-spiritual-organizations",
+    "level": 1,
+    "description": "Places of worship, spiritual centers, and faith-based community organizations.",
+    "children": [
+      {
+        "name": "Places of Worship",
+        "slug": "places-of-worship",
+        "level": 2,
+        "description": "Temples, churches, mosques, gurdwaras, synagogues, and shrines."
+      },
+      {
+        "name": "Spiritual & Meditation Centers",
+        "slug": "spiritual-meditation-centers",
+        "level": 2,
+        "description": "Ashrams, meditation centers, retreat sanctuaries, and mindfulness groups."
+      },
+      {
+        "name": "Religious Councils & Ministries",
+        "slug": "religious-councils-ministries",
+        "level": 2,
+        "description": "Religious trusts, dioceses, governing councils, and missionary organizations."
+      }
+    ]
+  },
+  {
+    "name": "Student & Youth Organizations",
+    "slug": "student-youth-organizations",
+    "level": 1,
+    "description": "Student councils, academic societies, youth clubs, and alumni associations.",
+    "children": [
+      {
+        "name": "Student Councils & Unions",
+        "slug": "student-councils-unions",
+        "level": 2,
+        "description": "University, college, and school student governance bodies and unions."
+      },
+      {
+        "name": "Academic & Technical Clubs",
+        "slug": "academic-technical-clubs",
+        "level": 2,
+        "description": "Robotics clubs, coding societies, debate teams, and science clubs."
+      },
+      {
+        "name": "Cultural & Arts Societies",
+        "slug": "cultural-arts-societies",
+        "level": 2,
+        "description": "Campus music, drama, dance, and cultural societies."
+      },
+      {
+        "name": "Alumni Associations",
+        "slug": "alumni-associations",
+        "level": 2,
+        "description": "Alumni chapters, graduate associations, and institutional network bodies."
+      }
+    ]
+  },
+  {
+    "name": "Agriculture, Energy & Environment",
+    "slug": "agriculture-energy-environment",
+    "level": 1,
+    "description": "Farming, agricultural technology, clean energy, and environmental management.",
+    "children": [
+      {
+        "name": "Agriculture, Farming & AgTech",
+        "slug": "agriculture-farming-agtech",
+        "level": 2,
+        "description": "Commercial farming, agricultural cooperatives, organic produce, and AgTech."
+      },
+      {
+        "name": "Renewable Energy & CleanTech",
+        "slug": "renewable-energy-cleantech",
+        "level": 2,
+        "description": "Solar, wind, hydro, clean energy technologies, and battery storage."
+      },
+      {
+        "name": "Utilities & Power Distribution",
+        "slug": "utilities-power-distribution",
+        "level": 2,
+        "description": "Electric, water, and gas utility distribution companies."
+      },
+      {
+        "name": "Waste Management & Recycling",
+        "slug": "waste-management-recycling",
+        "level": 2,
+        "description": "Waste disposal, recycling plants, and environmental remediation."
+      }
+    ]
+  },
+  {
+    "name": "Media, Publishing & Creator Economy",
+    "slug": "media-publishing-creator-economy",
+    "level": 1,
+    "description": "Publishers, journalism agencies, audio/video creators, and talent networks.",
+    "children": [
+      {
+        "name": "News & Journalism Agencies",
+        "slug": "news-journalism-agencies",
+        "level": 2,
+        "description": "News channels, newspapers, investigative journalism, and digital newsrooms."
+      },
+      {
+        "name": "Book & Digital Publishing",
+        "slug": "book-digital-publishing",
+        "level": 2,
+        "description": "Book publishers, magazines, scientific journals, and digital publications."
+      },
+      {
+        "name": "Podcasting & Audio Networks",
+        "slug": "podcasting-audio-networks",
+        "level": 2,
+        "description": "Podcast networks, radio stations, and audiobook production companies."
+      },
+      {
+        "name": "Creator Studios & Influencer Agencies",
+        "slug": "creator-studios-influencer-agencies",
+        "level": 2,
+        "description": "Content creator collectives, talent management, and influencer marketing agencies."
+      }
+    ]
+  },
+  {
+    "name": "Other & Miscellaneous",
+    "slug": "other-miscellaneous",
+    "level": 1,
+    "description": "Organizations and entities that do not fit into other primary categories.",
+    "children": [
+      {
+        "name": "General Organization",
+        "slug": "general-organization",
+        "level": 2,
+        "description": "General organizations and custom entities."
+      }
+    ]
+  }
+]

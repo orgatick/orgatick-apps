@@ -1,0 +1,26 @@
+{
+  "name": "@orgatick/email-templates",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "email build",
+    "dev": "email dev --port 3003",
+    "export": "email export --out-dir out --pretty",
+    "lint": "biome check .",
+    "check-types": "tsc --noEmit",
+    "format": "biome format --write .",
+    "check": "biome check --write ."
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-email": "6.9.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.13",
+    "@react-email/ui": "6.9.5",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "typescript": "5.9.2"
+  }
+}

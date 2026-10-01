@@ -1,0 +1,19 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+allowBuilds:
+  bcrypt: set this to true or false
+  esbuild: set this to true or false
+
+onlyBuiltDependencies:
+  - "@biomejs/biome"
+  - bcrypt
+  - esbuild
+  - sharp
+  - unrs-resolver
+
+peerDependencyRules:
+  allowedVersions:
+    typeorm: "1.1.1"
+    ioredis: "6.0.0"
