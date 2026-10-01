@@ -1,4 +1,4 @@
-import { Source_Sans_3 } from "next/font/google";
+import { Source_Code_Pro, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 import { cn } from "@orgatick/ui/lib/utils";
 import metadataConfig from "@/config/metadata";
@@ -8,6 +8,11 @@ import type { Metadata } from "next";
 const sourceSans3 = Source_Sans_3({
   subsets: ["latin"],
   variable: "--font-sans",
+});
+
+const sourceCodePro = Source_Code_Pro({
+  subsets: ["latin"],
+  variable: "--font-source-code-pro",
 });
 
 export const viewport = {
@@ -20,7 +25,11 @@ export const metadata: Metadata = metadataConfig;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={cn("h-full", "antialiased", "font-sans", sourceSans3.variable)} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={cn("h-full", "antialiased", "font-sans", sourceSans3.variable, sourceCodePro.variable)}
+      suppressHydrationWarning
+    >
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
       </body>

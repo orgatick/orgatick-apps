@@ -1,4 +1,4 @@
-import { Source_Sans_3 } from "next/font/google";
+import { Source_Code_Pro, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 import { cn } from "@orgatick/ui/lib/utils";
 import metadataConfig from "@/config/metadata";
@@ -11,6 +11,11 @@ import Providers from "@/providers";
 const sourceSans3 = Source_Sans_3({
   subsets: ["latin"],
   variable: "--font-sans",
+});
+
+const sourceCodePro = Source_Code_Pro({
+  subsets: ["latin"],
+  variable: "--font-source-code-pro",
 });
 
 export const viewport = {
@@ -32,7 +37,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <html lang="en" className={cn("h-dvh", "antialiased", "font-sans", sourceSans3.variable)} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={cn("h-dvh", "antialiased", "font-sans", sourceSans3.variable, sourceCodePro.variable)}
+      suppressHydrationWarning
+    >
       <body className="min-h-full flex flex-col px-4 sm:px-0">
         <Providers>{!user ? <RestrictedAccess /> : children}</Providers>
       </body>
