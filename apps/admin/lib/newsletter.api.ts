@@ -191,18 +191,12 @@ export async function updateNewsletterList(
   id: string,
   payload: Record<string, unknown>,
 ): Promise<NewsletterListResponse> {
-  const response = await api.patch<ApiResponseData<NewsletterListResponse>>(
-    `/admin/newsletter/lists/${id}`,
-    payload,
-  );
+  const response = await api.patch<ApiResponseData<NewsletterListResponse>>(`/admin/newsletter/lists/${id}`, payload);
   return response.data.data;
 }
 
 export async function createNewsletterTemplate(payload: Record<string, unknown>): Promise<NewsletterTemplateResponse> {
-  const response = await api.post<ApiResponseData<NewsletterTemplateResponse>>(
-    "/admin/newsletter/templates",
-    payload,
-  );
+  const response = await api.post<ApiResponseData<NewsletterTemplateResponse>>("/admin/newsletter/templates", payload);
   return response.data.data;
 }
 
