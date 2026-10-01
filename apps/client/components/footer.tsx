@@ -1,6 +1,7 @@
 import { FooterBottom } from "./footer/footer-bottom";
 import { FooterBrand } from "./footer/footer-brand";
 import { FooterNav } from "./footer/footer-nav";
+import { NewsletterSignupForm } from "./footer/newsletter-signup-form";
 
 export function Footer() {
   return (
@@ -10,6 +11,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 lg:gap-6">
           <FooterBrand />
           <FooterNav />
+          <NewsletterSignupForm />
         </div>
 
         {/* Bottom Bar */}

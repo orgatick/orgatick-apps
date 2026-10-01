@@ -23,6 +23,7 @@ import {
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
+import { DEFAULT_THEME, type ThemeValue } from "@/lib/theme";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -33,7 +34,6 @@ const THEME_OPTIONS = [
   { value: "dark", label: "Dark", icon: IconMoon },
 ] as const;
 
-type ThemeValue = (typeof THEME_OPTIONS)[number]["value"];
 import { MAIN_NAV_LINKS, NAV_EASE, USER_MENU_ITEMS } from "./navbar-constants";
 import { UserAvatar } from "./user-avatar";
 import { useLogout } from "./use-logout";
@@ -60,12 +60,18 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function NavbarMobile({ user }: { user: UserResponse | null }) {
+interface NavbarMobileProps {
+  user: UserResponse | null;
+  /** Theme read from the cookie while rendering on the server, to keep hydration stable. */
+  initialTheme?: ThemeValue;
+}
+
+export function NavbarMobile({ user, initialTheme = DEFAULT_THEME }: NavbarMobileProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const logout = useLogout();
-  const currentTheme = (theme ?? "system") as ThemeValue;
+  const currentTheme = (theme ?? initialTheme) as ThemeValue;
 
   return (
     <div className="flex items-center sm:hidden">

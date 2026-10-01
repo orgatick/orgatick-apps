@@ -15,6 +15,7 @@ import { AddressModule } from "./modules/address/address.module";
 import { AuthenticationModule } from "./modules/authentication/authentication.module";
 import { AuthenticationGuard } from "./modules/authentication/guards/authentication.guard";
 import { IdentityModule } from "./modules/identity/identity.module";
+import { NewsletterModule } from "./modules/newsletter/newsletter.module";
 import { OrganizationModule } from "./modules/organization/organization.module";
 import { UsersModule } from "./modules/users/users.module";
 
@@ -31,6 +32,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     AuthenticationModule,
     AddressModule,
     OrganizationModule,
+    NewsletterModule,
     ObserveModule.forRootAsync({
       imports: [configModule],
       inject: [ConfigService],

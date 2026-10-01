@@ -10,6 +10,9 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     forceCloseConnections: true,
     instrument: ObserveInstrument,
+    // Keeps the untouched request body on `req.rawBody` so the newsletter deliverability
+    // webhook can verify its HMAC signature over the exact bytes the provider sent.
+    rawBody: true,
   });
 
   // Trust upstream reverse proxy (Cloudflare / load balancer) for accurate IP resolution

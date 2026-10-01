@@ -3,15 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "email build",
+    "build": "tsc -p tsconfig.build.json",
+    "check": "biome check --write .",
+    "check-types": "tsc --noEmit",
     "dev": "email dev --port 4000",
     "export": "email export --out-dir out --pretty",
-    "lint": "biome check .",
-    "check-types": "tsc --noEmit",
     "format": "biome format --write .",
-    "check": "biome check --write ."
+    "lint": "biome check .",
+    "preview:build": "email build"
   },
   "dependencies": {
+    "@react-email/render": "^2.1.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-email": "6.9.5"
@@ -22,5 +24,13 @@
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "typescript": "5.9.2"
+  },
+  "main": "./dist/emails/index.js",
+  "types": "./dist/emails/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/emails/index.d.ts",
+      "default": "./dist/emails/index.js"
+    }
   }
 }

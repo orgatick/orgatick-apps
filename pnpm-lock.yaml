@@ -126,6 +126,9 @@ importers:
       '@orgatick/contracts':
         specifier: workspace:*
         version: link:../../packages/contract
+      '@orgatick/email-templates':
+        specifier: workspace:*
+        version: link:../../packages/email
       axios:
         specifier: ^1.20.0
         version: 1.20.0(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)
@@ -494,6 +497,9 @@ importers:
 
   packages/email:
     dependencies:
+      '@react-email/render':
+        specifier: ^2.1.0
+        version: 2.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react:
         specifier: ^19.2.0
         version: 19.3.0

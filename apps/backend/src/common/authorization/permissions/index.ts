@@ -30,6 +30,11 @@ import {
   COMMUNICATION_PERMISSION_DEFINITIONS,
   type CommunicationPermission,
 } from "./communication.permissions";
+import {
+  NEWSLETTER_PERMISSIONS,
+  NEWSLETTER_PERMISSION_DEFINITIONS,
+  type NewsletterPermission,
+} from "./newsletter.permissions";
 import { PAYMENT_PERMISSIONS, PAYMENT_PERMISSION_DEFINITIONS, type PaymentPermission } from "./payment.permissions";
 
 export * from "./organization.permissions";
@@ -43,6 +48,7 @@ export * from "./coupon.permissions";
 export * from "./referral.permissions";
 export * from "./analytics.permissions";
 export * from "./communication.permissions";
+export * from "./newsletter.permissions";
 export * from "./payment.permissions";
 
 export const PERMISSIONS = {
@@ -57,6 +63,7 @@ export const PERMISSIONS = {
   REFERRAL: REFERRAL_PERMISSIONS,
   ANALYTICS: ANALYTICS_PERMISSIONS,
   COMMUNICATION: COMMUNICATION_PERMISSIONS,
+  NEWSLETTER: NEWSLETTER_PERMISSIONS,
   PAYMENT: PAYMENT_PERMISSIONS,
 } as const;
 
@@ -72,6 +79,7 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   ...REFERRAL_PERMISSION_DEFINITIONS,
   ...ANALYTICS_PERMISSION_DEFINITIONS,
   ...COMMUNICATION_PERMISSION_DEFINITIONS,
+  ...NEWSLETTER_PERMISSION_DEFINITIONS,
   ...PAYMENT_PERMISSION_DEFINITIONS,
 ] as const;
 
@@ -87,4 +95,5 @@ export type PermissionKey =
   | ReferralPermission
   | AnalyticsPermission
   | CommunicationPermission
+  | NewsletterPermission
   | PaymentPermission;

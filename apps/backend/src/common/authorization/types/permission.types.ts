@@ -1,6 +1,6 @@
 import type { IPermissionDefinition } from "../interface/permission.interface";
 
-export type PermissionScope = "organization" | "event";
+export type PermissionScope = "organization" | "event" | "platform";
 
 export type PermissionCategory =
   | "organization"
@@ -17,6 +17,7 @@ export type PermissionCategory =
   | "referral"
   | "analytics"
   | "communication"
+  | "newsletter"
   | "payment";
 
 export type PermissionDefinition = IPermissionDefinition;

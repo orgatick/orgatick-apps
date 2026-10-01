@@ -11,18 +11,30 @@ import {
 import { cn } from "@orgatick/ui/lib/utils";
 import { IconCheck, IconDeviceDesktop, IconMoon, IconSun } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
+import { DEFAULT_THEME, type ThemeValue } from "@/lib/theme";
 
-const THEME_OPTIONS = [
+const THEME_OPTIONS: ReadonlyArray<{
+  value: ThemeValue;
+  label: string;
+  description: string;
+  icon: typeof IconMoon;
+}> = [
   { value: "system", label: "Device", description: "Follow system", icon: IconDeviceDesktop },
   { value: "light", label: "Light", description: "Sunny vibes", icon: IconSun },
   { value: "dark", label: "Dark", description: "Night mode", icon: IconMoon },
-] as const;
+];
 
-type ThemeValue = (typeof THEME_OPTIONS)[number]["value"];
+interface ThemeToggleProps {
+  /**
+   * Theme read from the cookie while rendering on the server. Without it the server has no
+   * idea which icon the client is about to render, which is a hydration mismatch.
+   */
+  initialTheme?: ThemeValue;
+}
 
-export function ThemeToggle() {
+export function ThemeToggle({ initialTheme = DEFAULT_THEME }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
-  const current = (theme ?? "system") as ThemeValue;
+  const current = (theme ?? initialTheme) as ThemeValue;
   const CurrentIcon = THEME_OPTIONS.find((option) => option.value === current)?.icon ?? IconDeviceDesktop;
 
   return (

@@ -1,13 +1,15 @@
 {
   "compilerOptions": {
     "composite": false,
+    "jsx": "react-jsx",
+    "lib": ["ES2023", "DOM"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "jsx": "react-jsx",
+    "noEmit": true,
     "skipLibCheck": true,
     "strict": true,
-    "noEmit": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "target": "ES2022"
   },
   "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules", ".react-email"]

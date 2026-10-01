@@ -1,5 +1,12 @@
 import type { Icon } from "@tabler/icons-react";
-import { IconBuildingStore, IconLayoutDashboard, IconUsers } from "@tabler/icons-react";
+import {
+  IconAddressBook,
+  IconBuildingStore,
+  IconLayoutDashboard,
+  IconTemplate,
+  IconMail,
+  IconUsers,
+} from "@tabler/icons-react";
 
 export const NAV_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -26,6 +33,15 @@ export const SIDEBAR_NAV_GROUPS: SidebarNavGroup[] = [
     items: [
       { href: "/users", label: "Users", icon: IconUsers },
       { href: "/organizations", label: "Organizations", icon: IconBuildingStore },
+    ],
+  },
+  {
+    label: "Newsletter",
+    items: [
+      { href: "/newsletters", label: "Campaigns", icon: IconMail },
+      { href: "/subscribers", label: "Subscribers", icon: IconUsers },
+      { href: "/newsletter-lists", label: "Mailing lists", icon: IconAddressBook },
+      { href: "/templates", label: "Email templates", icon: IconTemplate },
     ],
   },
 ];
