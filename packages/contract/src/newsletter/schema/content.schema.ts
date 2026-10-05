@@ -121,10 +121,17 @@ export const NewsletterBlockSchema = z.discriminatedUnion("type", [
   NewsletterColumnsBlockSchema,
 ]);
 
-export const NewsletterContentSchema = z
-  .array(NewsletterBlockSchema)
-  .min(1, "Content must have at least one block")
-  .max(120);
+/**
+ * The block list on its own, without the "at least one block" rule.
+ *
+ * A template or campaign can be built purely from an HTML override, and that alternative
+ * body is explicitly allowed by the API. Such a record legitimately stores no blocks, so
+ * storage shape has to permit an empty list.
+ */
+export const NewsletterContentBlocksSchema = z.array(NewsletterBlockSchema).max(120);
+
+/** Block content that must render something, for example a campaign that is about to be sent. */
+export const NewsletterContentSchema = NewsletterContentBlocksSchema.min(1, "Content must have at least one block");
 
 export type NewsletterHeadingBlock = z.infer<typeof NewsletterHeadingBlockSchema>;
 export type NewsletterParagraphBlock = z.infer<typeof NewsletterParagraphBlockSchema>;

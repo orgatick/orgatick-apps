@@ -52,13 +52,13 @@ export class NewsletterRecipientRepository {
   }
 
   /**
-   * Builds the recipient queue for a campaign.
+   * Builds the recipient queue for a campaign and returns the new row ids.
    *
    * Done entirely in SQL with `ON CONFLICT DO NOTHING`, so it is idempotent and can be
    * re-run safely after a crash without duplicating recipients.
    */
-  async enqueue(newsletterId: bigint, subscriberIds: bigint[]): Promise<number> {
-    if (subscriberIds.length === 0) return 0;
+  async enqueue(newsletterId: bigint, subscriberIds: bigint[]): Promise<bigint[]> {
+    if (subscriberIds.length === 0) return [];
 
     // Positional placeholders: node-postgres rejects the `:name` form.
     const result = await this.repo.manager.query(
@@ -72,68 +72,66 @@ export class NewsletterRecipientRepository {
       [newsletterId.toString(), NewsletterRecipientStatus.QUEUED, subscriberIds.map((id) => id.toString())],
     );
 
-    return Array.isArray(result) ? result.length : 0;
+    return Array.isArray(result) ? result.map((row: { id: string }) => BigInt(row.id)) : [];
   }
 
-  /** Re-queues failed recipients for a retry, bounded by the attempt limit. */
-  async requeueFailed(newsletterId: bigint, maxAttempts: number): Promise<number> {
-    const result = await this.repo
+  /**
+   * Oldest queued recipients of a campaign that no job has picked up for a while.
+   *
+   * A `QUEUED` row this old with no job behind it is a recipient the queue lost, which is
+   * exactly what happens when Redis evicts a job under memory pressure. Returning the oldest
+   * first keeps a repair pass bounded and drains any backlog in the order it was queued.
+   */
+  async findStaleQueuedIds(newsletterId: bigint, queuedBefore: Date, limit: number): Promise<bigint[]> {
+    const rows = await this.repo
+      .createQueryBuilder("recipient")
+      .select("recipient.id", "id")
+      .where("recipient.newsletter_id = :newsletterId", { newsletterId: String(newsletterId) })
+      .andWhere("recipient.status = :status", { status: NewsletterRecipientStatus.QUEUED })
+      .andWhere("recipient.queued_at < :queuedBefore", { queuedBefore })
+      .orderBy("recipient.queued_at", "ASC")
+      .limit(limit)
+      .getRawMany<{ id: string }>();
+
+    return rows.map((row) => BigInt(row.id));
+  }
+
+  /**
+   * Re-queues every failed recipient so the mail queue can deliver them again.
+   *
+   * The queue already applied its own automatic attempts with backoff, so this is the
+   * operator deliberately overriding that outcome and gets a fresh set of attempts. Returns
+   * the ids because the recipients have to go back onto the queue, not just the database.
+   */
+  async requeueFailed(newsletterId: bigint): Promise<bigint[]> {
+    const requeued = await this.repo
       .createQueryBuilder()
       .update(NewsletterRecipient)
       .set({ status: NewsletterRecipientStatus.QUEUED, lastError: null, queuedAt: new Date() })
       .where("newsletter_id = :newsletterId", { newsletterId })
       .andWhere("status = :status", { status: NewsletterRecipientStatus.FAILED })
-      .andWhere("attempt_count < :maxAttempts", { maxAttempts })
+      .returning("id")
       .execute();
 
-    return result.affected ?? 0;
+    return (requeued.raw as { id: string }[]).map((row) => BigInt(row.id));
   }
 
-  /**
-   * Claims the next batch of queued recipients.
-   *
-   * `FOR UPDATE SKIP LOCKED` lets several replicas drain the same campaign queue
-   * concurrently without handing out the same row twice.
-   */
-  async claimBatch(newsletterId: bigint, batchSize: number): Promise<NewsletterRecipient[]> {
-    const rows = await this.repo.manager.query(
-      `WITH claimed AS (
-         SELECT id FROM "newsletter"."newsletter_recipients"
-         WHERE newsletter_id = $1 AND status = $2
-         ORDER BY id ASC
-         LIMIT $3
-         FOR UPDATE SKIP LOCKED
-       )
-       UPDATE "newsletter"."newsletter_recipients" r
-       SET status = $4, attempt_count = r.attempt_count + 1
-       FROM claimed
-       WHERE r.id = claimed.id
-       RETURNING r.id, r.newsletter_id, r.subscriber_id, r.email, r.email_normalized, r.status,
-                 r.attempt_count, r.created_at`,
-      [newsletterId.toString(), NewsletterRecipientStatus.QUEUED, batchSize, NewsletterRecipientStatus.SENT],
-    );
+  /** Marks a recipient as being sent right now and counts the attempt. */
+  async markProcessing(id: bigint): Promise<void> {
+    await this.repo
+      .createQueryBuilder()
+      .update(NewsletterRecipient)
+      .set({ status: NewsletterRecipientStatus.PROCESSING })
+      .where("id = :id", { id })
+      .set({ attemptCount: () => '"attempt_count" + 1' })
+      .execute();
+  }
 
-    return rows.map(
-      (row: {
-        id: string;
-        newsletter_id: string;
-        subscriber_id: string | null;
-        email: string;
-        email_normalized: string;
-        status: NewsletterRecipientStatus;
-        attempt_count: number;
-        created_at: Date;
-      }) =>
-        this.repo.create({
-          id: BigInt(row.id),
-          newsletterId: BigInt(row.newsletter_id),
-          subscriberId: row.subscriber_id ? BigInt(row.subscriber_id) : null,
-          email: row.email,
-          emailNormalized: row.email_normalized,
-          status: row.status,
-          attemptCount: row.attempt_count,
-          createdAt: row.created_at,
-        }),
+  /** Returns a recipient to the queue after a retryable failure. */
+  async markQueued(id: bigint, error: string): Promise<void> {
+    await this.repo.update(
+      { id },
+      { status: NewsletterRecipientStatus.QUEUED, lastError: error.slice(0, 2000), queuedAt: new Date() },
     );
   }
 
@@ -169,13 +167,18 @@ export class NewsletterRecipientRepository {
     return counts;
   }
 
-  /** Remaining work for a campaign: queued rows plus rows still in flight. */
+  /**
+   * Remaining work for a campaign: queued rows plus rows currently being sent.
+   *
+   * Delivered rows are excluded. Counting them here used to leave every finished campaign
+   * stuck in `sending`, because the finalisation check could never reach zero.
+   */
   async pendingCount(newsletterId: bigint): Promise<number> {
     return this.repo
       .createQueryBuilder("recipient")
       .where("recipient.newsletterId = :newsletterId", { newsletterId })
       .andWhere("recipient.status IN (:...statuses)", {
-        statuses: [NewsletterRecipientStatus.QUEUED, NewsletterRecipientStatus.SENT],
+        statuses: [NewsletterRecipientStatus.QUEUED, NewsletterRecipientStatus.PROCESSING],
       })
       .getCount();
   }

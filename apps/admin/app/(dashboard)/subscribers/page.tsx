@@ -7,6 +7,7 @@ import { PaginationControls } from "@/components/data-tools/pagination";
 import { SearchInput } from "@/components/data-tools/search-input";
 import { StatCard } from "@/components/stat-card";
 import { SubscriberListFilter, SubscriberStatusFilter } from "@/components/newsletter/filters";
+import { AddSubscriberButton } from "@/components/newsletter/subscriber-manager";
 import { SubscriberStatusSwitch } from "@/components/newsletter/subscriber-status-switch";
 import { SubscriberStatusBadge } from "@/components/newsletter/status-badge";
 import {
@@ -94,6 +95,10 @@ export default async function SubscribersPage({ searchParams }: { searchParams: 
         <SearchInput placeholder="Search email or name..." className="w-full max-w-sm" />
         <SubscriberStatusFilter />
         <SubscriberListFilter lists={lists} />
+        <div className="ms-auto">
+          {/* Scoped to the filtered list when the page was opened from a mailing list row. */}
+          <AddSubscriberButton lists={lists} defaultListSlug={lists.find((list) => list.id === listId)?.slug} />
+        </div>
         {(search || status || listId) && (
           <p className="text-xs text-muted-foreground">
             {data.meta.total} subscriber{data.meta.total === 1 ? "" : "s"}

@@ -64,8 +64,8 @@ export function TrustSection() {
               transition={{ duration: 0.5, delay: idx * 0.15 }}
               className="flex"
             >
-              <Card className="bg-card border-border/60 p-6 sm:p-8 rounded-2xl flex flex-col justify-between space-y-6 hover:border-primary/40 transition-all duration-300 hover:-translate-y-1 shadow-xs w-full">
-                <CardHeader className="p-0 space-y-4">
+              <Card className="bg-card border-border/60 sm:p-8 rounded-2xl flex flex-col justify-between space-y-6 hover:border-primary/40 transition-all duration-300 hover:-translate-y-1 shadow-xs w-full">
+                <CardHeader className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex gap-0.5 text-amber-500">
                       {["first", "second", "third", "fourth", "fifth"].map((starName) => (
@@ -85,7 +85,7 @@ export function TrustSection() {
                   </CardContent>
                 </CardHeader>
 
-                <CardFooter className="p-0 pt-4 border-t border-border/40 flex items-center gap-3">
+                <CardFooter className="border-t border-border/40 flex items-center gap-3">
                   <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
                     {t.author.charAt(0)}
                   </div>

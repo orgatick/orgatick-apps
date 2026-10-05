@@ -48,7 +48,7 @@ export class NewsletterTemplateRepository {
     }
 
     const sortColumn = SORTABLE[query.sortBy] ?? SORTABLE.created_at;
-    const direction = query.sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
+    const direction = (query.sortOrder ?? "desc").toUpperCase() === "ASC" ? "ASC" : "DESC";
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
 

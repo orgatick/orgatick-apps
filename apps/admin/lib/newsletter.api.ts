@@ -8,6 +8,7 @@ import type {
   NewsletterSubscriberResponse,
   NewsletterSubscriberStats,
   NewsletterTemplateResponse,
+  SubscribeNewsletterResponse,
 } from "@orgatick/contracts";
 import serverApi from "./apis/server-auth-api";
 import type { ApiResponseData, Paginated } from "./types";
@@ -180,6 +181,25 @@ export async function saveNewsletterAsTemplate(id: string, name?: string): Promi
 
 export async function updateSubscriberStatus(id: string, status: string, reason?: string): Promise<void> {
   await api.patch(`/admin/newsletter/subscribers/${id}/status`, { status, reason });
+}
+
+/**
+ * Adds a subscriber to a list from the admin UI.
+ *
+ * The backend routes this through the same double opt-in as the public form, so the result
+ * tells you whether a confirmation email went out or the address was already subscribed.
+ */
+export async function addNewsletterSubscriber(payload: {
+  email: string;
+  name?: string;
+  /** Slug of the target list. Omit to use the platform default list. */
+  list?: string;
+}): Promise<SubscribeNewsletterResponse> {
+  const response = await api.post<ApiResponseData<SubscribeNewsletterResponse>>(
+    "/admin/newsletter/subscribers",
+    payload,
+  );
+  return response.data.data;
 }
 
 export async function createNewsletterList(payload: Record<string, unknown>): Promise<NewsletterListResponse> {

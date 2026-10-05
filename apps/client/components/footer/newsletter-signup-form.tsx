@@ -1,6 +1,7 @@
 "use client";
 
-import { Button } from "@orgatick/ui/components/button";
+import { Input } from "@orgatick/ui/components/input";
+import { InputGroup, InputGroupButton, InputGroupInput } from "@orgatick/ui/components/input-group";
 import { IconArrowRight, IconBrandMailgun } from "@tabler/icons-react";
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -54,36 +55,41 @@ export function NewsletterSignupForm() {
         </p>
       ) : (
         <form onSubmit={submit} className="space-y-2">
-          <div className="flex flex-col gap-2 sm:flex-row">
+          {/* Own field above the group, so it stays put while it is being typed into. */}
+          {email.trim().length > 0 && (
+            <>
+              <label htmlFor={`${emailId}-name`} className="sr-only">
+                First name (optional)
+              </label>
+              <Input
+                id={`${emailId}-name`}
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="First name (optional)"
+                className="bg-background"
+              />
+            </>
+          )}
+
+          <InputGroup>
             <label htmlFor={emailId} className="sr-only">
               Email address
             </label>
-            <input
+            <InputGroupInput
               id={emailId}
               type="email"
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="you@company.com"
-              className="h-9 w-full rounded-md border border-border/60 bg-background px-3 text-xs text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:max-w-[220px]"
+              className="border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent"
             />
-            <Button type="submit" size="sm" disabled={pending || !email.trim()} className="shrink-0">
+            <InputGroupButton type="submit" variant="secondary" disabled={pending || !email.trim()}>
               {pending ? "Subscribing" : "Subscribe"}
               <IconArrowRight className="size-3.5" />
-            </Button>
-          </div>
-
-          <label htmlFor={`${emailId}-name`} className="sr-only">
-            First name (optional)
-          </label>
-          <input
-            id={`${emailId}-name`}
-            type="text"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="First name (optional)"
-            className="h-9 w-full rounded-md border border-border/60 bg-background px-3 text-xs text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:max-w-[220px]"
-          />
+            </InputGroupButton>
+          </InputGroup>
 
           {/* Honeypot: kept off screen and out of the tab order, but bots still fill it in. */}
           <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">

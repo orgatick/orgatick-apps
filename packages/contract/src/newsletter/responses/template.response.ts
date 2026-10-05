@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createApiResponseSchema, createPaginatedApiResponseSchema } from "../../common/response.js";
 import { NewsletterTemplateStatus } from "../enums/newsletter.enums.js";
-import { NewsletterContentSchema } from "../schema/content.schema.js";
+import { NewsletterContentBlocksSchema } from "../schema/content.schema.js";
 import { NewsletterListResponseSchema } from "./subscriber.response.js";
 
 export const NewsletterTemplateResponseSchema = z.object({
@@ -11,7 +11,7 @@ export const NewsletterTemplateResponseSchema = z.object({
   category: z.string().nullable(),
   subject: z.string(),
   previewText: z.string().nullable(),
-  content: NewsletterContentSchema,
+  content: NewsletterContentBlocksSchema,
   hasHtmlOverride: z.boolean(),
   status: z.enum(NewsletterTemplateStatus),
   usageCount: z.number().int().nonnegative(),

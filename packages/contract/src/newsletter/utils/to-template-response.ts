@@ -28,7 +28,7 @@ export function toNewsletterTemplateResponse(
     category: entity.category ?? null,
     subject: entity.subject,
     previewText: entity.previewText ?? null,
-    content: entity.content,
+    content: entity.content ?? [],
     hasHtmlOverride: Boolean(entity.htmlOverride),
     status: entity.status,
     usageCount,

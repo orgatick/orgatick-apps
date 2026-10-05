@@ -1,14 +1,30 @@
 import { Injectable, Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { NewsletterStatus } from "@orgatick/contracts";
 import { NewsletterRepository } from "../repositories/newsletter.repository";
 import { NewsletterDispatchService } from "./newsletter-dispatch.service";
 
 /** Campaigns picked up per tick when their schedule time has passed. */
 const MAX_SCHEDULED_PER_TICK = 20;
 
-/** Batches drained per campaign per tick. Keeps one tick's runtime bounded. */
-const MAX_BATCHES_PER_TICK = 4;
+/** Sending campaigns repaired and finalised per tick. Keeps one tick's runtime bounded. */
+const MAX_RECONCILE_PER_TICK = 10;
+const MAX_FINALIZE_PER_TICK = 10;
+
+/** After this many failed ticks in a row, stop logging each one. */
+const FAILURE_LOG_EVERY = 20;
+
+/**
+ * Renders an error with its code, so a socket failure reads as `read ENETUNREACH (ENETUNREACH)`
+ * instead of a bare message that says nothing about which dependency broke.
+ */
+function describeError(error: unknown): string {
+  if (error instanceof Error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    return code ? `${error.message} (${code})` : error.message;
+  }
+
+  return String(error);
+}
 
 /**
  * Drives campaign delivery.
@@ -25,6 +41,7 @@ export class NewsletterSchedulerService implements OnApplicationBootstrap, OnApp
   private readonly enabled: boolean;
   private timer: NodeJS.Timeout | null = null;
   private ticking = false;
+  private consecutiveFailures = 0;
 
   constructor(
     private readonly newsletterRepository: NewsletterRepository,
@@ -70,14 +87,42 @@ export class NewsletterSchedulerService implements OnApplicationBootstrap, OnApp
     try {
       await this.dispatchService.withDispatchLock(async () => {
         await this.dispatchDueScheduled();
-        await this.drainSendingCampaigns();
+        // Repair first: a campaign can only be finalised once nothing is left queued.
+        await this.reconcileInFlightCampaigns();
+        await this.finalizeDrainedCampaigns();
       });
+      this.reportRecovered();
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Newsletter scheduler tick failed: ${message}`);
+      this.reportFailure(error);
     } finally {
       this.ticking = false;
     }
+  }
+
+  /**
+   * Reports a failed tick.
+   *
+   * The lock lives in Redis, so a network blip fails the whole pass. That is transient by nature,
+   * which is why only the first failure in a run is logged in full and the rest are counted: a
+   * Redis outage must not bury the log with one line every interval.
+   */
+  private reportFailure(error: unknown): void {
+    this.consecutiveFailures += 1;
+    const detail = describeError(error);
+
+    if (this.consecutiveFailures === 1) {
+      this.logger.warn(`Newsletter scheduler tick failed, will retry next tick: ${detail}`);
+    } else if (this.consecutiveFailures % FAILURE_LOG_EVERY === 0) {
+      this.logger.warn(`${this.consecutiveFailures} consecutive failed ticks, last error: ${detail}`);
+    }
+  }
+
+  /** Logs once when a failing run recovers, so an outage has a visible end. */
+  private reportRecovered(): void {
+    if (this.consecutiveFailures === 0) return;
+
+    this.logger.log(`Newsletter scheduler recovered after ${this.consecutiveFailures} failed tick(s)`);
+    this.consecutiveFailures = 0;
   }
 
   /** Moves campaigns whose schedule has arrived into the sending state. */
@@ -93,15 +138,26 @@ export class NewsletterSchedulerService implements OnApplicationBootstrap, OnApp
     }
   }
 
-  /** Sends batches for every campaign that is currently sending. */
-  private async drainSendingCampaigns(): Promise<void> {
-    const campaigns = await this.newsletterRepository.findByStatus(NewsletterStatus.SENDING, 10);
+  /** Re-queues recipients whose queue job was lost, for example evicted by Redis. */
+  private async reconcileInFlightCampaigns(): Promise<void> {
+    const repaired = await this.dispatchService.reconcileInFlightCampaigns(MAX_RECONCILE_PER_TICK);
 
-    for (const campaign of campaigns) {
-      for (let batch = 0; batch < MAX_BATCHES_PER_TICK; batch += 1) {
-        const hasMore = await this.dispatchService.dispatchBatch(campaign.id);
-        if (!hasMore) break;
-      }
+    if (repaired > 0) {
+      this.logger.warn(`Re-queued ${repaired} recipient(s) whose mail job was missing`);
+    }
+  }
+
+  /**
+   * Closes campaigns whose recipients are all done.
+   *
+   * The mail queue delivers the messages, so the scheduler's remaining job is the schedule
+   * itself plus this reconciliation, which repairs a campaign whose last job vanished.
+   */
+  private async finalizeDrainedCampaigns(): Promise<void> {
+    const finalized = await this.dispatchService.finalizeDrainedCampaigns(MAX_FINALIZE_PER_TICK);
+
+    if (finalized > 0) {
+      this.logger.log(`Finalised ${finalized} campaign(s) with no pending recipients`);
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { BadRequestException } from "@nestjs/common";
 import {
   CreateNewsletterListSchema,
@@ -7,13 +7,18 @@ import {
   type NewsletterSubscriberQueryDto,
   NewsletterSubscriberQuerySchema,
   type NewsletterSubscriberResponse,
+  NewsletterSubscriberSource,
   type NewsletterSubscriberStats,
+  type SubscribeNewsletterDto,
+  SubscribeNewsletterSchema,
+  type SubscribeNewsletterResponse,
   type UpdateNewsletterListDto,
   UpdateNewsletterListSchema,
   UpdateSubscriberStatusSchema,
   type UpdateSubscriberStatusDto,
 } from "@orgatick/contracts";
 import { PlatformAdminGuard } from "../../../common/authorization/guards/platform-admin.guard";
+import type { AuthRequest } from "../../../common/types/auth-request.types";
 import { NewsletterSubscriberService } from "../services/newsletter-subscriber.service";
 
 @UseGuards(PlatformAdminGuard)
@@ -36,6 +41,25 @@ export class AdminNewsletterSubscriberController {
   @Get("subscribers/:id")
   async findSubscriber(@Param("id") id: string): Promise<NewsletterSubscriberResponse> {
     return await this.subscriberService.findOne(bigintParam(id));
+  }
+
+  /**
+   * Admin-side add, used when support imports or corrects a subscriber by hand.
+   *
+   * Deliberately routed through the public `subscribe()` so the record obeys the same rules:
+   * double opt-in still applies, an existing address is never duplicated, and a lapsed
+   * subscriber is reopened rather than added twice. The source is forced so the origin of the
+   * record stays visible on the subscriber.
+   */
+  @Post("subscribers")
+  async addSubscriber(
+    @Body({ schema: SubscribeNewsletterSchema }) dto: SubscribeNewsletterDto,
+    @Req() request: AuthRequest,
+  ): Promise<SubscribeNewsletterResponse> {
+    return await this.subscriberService.subscribe(
+      { ...dto, source: NewsletterSubscriberSource.ADMIN },
+      { userId: BigInt(request.user.id) },
+    );
   }
 
   /** Admin-side resubscribe, used after a support request. */

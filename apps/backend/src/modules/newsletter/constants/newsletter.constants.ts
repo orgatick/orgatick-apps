@@ -5,7 +5,6 @@ export const NEWSLETTER_DISPATCH_LOCK_KEY = "newsletter:dispatch:lock";
 export const NEWSLETTER_DISPATCH_LOCK_TTL_MS = 60_000;
 
 /** Guard against a runaway retry loop on a single address. */
-export const NEWSLETTER_MAX_SEND_ATTEMPTS = 3;
 
 /** Resend message tag used to correlate provider-side events back to a campaign. */
 export const NEWSLETTER_TAG_NAME = "newsletter_campaign";
@@ -22,7 +21,7 @@ export const NEWSLETTER_BRAND = {
   name: "Orgatick",
   siteUrl: "https://orgatick.in",
   logoUrl: "https://assets.orgatick.in/public/icons/icon-512.png",
-  address: "Orgatick, Bengaluru, Karnataka, India",
+  address: "Orgatick, India",
   colors: {
     background: "#f4f7fc",
     foreground: "#1a2b4c",

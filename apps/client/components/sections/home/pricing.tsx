@@ -104,7 +104,7 @@ export function PricingSection() {
               className="flex"
             >
               <Card
-                className={`relative flex flex-col justify-between p-6 sm:p-8 rounded-2xl transition-all duration-300 bg-card border w-full ${
+                className={`relative flex flex-col justify-between rounded-2xl transition-all duration-300 bg-card border w-full ${
                   plan.highlighted
                     ? "border-primary/60 shadow-2xl shadow-primary/15 ring-2 ring-primary/20 scale-[1.02] hover:scale-[1.04]"
                     : "border-border/60 hover:border-border hover:-translate-y-1 shadow-md"
@@ -119,7 +119,7 @@ export function PricingSection() {
 
                 <div className="space-y-6">
                   {/* Title & Badge */}
-                  <CardHeader className="p-0 space-y-2">
+                  <CardHeader className="space-y-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-2xl font-bold text-foreground">{plan.name}</CardTitle>
                       <Badge variant="outline" className="text-[11px] font-mono">
@@ -129,17 +129,16 @@ export function PricingSection() {
                     <p className="text-xs text-muted-foreground leading-relaxed font-normal">{plan.description}</p>
                   </CardHeader>
 
-                  {/* Price Display */}
-                  <div className="space-y-1 pb-4 border-b border-border/40">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-extrabold text-foreground font-mono">{plan.price}</span>
-                      <span className="text-xs text-muted-foreground font-medium">{plan.period}</span>
-                    </div>
-                    <p className="text-xs font-mono text-primary font-medium">{plan.fee}</p>
-                  </div>
-
                   {/* Features List */}
-                  <CardContent className="p-0 space-y-3">
+                  <CardContent className="space-y-3">
+                    {/* Price Display */}
+                    <div className="space-y-1 pb-4 border-b border-border/40">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-extrabold text-foreground font-mono">{plan.price}</span>
+                        <span className="text-xs text-muted-foreground font-medium">{plan.period}</span>
+                      </div>
+                      <p className="text-xs font-mono text-primary font-medium">{plan.fee}</p>
+                    </div>
                     <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground font-semibold">
                       Included Operational Tools:
                     </p>
@@ -155,7 +154,7 @@ export function PricingSection() {
                 </div>
 
                 {/* Card Footer CTA */}
-                <CardFooter className="p-0 pt-8 mt-6 border-t border-border/40">
+                <CardFooter className="mt-6 border-t border-border/40">
                   <LinkButton
                     href="#"
                     variant={plan.ctaVariant}

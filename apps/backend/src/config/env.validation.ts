@@ -10,10 +10,12 @@ export const envSchema = z.object({
   DATABASE_PASSWORD: z.string().min(1),
   DATABASE_NAME: z.string().min(1),
 
-  REDIS_HOST: z.string().min(1),
+  REDIS_HOST: z.string().min(1).default("127.0.0.1"),
   REDIS_PORT: z.coerce.number().int().positive().default(6379),
-  REDIS_PASSWORD: z.string().min(1),
-  REDIS_URL: z.string().min(1),
+  /** Unset or blank for a local Redis started without requirepass. */
+  REDIS_PASSWORD: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(1).optional()),
+  /** Database index. A dedicated one keeps the mail queue off the cache's keys. */
+  REDIS_DB: z.coerce.number().int().nonnegative().default(0),
 
   RESEND_API_KEY: z.string().min(1),
 
@@ -39,7 +41,6 @@ export const envSchema = z.object({
   NEWSLETTER_CONFIRMATION_TTL_MINUTES: z.coerce.number().int().min(5).max(10080).default(2880),
   /** Campaign dispatch tick interval. Multiple replicas contend on a Redis lock. */
   NEWSLETTER_DISPATCH_INTERVAL_MS: z.coerce.number().int().min(5000).max(600000).default(15000),
-  NEWSLETTER_BATCH_SIZE: z.coerce.number().int().min(1).max(1000).default(100),
   NEWSLETTER_MAX_RECIPIENTS_PER_SEND: z.coerce.number().int().min(1).max(500000).default(100000),
   /** Svix-style webhook secret used to verify deliverability callbacks. */
   NEWSLETTER_WEBHOOK_SECRET: z.string().min(16).optional(),

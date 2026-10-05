@@ -28,6 +28,8 @@ export enum NewsletterSubscriberStatus {
 /** Per-recipient delivery state of a campaign send. */
 export enum NewsletterRecipientStatus {
   QUEUED = "queued",
+  /** Claimed by a worker and being sent right now. Never terminal. */
+  PROCESSING = "processing",
   SENT = "sent",
   DELIVERED = "delivered",
   OPENED = "opened",
@@ -81,4 +83,6 @@ export enum NewsletterSubscriberSource {
   CHECKOUT = "checkout",
   IMPORT = "import",
   API = "api",
+  /** Added by a platform admin from the admin UI. */
+  ADMIN = "admin",
 }

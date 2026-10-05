@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { NewsletterTemplateStatus } from "../enums/newsletter.enums.js";
-import { NewsletterContentSchema } from "./content.schema.js";
+import { NewsletterContentBlocksSchema } from "./content.schema.js";
 
 export const CreateNewsletterTemplateSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -8,7 +8,8 @@ export const CreateNewsletterTemplateSchema = z.object({
   category: z.string().trim().max(64).optional(),
   subject: z.string().trim().min(1).max(200),
   previewText: z.string().trim().max(300).optional(),
-  content: NewsletterContentSchema,
+  /** A template created from an HTML override has no blocks; the list is then empty. */
+  content: NewsletterContentBlocksSchema.default([]),
   /** Optional override so a designer can paste a hand-built HTML email. */
   htmlOverride: z.string().max(200000).optional(),
   status: z.enum(NewsletterTemplateStatus).default(NewsletterTemplateStatus.DRAFT),
@@ -22,7 +23,7 @@ export const UpdateNewsletterTemplateSchema = z.object({
   category: z.string().trim().max(64).nullable().optional(),
   subject: z.string().trim().min(1).max(200).optional(),
   previewText: z.string().trim().max(300).nullable().optional(),
-  content: NewsletterContentSchema.optional(),
+  content: NewsletterContentBlocksSchema.optional(),
   htmlOverride: z.string().max(200000).nullable().optional(),
   status: z.enum(NewsletterTemplateStatus).optional(),
 });

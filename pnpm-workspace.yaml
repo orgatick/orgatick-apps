@@ -3,15 +3,9 @@ packages:
   - "packages/*"
 
 allowBuilds:
-  bcrypt: set this to true or false
-  esbuild: set this to true or false
-
-onlyBuiltDependencies:
-  - "@biomejs/biome"
-  - bcrypt
-  - esbuild
-  - sharp
-  - unrs-resolver
+  bcrypt: true
+  esbuild: true
+  msgpackr-extract: true
 
 peerDependencyRules:
   allowedVersions:

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Card, CardContent } from "@orgatick/ui/components/card";
 import { PageHeader } from "@/components/page-header";
 import { ListManager } from "@/components/newsletter/list-manager";
+import { ListRowActions } from "@/components/newsletter/list-row-actions";
 import { ListStatusBadge } from "@/components/newsletter/status-badge";
 import { serverFetchNewsletterLists } from "@/lib/newsletter.api";
 
@@ -30,12 +31,13 @@ export default async function MailingListsPage() {
                   <th className="px-4 py-2.5 font-medium">Scope</th>
                   <th className="px-4 py-2.5 text-right font-medium">Subscribers</th>
                   <th className="px-4 py-2.5 font-medium">Created</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {lists.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-12 text-center text-sm text-muted-foreground">
                       No mailing lists yet.
                     </td>
                   </tr>
@@ -63,6 +65,11 @@ export default async function MailingListsPage() {
                           day: "numeric",
                         })}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <ListRowActions list={list} lists={lists} />
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -305,6 +305,9 @@ export class NewsletterSubscriberService {
       subscriber.subscribedAt = subscriber.subscribedAt ?? new Date();
       subscriber.confirmedAt = subscriber.confirmedAt ?? new Date();
       subscriber.unsubscribedAt = null;
+    } else {
+      // confirmedAt tracks the current subscription, not one that already ended.
+      subscriber.confirmedAt = null;
     }
 
     if (dto.status === NewsletterSubscriberStatus.UNSUBSCRIBED) {
@@ -496,6 +499,8 @@ export class NewsletterSubscriberService {
     existing.source = dto.source;
     existing.status = NewsletterSubscriberStatus.PENDING;
     existing.unsubscribedAt = null;
+    // Double opt-in runs again, so the previous confirmation no longer describes this attempt.
+    existing.confirmedAt = null;
     existing.ipAddress = context.ipAddress ?? existing.ipAddress;
     existing.userAgent = context.userAgent ?? existing.userAgent;
     existing.userId = context.userId ?? existing.userId;

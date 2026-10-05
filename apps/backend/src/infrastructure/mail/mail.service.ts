@@ -8,7 +8,8 @@ interface SendTemplateOptions {
   variables?: Record<string, string | number>;
 }
 
-interface SendHtmlOptions {
+/** A fully rendered message, ready for the provider. Also the mail queue job payload. */
+export interface SendHtmlOptions {
   to: string | string[];
   subject: string;
   html: string;

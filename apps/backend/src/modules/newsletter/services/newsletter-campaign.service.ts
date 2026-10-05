@@ -17,7 +17,6 @@ import {
   type NewsletterStats,
   type UpdateNewsletterDto,
 } from "@orgatick/contracts";
-import { NEWSLETTER_MAX_SEND_ATTEMPTS } from "../constants/newsletter.constants";
 import { Newsletter } from "../entities/newsletter.entity";
 import { NewsletterEventRepository } from "../repositories/newsletter-event.repository";
 import { NewsletterRecipientRepository } from "../repositories/newsletter-recipient.repository";
@@ -175,6 +174,7 @@ export class NewsletterCampaignService {
         if (!EDITABLE.includes(campaign.status) && !wedged) {
           throw new BadRequestException(`A ${campaign.status} campaign cannot be sent`);
         }
+        // Delivery is queued, so the request returns without waiting for the provider.
         await this.dispatchService.queue(campaign, actor);
         break;
       }
@@ -222,13 +222,18 @@ export class NewsletterCampaignService {
         if (![NewsletterStatus.SENT, NewsletterStatus.FAILED, NewsletterStatus.PAUSED].includes(campaign.status)) {
           throw new BadRequestException("Only a completed, failed or paused campaign can retry failed recipients");
         }
-        const requeued = await this.recipientRepository.requeueFailed(campaign.id, NEWSLETTER_MAX_SEND_ATTEMPTS);
-        if (requeued === 0) {
+        const requeued = await this.recipientRepository.requeueFailed(campaign.id);
+        if (requeued.length === 0) {
           throw new BadRequestException("There are no failed recipients left to retry");
         }
+        // Back onto the mail queue, otherwise the rows would sit queued forever.
         campaign.status = NewsletterStatus.SENDING;
         campaign.completedAt = null;
         campaign.failedCount = 0;
+        // Saved before queueing on purpose: the worker drops a job whose campaign is not yet
+        // sending, so the status has to be durable before the jobs can be picked up.
+        await this.newsletterRepository.save(campaign);
+        await this.dispatchService.requeueRecipients(campaign, requeued);
         break;
       }
       default:

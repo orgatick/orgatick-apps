@@ -2,12 +2,13 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type Redis from "ioredis";
 import { NewsletterRecipientStatus, NewsletterStatus, NewsletterSubscriberStatus } from "@orgatick/contracts";
+import { MAIL_QUEUE_CONFIG } from "../../../config/mail-queue.config";
 import { MailService } from "../../../infrastructure/mail/mail.service";
+import { MailQueueService } from "../../../infrastructure/queue/mail-queue.service";
 import { REDIS_CLIENT } from "../../../infrastructure/redis/redis.constants";
 import {
   NEWSLETTER_DISPATCH_LOCK_KEY,
   NEWSLETTER_DISPATCH_LOCK_TTL_MS,
-  NEWSLETTER_MAX_SEND_ATTEMPTS,
   NEWSLETTER_TAG_NAME,
 } from "../constants/newsletter.constants";
 import { Newsletter } from "../entities/newsletter.entity";
@@ -29,16 +30,19 @@ function firstNameOf(name?: string | null): string {
 }
 
 /**
- * Builds the recipient queue for a campaign and drains it in batches.
+ * Prepares a campaign send: claims it, materialises its recipients and queues their mail.
  *
- * Delivery state lives in `newsletter_recipients`, so a restart, a crash mid-send or a
- * second replica cannot resend an address: rows are claimed with `FOR UPDATE SKIP LOCKED`
- * and every send is keyed on the (newsletter_id, email_normalized) unique index.
+ * Nothing is sent from the request. The mail queue carries delivery, so a provider outage,
+ * a rate limit or a large audience can never turn into a failed API call, and delivery state
+ * lives in `newsletter_recipients` keyed on the (newsletter_id, email_normalized) unique
+ * index so a restart or a second replica cannot resend an address.
  */
+/** Recipients re-queued per campaign per repair pass, so one huge campaign cannot stall a tick. */
+const MAX_REPAIRED_PER_CAMPAIGN = 500;
+
 @Injectable()
 export class NewsletterDispatchService {
   private readonly logger = new Logger(NewsletterDispatchService.name);
-  private readonly batchSize: number;
   private readonly maxRecipientsPerSend: number;
   private readonly publicBaseUrl: string;
 
@@ -49,10 +53,10 @@ export class NewsletterDispatchService {
     private readonly tokenService: NewsletterTokenService,
     private readonly renderService: NewsletterRenderService,
     private readonly mailService: MailService,
+    private readonly mailQueue: MailQueueService,
     configService: ConfigService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {
-    this.batchSize = configService.getOrThrow<number>("NEWSLETTER_BATCH_SIZE");
     this.maxRecipientsPerSend = configService.getOrThrow<number>("NEWSLETTER_MAX_RECIPIENTS_PER_SEND");
     this.publicBaseUrl = resolveNewsletterBaseUrl(configService);
   }
@@ -156,17 +160,22 @@ export class NewsletterDispatchService {
       audience,
     });
 
-    const queued = await this.recipientRepository.enqueue(campaign.id, subscriberIds);
+    const recipientIds = await this.recipientRepository.enqueue(campaign.id, subscriberIds);
 
-    campaign.status = queued === 0 ? NewsletterStatus.SENT : NewsletterStatus.SENDING;
-    campaign.sentAt = new Date();
-    campaign.recipientCount = queued;
-    if (queued === 0) {
+    campaign.status = recipientIds.length === 0 ? NewsletterStatus.SENT : NewsletterStatus.SENDING;
+    campaign.startedAt = campaign.startedAt ?? new Date();
+    campaign.recipientCount = recipientIds.length;
+    if (recipientIds.length === 0) {
       campaign.completedAt = new Date();
     }
     await this.newsletterRepository.save(campaign);
 
-    this.logger.log(`Campaign ${String(campaign.id)} queued for ${queued} recipients`);
+    // One job per recipient. The queue carries delivery; Postgres carries the ledger.
+    await this.mailQueue.queueCampaignRecipients(
+      recipientIds.map((recipientId) => ({ newsletterId: String(campaign.id), recipientId: String(recipientId) })),
+    );
+
+    this.logger.log(`Campaign ${String(campaign.id)} queued for ${recipientIds.length} recipients`);
   }
 
   /** Picks up campaigns whose schedule has arrived. Called by the scheduler tick. */
@@ -183,36 +192,75 @@ export class NewsletterDispatchService {
     return claimed;
   }
 
-  /**
-   * Sends one batch for a campaign.
-   *
-   * Returns false when nothing is left, which is the signal for the caller to finalise
-   * the campaign.
-   */
-  async dispatchBatch(newsletterId: bigint): Promise<boolean> {
-    const campaign = await this.newsletterRepository.findById(newsletterId);
-    if (!campaign || ![NewsletterStatus.SENDING].includes(campaign.status)) {
-      return false;
-    }
+  /** Puts previously failed recipients back onto the mail queue. */
+  async requeueRecipients(campaign: Newsletter, recipientIds: bigint[]): Promise<void> {
+    const retryNonce = Date.now();
 
-    const claimed = await this.recipientRepository.claimBatch(newsletterId, this.batchSize);
-    if (claimed.length === 0) {
-      await this.finalize(campaign);
-      return false;
-    }
-
-    await Promise.all(
-      claimed.map((recipient) =>
-        this.sendOne(campaign, recipient.subscriberId, {
-          id: recipient.id,
-          email: recipient.email,
-          attemptCount: recipient.attemptCount,
-        }),
-      ),
+    await this.mailQueue.queueCampaignRecipients(
+      recipientIds.map((recipientId) => ({
+        newsletterId: String(campaign.id),
+        recipientId: String(recipientId),
+        retryNonce,
+      })),
     );
 
-    await this.recipientRepository.refreshFromEvents(newsletterId);
-    return true;
+    this.logger.log(`Campaign ${String(campaign.id)} re-queued ${recipientIds.length} failed recipients`);
+  }
+
+  /**
+   * Re-queues recipients whose mail job went missing.
+   *
+   * The database, not the queue, is the source of truth for delivery, so a job that was
+   * evicted or removed would otherwise leave its recipient `queued` forever and strand the
+   * campaign. Job ids are derived from the campaign and recipient, so re-adding a job that is
+   * still alive is a no-op and only genuinely missing ones come back.
+   */
+  async reconcileInFlightCampaigns(limit: number): Promise<number> {
+    const campaigns = await this.newsletterRepository.findByStatus(NewsletterStatus.SENDING, limit);
+    const queuedBefore = new Date(Date.now() - MAIL_QUEUE_CONFIG.reconcileGraceMs);
+    let repaired = 0;
+
+    for (const campaign of campaigns) {
+      const stale = await this.recipientRepository.findStaleQueuedIds(
+        campaign.id,
+        queuedBefore,
+        MAX_REPAIRED_PER_CAMPAIGN,
+      );
+      if (stale.length === 0) continue;
+
+      await this.mailQueue.queueCampaignRecipients(
+        stale.map((recipientId) => ({ newsletterId: String(campaign.id), recipientId: String(recipientId) })),
+      );
+      repaired += stale.length;
+      this.logger.warn(
+        `Re-queued ${stale.length} recipient(s) of campaign ${String(campaign.id)}: their mail job was lost`,
+      );
+    }
+
+    return repaired;
+  }
+
+  /**
+   * Closes every sending campaign whose recipients have all reached a terminal state.
+   *
+   * Called from the scheduler tick as a safety net: the worker normally finalises the
+   * campaign itself, but a job that is removed, retried forever or lost with a crashed
+   * worker must not leave the campaign stuck in `sending`.
+   */
+  async finalizeDrainedCampaigns(limit: number): Promise<number> {
+    const campaigns = await this.newsletterRepository.findByStatus(NewsletterStatus.SENDING, limit);
+    let finalized = 0;
+
+    for (const campaign of campaigns) {
+      if ((await this.recipientRepository.pendingCount(campaign.id)) > 0) {
+        continue;
+      }
+
+      await this.finalize(campaign);
+      finalized += 1;
+    }
+
+    return finalized;
   }
 
   /**
@@ -281,18 +329,46 @@ export class NewsletterDispatchService {
     return result;
   }
 
-  /** Renders and sends a single recipient. Failures are recorded, never thrown. */
-  private async sendOne(
-    campaign: Newsletter,
-    subscriberId: bigint | null | undefined,
-    recipient: { id: bigint; email: string; attemptCount: number },
-  ): Promise<void> {
-    const subscriber = subscriberId ? await this.subscriberRepository.findById(subscriberId) : null;
+  /**
+   * Renders and delivers one queued recipient. Called by the mail worker.
+   *
+   * Throws when the provider call fails, which is how BullMQ is told to retry with backoff.
+   * The recipient is only marked failed once the attempts are exhausted, so a transient
+   * outage does not lose the address.
+   */
+  async deliverRecipient(
+    newsletterId: bigint,
+    recipientId: bigint,
+    options: { finalAttempt: boolean },
+  ): Promise<{ providerMessageId: string | null }> {
+    const campaign = await this.newsletterRepository.findById(newsletterId);
+
+    if (!campaign || campaign.status !== NewsletterStatus.SENDING) {
+      this.logger.warn(`Dropping recipient ${String(recipientId)}: campaign is ${campaign?.status ?? "missing"}`);
+      return { providerMessageId: null };
+    }
+
+    const recipient = await this.recipientRepository.findById(recipientId);
+
+    if (!recipient) {
+      return { providerMessageId: null };
+    }
+
+    // Only still-queued work is delivered, so a retry cannot double-send.
+    if (recipient.status !== NewsletterRecipientStatus.QUEUED) {
+      this.logger.warn(`Skipping recipient ${String(recipientId)}: already ${recipient.status}`);
+      return { providerMessageId: null };
+    }
+
+    await this.recipientRepository.markProcessing(recipient.id);
+
+    const subscriber = recipient.subscriberId ? await this.subscriberRepository.findById(recipient.subscriberId) : null;
 
     // Re-checked at send time: an address may have unsubscribed while the campaign was queued.
     if (subscriber && subscriber.status !== NewsletterSubscriberStatus.SUBSCRIBED) {
       await this.recipientRepository.markSent(recipient.id, null, NewsletterRecipientStatus.SKIPPED);
-      return;
+      await this.finalize(campaign);
+      return { providerMessageId: null };
     }
 
     try {
@@ -315,23 +391,28 @@ export class NewsletterDispatchService {
       });
 
       if (response.error) {
-        await this.handleFailure(recipient, response.error.message);
-        return;
+        throw new Error(response.error.message);
       }
 
-      await this.recipientRepository.markSent(recipient.id, response.data?.id ?? null, NewsletterRecipientStatus.SENT);
+      const providerMessageId = response.data?.id ?? null;
+      await this.recipientRepository.markSent(recipient.id, providerMessageId, NewsletterRecipientStatus.SENT);
+      await this.finalize(campaign);
+
+      return { providerMessageId };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      await this.handleFailure(recipient, message);
-    }
-  }
 
-  /** Exhausted retries stop here; otherwise the recipient stays failed for a manual retry. */
-  private async handleFailure(recipient: { id: bigint; attemptCount: number }, reason: string): Promise<void> {
-    await this.recipientRepository.markFailed(recipient.id, reason);
+      // Re-queue and let BullMQ retry, unless this was the last attempt.
+      if (!options.finalAttempt) {
+        await this.recipientRepository.markQueued(recipient.id, message);
+        throw error;
+      }
 
-    if (recipient.attemptCount >= NEWSLETTER_MAX_SEND_ATTEMPTS) {
-      this.logger.warn(`Recipient ${String(recipient.id)} failed permanently: ${reason}`);
+      await this.recipientRepository.markFailed(recipient.id, message);
+      await this.finalize(campaign);
+
+      this.logger.error(`Recipient ${String(recipient.id)} failed permanently: ${message}`);
+      return { providerMessageId: null };
     }
   }
 

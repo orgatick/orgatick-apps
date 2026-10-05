@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { PlatformAdminGuard } from "../../common/authorization/guards/platform-admin.guard";
 import { MailModule } from "../../infrastructure/mail/mail.module";
+import { QueueModule } from "../../infrastructure/queue/queue.module";
 import { AdminNewsletterController } from "./controllers/admin-newsletter.controller";
 import { AdminNewsletterSubscriberController } from "./controllers/admin-newsletter-subscriber.controller";
 import { AdminNewsletterTemplateController } from "./controllers/admin-newsletter-template.controller";
@@ -20,6 +21,7 @@ import { NewsletterRecipientRepository } from "./repositories/newsletter-recipie
 import { NewsletterRepository } from "./repositories/newsletter.repository";
 import { NewsletterSubscriberRepository } from "./repositories/newsletter-subscriber.repository";
 import { NewsletterTemplateRepository } from "./repositories/newsletter-template.repository";
+import { NewsletterMailProcessor } from "./processors/newsletter-mail.processor";
 import { NewsletterCampaignService } from "./services/newsletter-campaign.service";
 import { NewsletterContentService } from "./services/newsletter-content.service";
 import { NewsletterDispatchService } from "./services/newsletter-dispatch.service";
@@ -41,8 +43,8 @@ const ENTITIES = [
 ];
 
 @Module({
-  // MailModule is global, but importing it keeps the mail dependency explicit.
-  imports: [TypeOrmModule.forFeature(ENTITIES), MailModule],
+  // Mail and queue modules are global, but importing them keeps the dependencies explicit.
+  imports: [TypeOrmModule.forFeature(ENTITIES), MailModule, QueueModule],
   controllers: [
     AdminNewsletterController,
     AdminNewsletterSubscriberController,
@@ -69,6 +71,8 @@ const ENTITIES = [
     NewsletterDispatchService,
     NewsletterTrackingService,
     NewsletterSchedulerService,
+    // Mail queue worker
+    NewsletterMailProcessor,
   ],
   exports: [
     NewsletterSubscriberService,

@@ -11,7 +11,6 @@ import { REDIS_CLIENT } from "./redis.constants";
       inject: [ConfigService],
       useFactory: (config: ConfigService): Redis => {
         const logger = new Logger("RedisClient");
-        const redisUrl = config.get<string>("REDIS_URL");
 
         const commonOptions: RedisOptions = {
           lazyConnect: false,
@@ -28,21 +27,13 @@ import { REDIS_CLIENT } from "./redis.constants";
           },
         };
 
-        let client: Redis;
-        if (redisUrl) {
-          client = new Redis(redisUrl, commonOptions);
-        } else {
-          const host = config.get<string>("REDIS_HOST") || "127.0.0.1";
-          const port = config.get<number>("REDIS_PORT") || 6379;
-          const password = config.get<string>("REDIS_PASSWORD") || undefined;
-
-          client = new Redis({
-            host,
-            port,
-            password,
-            ...commonOptions,
-          });
-        }
+        const client = new Redis({
+          host: config.get<string>("REDIS_HOST") || "127.0.0.1",
+          port: Number(config.get<string>("REDIS_PORT") || 6379),
+          password: config.get<string>("REDIS_PASSWORD") || undefined,
+          db: config.get<number>("REDIS_DB") ?? 0,
+          ...commonOptions,
+        });
 
         client.on("connect", () => {
           logger.log("Redis client connected successfully");

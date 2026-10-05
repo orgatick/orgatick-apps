@@ -6,9 +6,9 @@ import { Button } from "@orgatick/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@orgatick/ui/components/dropdown-menu";
 import { Input } from "@orgatick/ui/components/input";
@@ -197,14 +197,16 @@ export function BlockEditor({ value, onChange, error }: BlockEditorProps) {
           }
         />
         <DropdownMenuContent className="w-56" align="start">
-          <DropdownMenuLabel>Content blocks</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {MENU_ITEMS.map((item) => (
-            <DropdownMenuItem key={item.type} onClick={() => addBlock(item.type)}>
-              <item.icon className="size-4" />
-              {item.label}
-            </DropdownMenuItem>
-          ))}
+          {/* The label is a menu group part, so it needs the group it labels. */}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Content blocks</DropdownMenuLabel>
+            {MENU_ITEMS.map((item) => (
+              <DropdownMenuItem key={item.type} onClick={() => addBlock(item.type)}>
+                <item.icon className="size-4" />
+                {item.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

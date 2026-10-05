@@ -9,7 +9,15 @@ export const cacheModule = CacheModule.registerAsync({
   useFactory: (config: ConfigService) => ({
     stores: [
       new Keyv({
-        store: new KeyvRedis(config.getOrThrow<string>("REDIS_URL")),
+        // node-redis client options: same host/port settings as the rest of the app.
+        store: new KeyvRedis({
+          socket: {
+            host: config.get<string>("REDIS_HOST") || "127.0.0.1",
+            port: Number(config.get<string>("REDIS_PORT") || 6379),
+          },
+          password: config.get<string>("REDIS_PASSWORD") || undefined,
+          database: config.get<number>("REDIS_DB") ?? 0,
+        }),
       }),
     ],
   }),
