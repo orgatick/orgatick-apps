@@ -70,3 +70,10 @@ export async function resendTeamInvitation(invitationId: string): Promise<Organi
 export async function cancelTeamInvitation(invitationId: string): Promise<OrganizationInvitationResponse> {
   return await unwrap<OrganizationInvitationResponse>(api.delete(`${TEAM_BASE}/invitations/${invitationId}`));
 }
+
+export async function updateCurrentOrganization(
+  organizationId: string,
+  data: Record<string, unknown>,
+): Promise<unknown> {
+  return await unwrap<unknown>(api.patch(`/organizations/${organizationId}`, data));
+}

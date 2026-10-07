@@ -21,9 +21,7 @@ import { AddressStep } from "./_steps/address-step";
 import { DocumentsStep } from "./_steps/documents-step";
 import { ContactsStep } from "./_steps/contacts-step";
 import { ReviewStep } from "./_steps/review-step";
-import api from "@/lib/apis/auth.api";
-
-const ORGANIZATION_CREATE_TIMEOUT_MS = 120_000;
+import { submitOrganizationApplication } from "./_utils/submit-organization";
 
 export function CreateOrganizationForm() {
   const router = useRouter();
@@ -87,34 +85,10 @@ export function CreateOrganizationForm() {
   const onSubmit = async (data: CreateOrganizationOutput) => {
     setIsSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append(
-        "organizationData",
-        JSON.stringify(data, (_key, value) => {
-          if (typeof value === "bigint") return value.toString();
-          if (value instanceof File) return undefined;
-          return value;
-        }),
-      );
-
-      if (data.basicInfo.logo instanceof File) {
-        formData.append("basicInfo.logo", data.basicInfo.logo);
-      }
-
-      data.document.forEach((doc, idx) => {
-        if (doc.file instanceof File) {
-          formData.append(`document_${idx}`, doc.file);
-        }
-      });
-      await api.post("/organizations", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        timeout: ORGANIZATION_CREATE_TIMEOUT_MS,
-      });
-
+      await submitOrganizationApplication(data);
       toast.success("Organization successfully registered!", {
         description: "Your organization application is currently under review.",
       });
-
       router.replace("/");
     } catch (err: unknown) {
       console.error("Error creating organization:", err);
@@ -129,12 +103,10 @@ export function CreateOrganizationForm() {
   return (
     <FormProvider {...form}>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-10">
-        {/* Desktop stepper */}
         <aside className="hidden min-w-0 w-64 shrink-0 lg:sticky lg:top-6 lg:block xl:w-72">
           <ApplicationStepper currentStep={currentStep} onGoToStep={goToStep} />
         </aside>
 
-        {/* Full-page form column + sticky action bar */}
         <form id={ORGANIZATION_FORM_ID} onSubmit={onFormSubmit} className="flex w-full min-w-0 flex-col gap-6">
           <div className="lg:hidden">
             <MobileStepProgress currentStep={currentStep} />

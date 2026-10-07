@@ -1,6 +1,6 @@
 "use client";
 
-import { IconMail, IconRotateClockwise, IconX } from "@tabler/icons-react";
+import { IconMail } from "@tabler/icons-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type {
@@ -8,38 +8,13 @@ import type {
   OrganizationInvitationResponse,
   OrganizationRoleOptionResponse,
 } from "@orgatick/contracts";
-import { Badge } from "@orgatick/ui/components/badge";
-import { Button } from "@orgatick/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@orgatick/ui/components/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@orgatick/ui/components/empty";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@orgatick/ui/components/select";
 import { Skeleton } from "@orgatick/ui/components/skeleton";
 import { handleApiError } from "@/lib/apis/api-error";
 import { cancelTeamInvitation, fetchTeamInvitations, resendTeamInvitation } from "@/lib/apis/organization.api";
-
-const STATUS_BADGE_VARIANTS: Record<InvitationStatusFilter, "secondary" | "default" | "destructive" | "outline"> = {
-  pending: "secondary",
-  accepted: "default",
-  rejected: "destructive",
-  expired: "outline",
-  cancelled: "outline",
-};
-
-const STATUS_LABELS: Record<InvitationStatusFilter, string> = {
-  pending: "Pending",
-  accepted: "Accepted",
-  rejected: "Rejected",
-  expired: "Expired",
-  cancelled: "Cancelled",
-};
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
-function statusOf(value: string): InvitationStatusFilter {
-  return (value in STATUS_LABELS ? value : "pending") as InvitationStatusFilter;
-}
+import { STATUS_LABELS, TeamInvitationRow, statusOf } from "./team-invitation-row";
 
 interface TeamInvitationsCardProps {
   invitations: OrganizationInvitationResponse[];
@@ -132,68 +107,30 @@ export function TeamInvitationsCard({ invitations, roles, canInvite, canRemove }
           </Empty>
         ) : (
           <div className="space-y-1">
-            {items.map((invitation) => {
-              const status = statusOf(invitation.status);
-              const isBusy = pendingKey !== null;
-              return (
-                <div
-                  key={invitation.id}
-                  className="flex flex-wrap items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/60"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{invitation.email}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {roleNameOf(invitation)} · invited {formatDate(invitation.createdAt)}
-                      {invitation.invitedBy ? ` by ${invitation.invitedBy.name}` : ""}
-                      {status === "pending" ? ` · expires ${formatDate(invitation.expiresAt)}` : ""}
-                    </p>
-                  </div>
-
-                  <Badge variant={STATUS_BADGE_VARIANTS[status]}>{STATUS_LABELS[status]}</Badge>
-
-                  {status === "pending" && (
-                    <div className="flex items-center gap-2">
-                      {canInvite && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1.5"
-                          disabled={isBusy}
-                          onClick={() =>
-                            void runAction(
-                              `resend:${invitation.id}`,
-                              () => resendTeamInvitation(invitation.id),
-                              `Invitation resent to ${invitation.email}`,
-                            )
-                          }
-                        >
-                          <IconRotateClockwise className="size-3.5" />
-                          Resend
-                        </Button>
-                      )}
-                      {canRemove && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1.5 text-destructive hover:border-destructive/40 hover:text-destructive"
-                          disabled={isBusy}
-                          onClick={() =>
-                            void runAction(
-                              `cancel:${invitation.id}`,
-                              () => cancelTeamInvitation(invitation.id),
-                              "Invitation cancelled",
-                            )
-                          }
-                        >
-                          <IconX className="size-3.5" />
-                          Cancel
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {items.map((invitation) => (
+              <TeamInvitationRow
+                key={invitation.id}
+                invitation={invitation}
+                roleName={roleNameOf(invitation)}
+                canInvite={canInvite}
+                canRemove={canRemove}
+                isBusy={pendingKey !== null}
+                onResend={() =>
+                  void runAction(
+                    `resend:${invitation.id}`,
+                    () => resendTeamInvitation(invitation.id),
+                    `Invitation resent to ${invitation.email}`,
+                  )
+                }
+                onCancel={() =>
+                  void runAction(
+                    `cancel:${invitation.id}`,
+                    () => cancelTeamInvitation(invitation.id),
+                    "Invitation cancelled",
+                  )
+                }
+              />
+            ))}
           </div>
         )}
       </CardContent>

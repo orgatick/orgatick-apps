@@ -1,22 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IconChevronDown, IconLoader } from "@tabler/icons-react";
-import type { CategoryResponse } from "@orgatick/contracts";
-
+import { IconChevronDown } from "@tabler/icons-react";
 import { Button } from "@orgatick/ui/components/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@orgatick/ui/components/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@orgatick/ui/components/popover";
-import { cn } from "@orgatick/ui/lib/utils";
-
+import { Popover, PopoverTrigger } from "@orgatick/ui/components/popover";
 import { useCategoryOptions } from "@/lib/use-category-options";
+import { CategorySelectContent } from "./category-select-content";
 
 export interface CategorySelectProps {
   value: number | null | undefined;
@@ -28,36 +17,6 @@ export interface CategorySelectProps {
   disabledReason?: string | null;
   ariaInvalid?: boolean;
   id?: string;
-}
-
-function CategoryRow({
-  category,
-  selected,
-  onSelect,
-}: {
-  category: CategoryResponse;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <CommandItem
-      value={`${Number(category.id)}-${category.name}`.toLowerCase()}
-      onSelect={onSelect}
-      className={cn("flex w-full flex-col items-start gap-0.5 py-2", selected && "bg-accent")}
-    >
-      <span className="flex w-full items-center gap-2">
-        <span className="flex size-5 shrink-0 items-center justify-center rounded-[3px] bg-muted text-[0.65rem] font-semibold text-muted-foreground ring-1 ring-border tabular-nums">
-          {category.level}
-        </span>
-        <span className="min-w-0 flex-1 truncate font-medium">{category.name}</span>
-      </span>
-      {category.description ? (
-        <span className="line-clamp-1 pl-7 text-xs text-muted-foreground">{category.description}</span>
-      ) : (
-        <span className="line-clamp-1 pl-7 text-xs text-muted-foreground/60">#{category.slug}</span>
-      )}
-    </CommandItem>
-  );
 }
 
 export function CategorySelect({
@@ -138,60 +97,22 @@ export function CategorySelect({
         }
       />
 
-      <PopoverContent align="start" className="w-(--anchor-width) p-0">
-        <Command shouldFilter={false}>
-          <CommandInput placeholder="Search categories..." value={query} onValueChange={setQuery} />
-
-          <CommandList className="max-h-64">
-            {isLoading && (
-              <div className="flex items-center justify-center gap-2 px-2 py-6 text-sm text-muted-foreground">
-                <IconLoader className="size-4 shrink-0 animate-spin" />
-                Loading categories...
-              </div>
-            )}
-
-            {!isLoading && error && (
-              <div className="flex items-start gap-2 px-4 py-6 text-sm text-destructive">
-                <span>{error}</span>
-              </div>
-            )}
-
-            {!isLoading && !error && items.length === 0 && <CommandEmpty>No categories found.</CommandEmpty>}
-
-            {!isLoading && !error && items.length > 0 && (
-              <CommandGroup>
-                {items.map((category) => (
-                  <CategoryRow
-                    key={String(category.id)}
-                    category={category}
-                    selected={Number(category.id) === Number(value)}
-                    onSelect={() => {
-                      onValueChange(Number(category.id));
-                      setSelectedLabel(category.name);
-                      setOpen(false);
-                    }}
-                  />
-                ))}
-              </CommandGroup>
-            )}
-
-            {!isLoading && !error && hasMore && (
-              <div ref={handleSentinelMount} className="px-2 py-3">
-                {isLoadingMore ? (
-                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                    <IconLoader className="size-3.5 shrink-0 animate-spin" />
-                    Loading more...
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center text-xs text-muted-foreground/70">
-                    Scroll for more
-                  </div>
-                )}
-              </div>
-            )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
+      <CategorySelectContent
+        query={query}
+        onQueryChange={setQuery}
+        isLoading={isLoading}
+        isLoadingMore={isLoadingMore}
+        error={error}
+        items={items}
+        value={value}
+        hasMore={hasMore}
+        sentinelRef={handleSentinelMount}
+        onSelect={(cat) => {
+          onValueChange(Number(cat.id));
+          setSelectedLabel(cat.name);
+          setOpen(false);
+        }}
+      />
     </Popover>
   );
 }

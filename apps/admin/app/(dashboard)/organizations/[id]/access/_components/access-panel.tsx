@@ -4,6 +4,7 @@ import { Button } from "@orgatick/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@orgatick/ui/components/card";
 import { Label } from "@orgatick/ui/components/label";
 import { Textarea } from "@orgatick/ui/components/textarea";
+import { Badge } from "@orgatick/ui/components/badge";
 import { useState } from "react";
 import type { AdminOrganization } from "@/lib/types";
 import {
@@ -20,18 +21,6 @@ interface AccessPanelProps {
   organization: AdminOrganization;
 }
 
-function StateBadge({ label, active }: { label: string; active: boolean }) {
-  return (
-    <span
-      className={`rounded-full px-2 py-0.5 font-mono text-[10px] capitalize ${
-        active ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
-      }`}
-    >
-      {label}: {active ? "yes" : "no"}
-    </span>
-  );
-}
-
 export function AccessPanel({ organization }: AccessPanelProps) {
   const { pending, run } = useOrgAction({ successMessage: "Access state updated" });
   const [reason, setReason] = useState("");
@@ -45,14 +34,16 @@ export function AccessPanel({ organization }: AccessPanelProps) {
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="flex flex-wrap gap-2">
-          <StateBadge label="blocked" active={state?.blocked ?? false} />
-          <StateBadge label="hidden" active={state?.hidden ?? false} />
-          <StateBadge label="archived" active={state?.archived ?? false} />
+          <Badge variant={state?.blocked ? "destructive" : "secondary"}>Blocked: {state?.blocked ? "yes" : "no"}</Badge>
+          <Badge variant={state?.hidden ? "destructive" : "secondary"}>Hidden: {state?.hidden ? "yes" : "no"}</Badge>
+          <Badge variant={state?.archived ? "destructive" : "secondary"}>
+            Archived: {state?.archived ? "yes" : "no"}
+          </Badge>
         </div>
 
-        <div className="space-y-3">
-          <Label htmlFor="access-reason">
-            Reason <span className="font-normal text-muted-foreground">(used for block, hide and archive)</span>
+        <div className="space-y-2">
+          <Label htmlFor="access-reason" className="text-xs">
+            Reason <span className="font-normal text-muted-foreground">(for block, hide and archive)</span>
           </Label>
           <Textarea
             id="access-reason"
@@ -66,12 +57,10 @@ export function AccessPanel({ organization }: AccessPanelProps) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="space-y-2 rounded-xl border border-border/60 p-3">
             <p className="text-sm font-semibold">Blocking</p>
-            <p className="text-xs text-muted-foreground">
-              {state?.blocked
-                ? `Blocked${state.blockReason ? `: ${state.blockReason}` : ""}`
-                : "Block access to the organization."}
+            <p className="text-xs text-muted-foreground truncate">
+              {state?.blocked ? `Blocked: ${state.blockReason ?? "—"}` : "Block access to the organization."}
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-1">
               <Button
                 variant="outline"
                 size="sm"
@@ -93,13 +82,11 @@ export function AccessPanel({ organization }: AccessPanelProps) {
           </div>
 
           <div className="space-y-2 rounded-xl border border-border/60 p-3">
-            <p className="text-sm font-semibold">Content visibility</p>
-            <p className="text-xs text-muted-foreground">
-              {state?.hidden
-                ? `Hidden${state.hiddenReason ? `: ${state.hiddenReason}` : ""}`
-                : "Hide the organization's public content."}
+            <p className="text-sm font-semibold">Visibility</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {state?.hidden ? `Hidden: ${state.hiddenReason ?? "—"}` : "Hide organization content."}
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-1">
               <Button
                 variant="outline"
                 size="sm"
@@ -121,12 +108,10 @@ export function AccessPanel({ organization }: AccessPanelProps) {
 
           <div className="space-y-2 rounded-xl border border-border/60 p-3">
             <p className="text-sm font-semibold">Archive</p>
-            <p className="text-xs text-muted-foreground">
-              {state?.archived
-                ? `Archived${state.archivedReason ? `: ${state.archivedReason}` : ""}`
-                : "Archive the organization."}
+            <p className="text-xs text-muted-foreground truncate">
+              {state?.archived ? `Archived: ${state.archivedReason ?? "—"}` : "Archive the organization."}
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-1">
               <Button
                 variant="outline"
                 size="sm"
