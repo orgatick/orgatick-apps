@@ -5,9 +5,9 @@ import {
   IconInfoCircle,
   IconLayoutDashboard,
   IconMail,
+  IconMapStar,
   IconReceipt2,
   IconSettings,
-  IconSparkles,
   IconTicket,
   IconUser,
 } from "@tabler/icons-react";
@@ -38,7 +38,7 @@ export interface AuthUser {
 }
 
 export const MAIN_NAV_LINKS: NavLinkItem[] = [
-  { label: "Features", href: "/features", icon: IconSparkles },
+  { label: "Features", href: "/features", icon: IconMapStar },
   { label: "Pricing", href: "/pricing", icon: IconReceipt2 },
   { label: "About", href: "/about", icon: IconInfoCircle },
   { label: "FAQ", href: "/faq", icon: IconHelpCircle },

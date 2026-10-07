@@ -16,10 +16,10 @@ import {
   IconLogout,
   IconMenu2,
   IconMoon,
-  IconSparkles,
   IconSun,
   IconUserPlus,
   IconLogin2,
+  IconCalendarPlus,
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { useTheme } from "next-themes";
@@ -223,7 +223,7 @@ export function NavbarMobile({ user, initialTheme = DEFAULT_THEME }: NavbarMobil
                   {[
                     { label: "Sign in", href: "/login", icon: IconLogin2 },
                     { label: "Create account", href: "/signup", icon: IconUserPlus },
-                    { label: "Host an event", href: "/contact", icon: IconSparkles },
+                    { label: "Host an event", href: "/contact", icon: IconCalendarPlus },
                   ].map((item) => {
                     const Icon = item.icon;
                     return (
@@ -313,7 +313,6 @@ export function NavbarMobile({ user, initialTheme = DEFAULT_THEME }: NavbarMobil
                   onClick={() => setOpen(false)}
                   className="h-10 w-full justify-center gap-1.5 rounded-xl text-xs font-semibold shadow-sm shadow-primary/25"
                 >
-                  <IconSparkles className="size-3.5" />
                   Host
                 </LinkButton>
               </div>

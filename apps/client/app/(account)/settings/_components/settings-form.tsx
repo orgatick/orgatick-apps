@@ -26,7 +26,6 @@ import {
   IconLock,
   IconMail,
   IconMapPin,
-  IconPhone,
   IconRefresh,
   IconUser,
 } from "@tabler/icons-react";
@@ -35,6 +34,7 @@ import { handleApiError } from "@/lib/apis/api-error";
 import { toast } from "@/components/ui/sonner";
 import { userService } from "../../_services/user.service";
 import { ProfileAvatarUploader } from "../../profile/_components/profile-avatar-uploader";
+import { PhoneInput } from "@orgatick/ui/components/phone-input";
 
 const settingsFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters"),
@@ -43,6 +43,12 @@ const settingsFormSchema = z.object({
   bio: z.string().max(500, "Bio must be at most 500 characters").optional(),
   address: z.string().max(300, "Address must be at most 300 characters").optional(),
 });
+
+const genderLabels = {
+  male: "Male",
+  female: "Female",
+  notToSay: "Prefer not to say",
+} as const;
 
 type SettingsFormSchemaType = z.infer<typeof settingsFormSchema>;
 
@@ -54,8 +60,15 @@ export function SettingsForm({ initialUser }: SettingsFormProps) {
   const authUser = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
 
-  // Use auth store user if available (most up to date), otherwise SSR initialUser
-  const currentUser = authUser || initialUser;
+  // Use auth store user if available (most up to date), otherwise SSR initialUser.
+  // The store rehydrates from localStorage, which the server cannot see, so it may only take
+  // over after mount — otherwise the first client render disagrees with the server HTML and
+  // React discards it (hydration mismatch regenerates the tree and breaks the next-themes script).
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  const currentUser = hasMounted ? authUser || initialUser : initialUser;
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -170,7 +183,7 @@ export function SettingsForm({ initialUser }: SettingsFormProps) {
       </CardHeader>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-6 pt-6">
+        <CardContent className="space-y-4">
           {/* Avatar Upload Section */}
           <ProfileAvatarUploader
             currentAvatarUrl={currentUser?.avatar}
@@ -238,8 +251,11 @@ export function SettingsForm({ initialUser }: SettingsFormProps) {
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange} disabled={isSubmitting}>
                     <SelectTrigger id="gender-select" className="w-full" aria-invalid={!!errors.gender}>
-                      <SelectValue placeholder="Select gender" />
+                      <SelectValue placeholder="Select gender">
+                        {field.value ? genderLabels[field.value] : "Select gender"}
+                      </SelectValue>
                     </SelectTrigger>
+
                     <SelectContent>
                       <SelectGroup>
                         <SelectItem value="male">Male</SelectItem>
@@ -256,19 +272,7 @@ export function SettingsForm({ initialUser }: SettingsFormProps) {
             {/* Phone Number */}
             <Field data-invalid={!!errors.phoneNumber}>
               <FieldLabel htmlFor="phoneNumber">Phone Number</FieldLabel>
-              <div className="relative">
-                <Input
-                  id="phoneNumber"
-                  type="tel"
-                  placeholder="e.g. +91 6206418701"
-                  autoComplete="tel"
-                  aria-invalid={!!errors.phoneNumber}
-                  disabled={isSubmitting}
-                  className="pl-9 font-mono"
-                  {...register("phoneNumber")}
-                />
-                <IconPhone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              </div>
+              <Controller name="phoneNumber" control={control} render={({ field }) => <PhoneInput {...field} />} />
               <FieldDescription className="text-xs">
                 Used for urgent SMS event updates and booking confirmations.
               </FieldDescription>
@@ -316,7 +320,7 @@ export function SettingsForm({ initialUser }: SettingsFormProps) {
         </CardContent>
 
         {/* Action Controls Footer */}
-        <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/30 border-t border-border/60 px-6 py-4">
+        <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-muted/30 border-t border-border/60 mt-2">
           <div className="text-xs text-muted-foreground flex items-center gap-1.5 order-2 sm:order-1">
             {hasChanges ? (
               <span className="text-amber-600 dark:text-amber-400 font-medium">You have unsaved changes.</span>
