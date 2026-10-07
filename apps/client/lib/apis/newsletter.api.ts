@@ -39,3 +39,13 @@ export async function confirmNewsletterSubscription(token: string): Promise<Publ
   });
   return response.data.data;
 }
+
+/**
+ * Whether the signed-in account's address is already subscribed.
+ *
+ * The address comes from the session server side, so the client never sends one.
+ */
+export async function fetchNewsletterSubscription(): Promise<boolean> {
+  const response = await api.get<ApiResponse<{ isSubscribed: boolean }>>("/newsletter/is-subscribed");
+  return response.data.data.isSubscribed;
+}

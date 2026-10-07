@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@orgatick/ui/components/dropdown-menu";
-import { IconChevronDown, IconLogout, IconSparkles } from "@tabler/icons-react";
+import { IconChevronDown, IconLogout } from "@tabler/icons-react";
 import Link from "next/link";
 import { USER_MENU_ITEMS } from "./navbar-constants";
 import { UserAvatar } from "./user-avatar";
@@ -29,7 +29,6 @@ export function NavbarUser({ user }: { user: UserResponse | null }) {
           Sign in
         </LinkButton>
         <LinkButton href="/signup" size="sm" className="gap-1.5 shadow-xs shadow-primary/20">
-          <IconSparkles className="size-3.5" />
           Create account
         </LinkButton>
       </div>

@@ -34,8 +34,6 @@ export const envSchema = z.object({
   NEWSLETTER_FROM_NAME: z.string().min(1).default("Orgatick Newsletter"),
   NEWSLETTER_FROM_EMAIL: z.email().default("newsletter@orgatick.in"),
   NEWSLETTER_REPLY_TO: z.email().optional(),
-  /** Optional override when newsletter pages are served from another host. Defaults to APP_URL. */
-  NEWSLETTER_PUBLIC_BASE_URL: z.url().optional(),
   /** Signs confirm/unsubscribe/preferences tokens. Falls back to JWT_SECRET when unset. */
   NEWSLETTER_TOKEN_SECRET: z.string().min(32).optional(),
   NEWSLETTER_CONFIRMATION_TTL_MINUTES: z.coerce.number().int().min(5).max(10080).default(2880),

@@ -41,17 +41,21 @@ api.interceptors.request.use(
 );
 
 let isRefreshing = false;
-type RefreshSubscriber = (newToken: string) => void;
-let refreshSubscribers: RefreshSubscriber[] = [];
-const onAccessTokenFetched = (newToken: string): void => {
-  refreshSubscribers.forEach((callback) => {
-    callback(newToken);
-  });
-  refreshSubscribers = [];
+/**
+ * Requests that arrived while a refresh was in flight. They are settled both ways: on success they
+ * retry with the new token, and on failure they must be rejected, otherwise they stay pending
+ * forever and their caller never learns the session is gone.
+ */
+type RefreshSubscriber = {
+  resolve: (newToken: string) => void;
+  reject: (reason: unknown) => void;
 };
+let refreshSubscribers: RefreshSubscriber[] = [];
 
-const addRefreshSubscriber = (callback: RefreshSubscriber): void => {
-  refreshSubscribers.push(callback);
+const settleRefreshSubscribers = (settler: (subscriber: RefreshSubscriber) => void): void => {
+  const pending = refreshSubscribers;
+  refreshSubscribers = [];
+  pending.forEach(settler);
 };
 
 // Response interceptor
@@ -66,10 +70,13 @@ api.interceptors.response.use(
     originalRequest._retry = true;
     // Another request is already refreshing the token, Wait for it to finish.
     if (isRefreshing) {
-      return new Promise((resolve) => {
-        addRefreshSubscriber((newToken: string) => {
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          resolve(api(originalRequest));
+      return new Promise((resolve, reject) => {
+        refreshSubscribers.push({
+          resolve: (newToken: string) => {
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            resolve(api(originalRequest));
+          },
+          reject,
         });
       });
     }
@@ -88,7 +95,7 @@ api.interceptors.response.use(
       isRefreshing = false;
 
       // Retry all queued requests.
-      onAccessTokenFetched(newAccessToken);
+      settleRefreshSubscribers(({ resolve }) => resolve(newAccessToken));
 
       // Retry the original request.
       originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -97,6 +104,8 @@ api.interceptors.response.use(
     } catch (refreshError) {
       isRefreshing = false;
       clearAccessToken();
+      // Queued requests must fail too, or their callers wait for a token that is never coming.
+      settleRefreshSubscribers(({ reject }) => reject(refreshError));
       return Promise.reject(refreshError);
     }
   },

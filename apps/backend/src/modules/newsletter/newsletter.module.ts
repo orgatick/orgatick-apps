@@ -32,6 +32,7 @@ import { NewsletterSubscriberService } from "./services/newsletter-subscriber.se
 import { NewsletterTemplateService } from "./services/newsletter-template.service";
 import { NewsletterTokenService } from "./services/newsletter-token.service";
 import { NewsletterTrackingService } from "./services/newsletter-tracking.service";
+import { NewsletterAuthController } from "./controllers/newsletter-auth.controller";
 
 const ENTITIES = [
   NewsletterList,
@@ -50,6 +51,7 @@ const ENTITIES = [
     AdminNewsletterSubscriberController,
     AdminNewsletterTemplateController,
     NewsletterPublicController,
+    NewsletterAuthController,
   ],
   providers: [
     PlatformAdminGuard,

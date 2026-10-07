@@ -48,8 +48,8 @@ export function ProfileDetailsCard({ user }: ProfileDetailsCardProps) {
           </div>
         </CardHeader>
 
-        <CardContent className="pt-6">
-          <div className="grid gap-6 sm:grid-cols-2">
+        <CardContent className="">
+          <div className="grid gap-6 sm:grid-cols-2 grid-cols-1 w-full">
             {/* Full Name */}
             <div className="space-y-1.5 p-3.5 rounded-xl border border-border/60 bg-muted/20">
               <span className="text-xs text-muted-foreground flex items-center gap-1.5">

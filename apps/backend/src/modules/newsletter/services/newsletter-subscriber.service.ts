@@ -510,6 +510,11 @@ export class NewsletterSubscriberService {
     }
     return existing;
   }
+
+  async isSubscribed(email: string): Promise<boolean> {
+    const subscriber = await this.subscriberRepository.findByEmail(normalizeEmail(email));
+    return subscriber?.status === NewsletterSubscriberStatus.SUBSCRIBED;
+  }
 }
 
 /**

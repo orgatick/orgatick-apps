@@ -44,6 +44,10 @@ export class NewsletterSubscriberRepository {
     return this.repo.findOne({ where: { confirmationTokenHash: hash }, relations: { list: true } });
   }
 
+  findByEmail(emailNormalized: string): Promise<NewsletterSubscriber | null> {
+    return this.repo.findOne({ where: { emailNormalized } });
+  }
+
   findByUnsubscribeHash(hash: string): Promise<NewsletterSubscriber | null> {
     return this.repo.findOne({ where: { unsubscribeTokenHash: hash }, relations: { list: true } });
   }
