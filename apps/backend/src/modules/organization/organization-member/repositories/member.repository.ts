@@ -23,6 +23,17 @@ export class OrganizationMemberRepository extends Repository<OrganizationMember>
     return globalRole ? globalRole.id : null;
   }
 
+  async findRoleByKey(organizationId: bigint, key: string): Promise<Role | null> {
+    const orgRole = await this.manager.findOne(Role, {
+      where: { organizationId, key },
+    });
+    if (orgRole) return orgRole;
+
+    return await this.manager.findOne(Role, {
+      where: { organizationId: IsNull(), key },
+    });
+  }
+
   async findOwnerRoleId(organizationId: bigint): Promise<bigint | null> {
     return this.findRoleIdByKey(organizationId, DEFAULT_ROLE_KEYS.OWNER);
   }
@@ -82,5 +93,47 @@ export class OrganizationMemberRepository extends Repository<OrganizationMember>
       },
       order: { createdAt: "DESC" },
     });
+  }
+
+  async searchMembers(
+    organizationId: bigint,
+    options: { q?: string; status?: string } = {},
+  ): Promise<OrganizationMember[]> {
+    const queryBuilder = this.createQueryBuilder("member")
+      .leftJoinAndSelect("member.user", "user")
+      .leftJoinAndSelect("member.role", "role")
+      .where("member.organization_id = :organizationId", { organizationId: organizationId.toString() })
+      .orderBy("member.created_at", "ASC");
+
+    if (options.status) {
+      queryBuilder.andWhere("member.status = :status", { status: options.status });
+    }
+
+    const q = options.q?.trim();
+    if (q) {
+      queryBuilder.andWhere("(user.name ILIKE :q OR user.email ILIKE :q)", { q: `%${q}%` });
+    }
+
+    return await queryBuilder.getMany();
+  }
+
+  async findAvailableRoles(organizationId: bigint): Promise<Role[]> {
+    return await this.manager.find(Role, {
+      where: [
+        { organizationId, isActive: true },
+        { organizationId: IsNull(), isActive: true },
+      ],
+      order: { name: "ASC" },
+    });
+  }
+
+  async findActiveMemberByEmail(organizationId: bigint, normalizedEmail: string): Promise<OrganizationMember | null> {
+    return await this.createQueryBuilder("member")
+      .innerJoinAndSelect("member.user", "user")
+      .innerJoinAndSelect("member.role", "role")
+      .where("member.organization_id = :organizationId", { organizationId: organizationId.toString() })
+      .andWhere("member.status = :status", { status: OrganizationMemberStatus.ACTIVE })
+      .andWhere("user.normalized_email = :normalizedEmail", { normalizedEmail })
+      .getOne();
   }
 }

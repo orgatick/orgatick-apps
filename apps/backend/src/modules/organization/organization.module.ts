@@ -6,6 +6,7 @@ import { OrganizationInvitationModule } from "./organization-invitation/organiza
 import { OrganizationGovernanceModule } from "./organization-governance/organization-governance.module";
 import { OrganizationFinanceModule } from "./organization-finance/organization-finance.module";
 import { OrganizationSessionModule } from "./organization-session/organization-session.module";
+import { OrganizationTeamModule } from "./organization-team/organization-team.module";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { OrganizationSessionModule } from "./organization-session/organization-s
     OrganizationGovernanceModule,
     OrganizationFinanceModule,
     OrganizationSessionModule,
+    OrganizationTeamModule,
   ],
   exports: [
     OrganizationRootModule,
@@ -25,6 +27,7 @@ import { OrganizationSessionModule } from "./organization-session/organization-s
     OrganizationGovernanceModule,
     OrganizationFinanceModule,
     OrganizationSessionModule,
+    OrganizationTeamModule,
   ],
 })
 export class OrganizationModule {}

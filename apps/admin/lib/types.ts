@@ -6,6 +6,16 @@ export type OrgVerificationStatus = "pending" | "verified" | "rejected";
 export type OrgDocumentStatus = "pending" | "approved" | "rejected" | "verified" | "replacement_requested";
 export type MemberStatus = "active" | "inactive";
 export type MemberRoleKey = "owner" | "admin" | "manager" | "member";
+export type RestrictedCapability = "event_creation" | "registrations" | "ticket_sales" | "invitations";
+export type ReportStatus = "open" | "investigating" | "resolved" | "rejected";
+export type ReportCategory =
+  | "scam_fraud"
+  | "illegal_content"
+  | "harassment"
+  | "fake_organization"
+  | "privacy"
+  | "other";
+export type DisputeStatus = "open" | "investigating" | "resolved" | "rejected";
 
 export interface AdminStateRef {
   blocked: boolean;
@@ -20,6 +30,9 @@ export interface AdminStateRef {
   archivedAt?: string | null;
   closureReason?: string | null;
   closureRequestedAt?: string | null;
+  restrictedCapabilities?: RestrictedCapability[];
+  restrictionsReason?: string | null;
+  restrictionsUpdatedAt?: string | null;
 }
 
 export interface OrgDocumentRef {
@@ -229,6 +242,71 @@ export type OrganizationListQuery = {
   sortBy?: "created_at" | "name" | "id";
   sortOrder?: "ASC" | "DESC";
 };
+
+export interface VerificationQueueItem {
+  organizationId: string | number;
+  organizationName: string | null;
+  slug: string | null;
+  logo?: string | null;
+  orgStatus: OrgStatus | null;
+  ownerName: string | null;
+  status: OrgVerificationStatus;
+  verifiedAt?: string | null;
+  rejectionReason?: string | null;
+  documentCount: number;
+}
+
+export type ReportListQuery = {
+  page?: number;
+  limit?: number;
+  status?: ReportStatus;
+  category?: ReportCategory;
+};
+
+export type VerificationQueueQuery = {
+  page?: number;
+  limit?: number;
+  status?: OrgVerificationStatus;
+};
+
+export interface OrganizationReportRef {
+  id: string | number;
+  organizationId: string | number;
+  category: ReportCategory;
+  description: string;
+  evidenceUrls?: string[] | null;
+  status: ReportStatus;
+  resolution?: string | null;
+  resolvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  organization?: AdminOrganization | null;
+  reporter?: { id: string | number; name: string; email?: string | null } | null;
+  resolver?: { id: string | number; name: string; email?: string | null } | null;
+}
+
+export type OwnershipDisputeListQuery = {
+  page?: number;
+  limit?: number;
+  status?: DisputeStatus;
+};
+
+export interface OwnershipDisputeRef {
+  id: string | number;
+  organizationId: string | number;
+  reason: string;
+  evidenceUrls?: string[] | null;
+  status: DisputeStatus;
+  freezeOwnership: boolean;
+  resolution?: string | null;
+  resolvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  organization?: AdminOrganization | null;
+  disputant?: { id: string | number; name: string; email?: string | null } | null;
+  currentOwner?: { id: string | number; name: string; email?: string | null } | null;
+  resolver?: { id: string | number; name: string; email?: string | null } | null;
+}
 
 export interface ApiResponseData<T> {
   success: boolean;

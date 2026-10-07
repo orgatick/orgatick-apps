@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { In, type Repository } from "typeorm";
 import { AdminTrackingRepository } from "../repositories/admin-tracking.repository";
+import { OrganizationOwnershipDispute } from "../entities/organization-ownership-dispute.entity";
+import { OwnershipDisputeStatus } from "../enums/ownership-dispute-status.enum";
 import type { AdminActor } from "../types/admin.types";
 import { OrganizationMemberRepository } from "../../organization-member";
 import { OrganizationMemberStatus } from "@orgatick/contracts";
@@ -10,9 +14,22 @@ export class AdminOwnershipService {
   constructor(
     private readonly memberRepository: OrganizationMemberRepository,
     private readonly trackingRepository: AdminTrackingRepository,
+    @InjectRepository(OrganizationOwnershipDispute)
+    private readonly disputeRepository: Repository<OrganizationOwnershipDispute>,
   ) {}
 
   async transfer(organizationId: bigint, toUserId: bigint, reason: string | undefined, actor: AdminActor | null) {
+    const frozenDispute = await this.disputeRepository.findOne({
+      where: {
+        organizationId,
+        freezeOwnership: true,
+        status: In([OwnershipDisputeStatus.OPEN, OwnershipDisputeStatus.INVESTIGATING]),
+      },
+    });
+    if (frozenDispute) {
+      throw new ConflictException("Ownership is frozen while an ownership dispute is under review");
+    }
+
     const target = await this.memberRepository.findOne({
       where: { organizationId, userId: toUserId, status: OrganizationMemberStatus.ACTIVE },
       relations: { user: true, role: true },

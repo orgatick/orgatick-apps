@@ -1,7 +1,8 @@
 import { CACHE_MANAGER, type Cache } from "@nestjs/cache-manager";
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { membershipCacheKey } from "../../context/constants/organization-context.constants";
 import type { OrganizationMember } from "../entities/organization-member.entity";
+import { OrganizationMemberStatus } from "../enums/organization-member-status.enum";
 import { OrganizationMemberRepository } from "../repositories/member.repository";
 
 @Injectable()
@@ -46,5 +47,102 @@ export class OrganizationMemberService {
       throw new NotFoundException("Organization member not found");
     }
     return member;
+  }
+
+  async listMembers(
+    organizationId: bigint,
+    query: { q?: string; status?: string } = {},
+  ): Promise<OrganizationMember[]> {
+    return await this.memberRepository.searchMembers(organizationId, query);
+  }
+
+  async getAvailableRoles(organizationId: bigint) {
+    return await this.memberRepository.findAvailableRoles(organizationId);
+  }
+
+  private async activeOwnerCount(organizationId: bigint): Promise<number> {
+    const ownerRoleId = await this.memberRepository.findOwnerRoleId(organizationId);
+    if (ownerRoleId === null) return 0;
+    return await this.memberRepository.count({
+      where: {
+        organizationId,
+        roleId: ownerRoleId,
+        status: OrganizationMemberStatus.ACTIVE,
+      },
+    });
+  }
+
+  private async isLastActiveOwner(organizationId: bigint, member: OrganizationMember): Promise<boolean> {
+    const ownerRoleId = await this.memberRepository.findOwnerRoleId(organizationId);
+    if (ownerRoleId === null || member.roleId !== ownerRoleId) return false;
+    return (await this.activeOwnerCount(organizationId)) <= 1;
+  }
+
+  async changeRole(organizationId: bigint, memberId: bigint, roleKey: string): Promise<OrganizationMember> {
+    const member = await this.memberRepository.findOneBy({ id: memberId, organizationId });
+    if (!member) {
+      throw new NotFoundException("Organization member not found");
+    }
+
+    const newRoleId = await this.memberRepository.findRoleIdByKey(organizationId, roleKey);
+    if (newRoleId === null) {
+      throw new NotFoundException(`Role "${roleKey}" not found`);
+    }
+
+    if (member.roleId !== newRoleId && (await this.isLastActiveOwner(organizationId, member))) {
+      throw new ConflictException("Cannot demote the last active owner. Transfer ownership first.");
+    }
+
+    member.roleId = newRoleId;
+    await this.memberRepository.save(member);
+    await this.invalidateMembershipCache(member.userId, organizationId);
+
+    return (
+      (await this.memberRepository.findOne({ where: { id: member.id }, relations: { user: true, role: true } })) ??
+      member
+    );
+  }
+
+  async changeStatus(
+    organizationId: bigint,
+    memberId: bigint,
+    status: OrganizationMemberStatus,
+  ): Promise<OrganizationMember> {
+    const member = await this.memberRepository.findOneBy({ id: memberId, organizationId });
+    if (!member) {
+      throw new NotFoundException("Organization member not found");
+    }
+
+    if (status !== OrganizationMemberStatus.ACTIVE && (await this.isLastActiveOwner(organizationId, member))) {
+      throw new ConflictException("Cannot suspend the last active owner. Transfer ownership first.");
+    }
+
+    member.status = status;
+    if (status === OrganizationMemberStatus.ACTIVE && !member.joinedAt) {
+      member.joinedAt = new Date();
+    }
+    await this.memberRepository.save(member);
+    await this.invalidateMembershipCache(member.userId, organizationId);
+
+    return (
+      (await this.memberRepository.findOne({ where: { id: member.id }, relations: { user: true, role: true } })) ??
+      member
+    );
+  }
+
+  async removeMember(organizationId: bigint, memberId: bigint): Promise<{ id: string; removed: boolean }> {
+    const member = await this.memberRepository.findOneBy({ id: memberId, organizationId });
+    if (!member) {
+      throw new NotFoundException("Organization member not found");
+    }
+
+    if (await this.isLastActiveOwner(organizationId, member)) {
+      throw new ConflictException("Cannot remove the last active owner. Transfer ownership first.");
+    }
+
+    await this.memberRepository.remove(member);
+    await this.invalidateMembershipCache(member.userId, organizationId);
+
+    return { id: member.id.toString(), removed: true };
   }
 }

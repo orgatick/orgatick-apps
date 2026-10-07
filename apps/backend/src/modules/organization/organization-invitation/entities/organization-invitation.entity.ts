@@ -10,7 +10,6 @@ import {
 } from "typeorm";
 import { User } from "../../../users/entities/user.entity";
 import { Organization } from "../../organization/entities/organization.entity";
-import type { OrganizationMemberRole } from "../../organization-member/enums/organization-member-role.enum";
 import { OrganizationInvitationStatus } from "../enums/organization-invitation-status.enum";
 
 @Entity({ name: "organization_invitations", schema: "organization" })
@@ -32,7 +31,7 @@ export class OrganizationInvitation {
     type: "varchar",
     length: 30,
   })
-  role!: OrganizationMemberRole;
+  role!: string;
 
   @Column({ name: "invited_by", type: "bigint" })
   invitedBy!: bigint;

@@ -6,6 +6,7 @@ import type {
   MemberStatus,
   OrgDocumentRef,
   OrgHistories,
+  RestrictedCapability,
   VerificationLogEntry,
 } from "./types";
 
@@ -42,6 +43,31 @@ export async function archiveOrganization(id: string, reason: string): Promise<A
 
 export async function restoreOrganization(id: string): Promise<AdminOrganization> {
   const response = await api.patch<ApiResponseData<AdminOrganization>>(`/admin/organizations/${id}/restore`);
+  return response.data.data;
+}
+
+// ---- Capability restrictions ----
+
+export async function restrictOrganizationCapabilities(
+  id: string,
+  capabilities: RestrictedCapability[],
+  reason: string,
+): Promise<AdminOrganization> {
+  const response = await api.patch<ApiResponseData<AdminOrganization>>(`/admin/organizations/${id}/restrict`, {
+    capabilities,
+    reason,
+  });
+  return response.data.data;
+}
+
+export async function removeOrganizationCapabilityRestrictions(
+  id: string,
+  capabilities: RestrictedCapability[],
+): Promise<AdminOrganization> {
+  const response = await api.patch<ApiResponseData<AdminOrganization>>(
+    `/admin/organizations/${id}/restrictions/remove`,
+    { capabilities },
+  );
   return response.data.data;
 }
 

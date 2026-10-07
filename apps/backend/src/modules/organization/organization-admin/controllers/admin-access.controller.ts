@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from "@nest
 import { AdminAccessService } from "../services/admin-access.service";
 import { AdminTrackingService } from "../services/admin-tracking.service";
 import { AdminNoteService } from "../services/admin-note.service";
-import { ReasonSchema, AdminNoteSchema } from "../dto/admin-access.dto";
+import { ReasonSchema, AdminNoteSchema, RestrictSchema, RemoveRestrictionsSchema } from "../dto/admin-access.dto";
 import { PlatformAdminGuard } from "@/common/authorization";
 import type { AuthRequest } from "@/common/types/auth-request.types";
 
@@ -55,6 +55,30 @@ export class AdminAccessController {
   @Patch("restore")
   async restore(@Req() req: AuthRequest, @Param("id") id: string) {
     return this.adminAccessService.restore(BigInt(id), { id: BigInt(req.user.id), name: req.user.name });
+  }
+
+  @Patch("restrict")
+  async restrict(
+    @Req() req: AuthRequest,
+    @Param("id") id: string,
+    @Body({ schema: RestrictSchema }) dto: { capabilities: string[]; reason: string },
+  ) {
+    return this.adminAccessService.restrict(BigInt(id), dto.capabilities, dto.reason, {
+      id: BigInt(req.user.id),
+      name: req.user.name,
+    });
+  }
+
+  @Patch("restrictions/remove")
+  async removeRestrictions(
+    @Req() req: AuthRequest,
+    @Param("id") id: string,
+    @Body({ schema: RemoveRestrictionsSchema }) dto: { capabilities: string[] },
+  ) {
+    return this.adminAccessService.removeRestrictions(BigInt(id), dto.capabilities, {
+      id: BigInt(req.user.id),
+      name: req.user.name,
+    });
   }
 
   @Get("history")

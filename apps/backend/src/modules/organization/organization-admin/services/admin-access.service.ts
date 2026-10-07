@@ -86,6 +86,44 @@ export class AdminAccessService {
     return this.track(id, organization.status, "restored", null, actor);
   }
 
+  async restrict(id: bigint, capabilities: string[], reason: string, actor: AdminActor | null) {
+    const organization = await this.load(id);
+    const state = await this.stateRepository.ensure(id);
+    const current = Array.isArray(state.restrictedCapabilities) ? state.restrictedCapabilities : [];
+    state.restrictedCapabilities = Array.from(new Set([...current, ...capabilities]));
+    state.restrictionsReason = reason;
+    state.restrictionsUpdatedBy = actor?.id ?? null;
+    state.restrictionsUpdatedAt = new Date();
+    await this.stateRepository.save(state);
+    return this.track(
+      id,
+      organization.status,
+      "capabilities_restricted",
+      `${capabilities.join(", ")} — ${reason}`,
+      actor,
+    );
+  }
+
+  async removeRestrictions(id: bigint, capabilities: string[], actor: AdminActor | null) {
+    const organization = await this.load(id);
+    const state = await this.stateRepository.ensure(id);
+    const current = Array.isArray(state.restrictedCapabilities) ? state.restrictedCapabilities : [];
+    state.restrictedCapabilities = current.filter((capability) => !capabilities.includes(capability));
+    if (state.restrictedCapabilities.length === 0) {
+      state.restrictionsReason = null;
+    }
+    state.restrictionsUpdatedBy = actor?.id ?? null;
+    state.restrictionsUpdatedAt = new Date();
+    await this.stateRepository.save(state);
+    return this.track(
+      id,
+      organization.status,
+      "restrictions_removed",
+      capabilities.length > 0 ? capabilities.join(", ") : null,
+      actor,
+    );
+  }
+
   private async track(id: bigint, status: string, changeType: string, reason: string | null, actor: AdminActor | null) {
     await this.trackingRepository.recordStatusChange({
       organizationId: id,

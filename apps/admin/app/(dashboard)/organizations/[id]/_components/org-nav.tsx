@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   IconArchive,
+  IconBan,
   IconCertificate,
   IconFileText,
   IconHistory,
@@ -17,6 +18,7 @@ import { cn } from "@orgatick/ui/lib/utils";
 const NAV = [
   { href: "", label: "Overview", icon: IconLayoutDashboard },
   { href: "/access", label: "Access", icon: IconShieldLock },
+  { href: "/restrictions", label: "Restrictions", icon: IconBan },
   { href: "/verification", label: "Verification", icon: IconCertificate },
   { href: "/members", label: "Members", icon: IconUsers },
   { href: "/documents", label: "Documents", icon: IconFileText },

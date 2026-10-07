@@ -10,7 +10,9 @@ import { OrganizationMemberModule } from "../organization-member/organization-me
 import {
   OrganizationAdminNote,
   OrganizationAdminState,
+  OrganizationOwnershipDispute,
   OrganizationOwnershipHistory,
+  OrganizationReport,
   OrganizationStatusHistory,
   OrganizationVerificationLog,
 } from "./entities";
@@ -20,6 +22,12 @@ import { AdminDocumentController } from "./controllers/admin-document.controller
 import { AdminMemberController } from "./controllers/admin-member.controller";
 import { AdminOrganizationController } from "./controllers/admin-organization.controller";
 import { AdminVerificationController } from "./controllers/admin-verification.controller";
+import { AdminVerificationQueueController } from "./controllers/admin-verification-queue.controller";
+import { AdminReportController, ReportSubmissionController } from "./controllers/admin-report.controller";
+import {
+  AdminOwnershipDisputeController,
+  DisputeSubmissionController,
+} from "./controllers/admin-ownership-dispute.controller";
 import { AdminStateRepository } from "./repositories/admin-state.repository";
 import { AdminTrackingRepository } from "./repositories/admin-tracking.repository";
 import { AdminAccessService } from "./services/admin-access.service";
@@ -29,6 +37,8 @@ import { AdminMemberService } from "./services/admin-member.service";
 import { AdminNoteService } from "./services/admin-note.service";
 import { AdminOrganizationService } from "./services/admin-organization.service";
 import { AdminOwnershipService } from "./services/admin-ownership.service";
+import { AdminOwnershipDisputeService } from "./services/admin-ownership-dispute.service";
+import { AdminReportService } from "./services/admin-report.service";
 import { AdminTrackingService } from "./services/admin-tracking.service";
 import { AdminVerificationService } from "./services/admin-verification.service";
 import { StorageModule } from "@/infrastructure/storage/storage.module";
@@ -46,6 +56,8 @@ import { PlatformAdminGuard } from "@/common/authorization";
       OrganizationAdminNote,
       OrganizationVerification,
       OrganizationDocument,
+      OrganizationReport,
+      OrganizationOwnershipDispute,
     ]),
     OrganizationMemberModule,
     OrganizationGovernanceModule,
@@ -56,8 +68,13 @@ import { PlatformAdminGuard } from "@/common/authorization";
     AdminAccessController,
     AdminClosureController,
     AdminVerificationController,
+    AdminVerificationQueueController,
     AdminMemberController,
     AdminDocumentController,
+    AdminReportController,
+    ReportSubmissionController,
+    AdminOwnershipDisputeController,
+    DisputeSubmissionController,
   ],
   providers: [
     OrganizationRepository,
@@ -70,6 +87,8 @@ import { PlatformAdminGuard } from "@/common/authorization";
     AdminVerificationService,
     AdminMemberService,
     AdminOwnershipService,
+    AdminOwnershipDisputeService,
+    AdminReportService,
     AdminDocumentService,
     AdminNoteService,
     PlatformAdminGuard,

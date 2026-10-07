@@ -1,9 +1,20 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import type { Repository } from "typeorm";
+import { OrganizationVerificationStatus } from "@orgatick/contracts";
 import { Transactional } from "typeorm-transactional";
 import { R2Storage } from "../../../../infrastructure/storage/r2/r2.storage";
 import { DEFAULT_ROLE_KEYS } from "../../../../common/authorization/roles/default-roles";
 import { AddressesService } from "../../../address/services/addresses.service";
 import { OrganizationCategoryService } from "../../organization-category/services/category.service";
+import { AdminTrackingRepository } from "../../organization-admin/repositories/admin-tracking.repository";
+import { OrganizationVerification } from "../../organization-governance/entities/organization-verification.entity";
 import { OrganizationMemberStatus } from "../../organization-member/enums/organization-member-status.enum";
 import { OrganizationMemberService } from "../../organization-member/services/member.service";
 import { OrganizationFinanceService } from "../../organization-finance/services/finance.service";
@@ -23,6 +34,9 @@ export class OrganizationService {
     private readonly governanceService: OrganizationGovernanceService,
     private readonly financeService: OrganizationFinanceService,
     private readonly storage: R2Storage,
+    @InjectRepository(OrganizationVerification)
+    private readonly verificationRepository: Repository<OrganizationVerification>,
+    private readonly trackingRepository: AdminTrackingRepository,
   ) {}
 
   private async generateUniqueSlug(name: string, customSlug?: string): Promise<string> {
@@ -194,5 +208,52 @@ export class OrganizationService {
       contentLength: logoFile.size,
     });
     return uploadResult.url;
+  }
+
+  async requestVerification(
+    organizationId: bigint,
+    actor: { id: bigint; name: string },
+  ): Promise<OrganizationVerification> {
+    const org = await this.organizationRepository.findOne({
+      where: { id: organizationId },
+      relations: { members: { role: true } },
+    });
+
+    if (!org) {
+      throw new NotFoundException(`Organization with ID '${organizationId}' not found`);
+    }
+
+    const userMember = org.members?.find(
+      (m) => BigInt(m.userId) === actor.id && m.status === OrganizationMemberStatus.ACTIVE,
+    );
+    if (
+      !userMember?.role ||
+      (userMember.role.key !== DEFAULT_ROLE_KEYS.OWNER && userMember.role.key !== DEFAULT_ROLE_KEYS.ADMIN)
+    ) {
+      throw new ForbiddenException("Only owners and admins can request verification");
+    }
+
+    let verification = await this.verificationRepository.findOneBy({ organizationId });
+    if (!verification) {
+      verification = await this.verificationRepository.save(this.verificationRepository.create({ organizationId }));
+    }
+
+    if (verification.status === OrganizationVerificationStatus.VERIFIED) {
+      throw new ConflictException("Organization is already verified");
+    }
+
+    verification.status = OrganizationVerificationStatus.PENDING;
+    verification.rejectionReason = null;
+    await this.verificationRepository.save(verification);
+
+    await this.trackingRepository.recordVerificationAction({
+      organizationId,
+      action: "requested",
+      note: null,
+      actorId: actor.id,
+      actorName: actor.name,
+    });
+
+    return verification;
   }
 }

@@ -7,7 +7,7 @@ import { OrganizationFinanceModule } from "../organization-finance/organization-
 import { OrganizationGovernanceModule } from "../organization-governance/organization-governance.module";
 import { OrganizationMemberModule } from "../organization-member/organization-member.module";
 import { OrganizationAdminModule } from "../organization-admin/organization-admin.module";
-import { OrganizationController } from "./controllers";
+import { OrganizationController, OrganizationVerificationController } from "./controllers";
 import { Organization, OrganizationSocialLink, OrganizationStats, OrganizationSupportContact } from "./entities";
 import { OrganizationRepository } from "./repositories/organization.repository";
 import { OrganizationService } from "./services";
@@ -23,7 +23,7 @@ import { OrganizationService } from "./services";
     OrganizationAdminModule,
     TypeOrmModule.forFeature([Organization, OrganizationStats, OrganizationSocialLink, OrganizationSupportContact]),
   ],
-  controllers: [OrganizationController],
+  controllers: [OrganizationController, OrganizationVerificationController],
   providers: [OrganizationService, OrganizationRepository],
   exports: [OrganizationService, OrganizationRepository, TypeOrmModule],
 })

@@ -7,10 +7,16 @@ import type {
   DashboardStats,
   Membership,
   OrganizationListQuery,
+  OrganizationReportRef,
   OrgStatus,
+  OwnershipDisputeListQuery,
+  OwnershipDisputeRef,
   Paginated,
   PlatformRole,
+  ReportListQuery,
   UserListQuery,
+  VerificationQueueItem,
+  VerificationQueueQuery,
 } from "./types";
 
 export interface UserDetail {
@@ -72,6 +78,69 @@ export async function updateOrganizationStatus(id: string, status: OrgStatus): P
   await baseApi.patch(`/admin/organizations/${id}/status`, { status });
 }
 
+export async function fetchVerificationQueue(
+  query: VerificationQueueQuery = {},
+): Promise<Paginated<VerificationQueueItem>> {
+  const response = await baseApi.get<ApiResponseData<Paginated<VerificationQueueItem>>>("/admin/verifications", {
+    params: cleanParams(query),
+  });
+  return response.data.data;
+}
+
+export async function fetchReports(query: ReportListQuery = {}): Promise<Paginated<OrganizationReportRef>> {
+  const response = await baseApi.get<ApiResponseData<Paginated<OrganizationReportRef>>>("/admin/reports", {
+    params: cleanParams(query),
+  });
+  return response.data.data;
+}
+
+export async function fetchReportDetail(id: string): Promise<OrganizationReportRef> {
+  const response = await baseApi.get<ApiResponseData<OrganizationReportRef>>(`/admin/reports/${id}`);
+  return response.data.data;
+}
+
+export async function updateReportStatus(id: string, status: "open" | "investigating"): Promise<void> {
+  await baseApi.patch(`/admin/reports/${id}/status`, { status });
+}
+
+export async function resolveReport(id: string, resolution: string): Promise<void> {
+  await baseApi.patch(`/admin/reports/${id}/resolve`, { resolution });
+}
+
+export async function rejectReport(id: string, reason: string): Promise<void> {
+  await baseApi.patch(`/admin/reports/${id}/reject`, { reason });
+}
+
+export async function fetchOwnershipDisputes(
+  query: OwnershipDisputeListQuery = {},
+): Promise<Paginated<OwnershipDisputeRef>> {
+  const response = await baseApi.get<ApiResponseData<Paginated<OwnershipDisputeRef>>>("/admin/ownership-disputes", {
+    params: cleanParams(query),
+  });
+  return response.data.data;
+}
+
+export async function fetchOwnershipDisputeDetail(id: string): Promise<OwnershipDisputeRef> {
+  const response = await baseApi.get<ApiResponseData<OwnershipDisputeRef>>(`/admin/ownership-disputes/${id}`);
+  return response.data.data;
+}
+
+export async function updateDisputeStatus(id: string, status: "open" | "investigating"): Promise<void> {
+  await baseApi.patch(`/admin/ownership-disputes/${id}/status`, { status });
+}
+
+export async function setDisputeFrozen(id: string, frozen: boolean): Promise<void> {
+  await baseApi.patch(`/admin/ownership-disputes/${id}/freeze`, { frozen });
+}
+
+export async function resolveDispute(id: string, resolution: string, toUserId?: number): Promise<void> {
+  await baseApi.patch(`/admin/ownership-disputes/${id}/resolve`, { resolution, toUserId });
+}
+
+export async function rejectDispute(id: string, reason: string): Promise<void> {
+  await baseApi.patch(`/admin/ownership-disputes/${id}/reject`, { reason });
+}
+
 // ---- Server helpers (Server Components / Actions) ----
 
 export async function serverFetchDashboardStats(): Promise<DashboardStats> {
@@ -107,5 +176,45 @@ export async function serverFetchOrganizations(
 export async function serverFetchOrganizationDetail(id: string): Promise<AdminOrganization> {
   const api = await serverApi();
   const response = await api.get<ApiResponseData<AdminOrganization>>(`/admin/organizations/${id}`);
+  return response.data.data;
+}
+
+export async function serverFetchVerificationQueue(
+  query: VerificationQueueQuery = {},
+): Promise<Paginated<VerificationQueueItem>> {
+  const api = await serverApi();
+  const response = await api.get<ApiResponseData<Paginated<VerificationQueueItem>>>("/admin/verifications", {
+    params: cleanParams(query),
+  });
+  return response.data.data;
+}
+
+export async function serverFetchReports(query: ReportListQuery = {}): Promise<Paginated<OrganizationReportRef>> {
+  const api = await serverApi();
+  const response = await api.get<ApiResponseData<Paginated<OrganizationReportRef>>>("/admin/reports", {
+    params: cleanParams(query),
+  });
+  return response.data.data;
+}
+
+export async function serverFetchReportDetail(id: string): Promise<OrganizationReportRef> {
+  const api = await serverApi();
+  const response = await api.get<ApiResponseData<OrganizationReportRef>>(`/admin/reports/${id}`);
+  return response.data.data;
+}
+
+export async function serverFetchOwnershipDisputes(
+  query: OwnershipDisputeListQuery = {},
+): Promise<Paginated<OwnershipDisputeRef>> {
+  const api = await serverApi();
+  const response = await api.get<ApiResponseData<Paginated<OwnershipDisputeRef>>>("/admin/ownership-disputes", {
+    params: cleanParams(query),
+  });
+  return response.data.data;
+}
+
+export async function serverFetchOwnershipDisputeDetail(id: string): Promise<OwnershipDisputeRef> {
+  const api = await serverApi();
+  const response = await api.get<ApiResponseData<OwnershipDisputeRef>>(`/admin/ownership-disputes/${id}`);
   return response.data.data;
 }

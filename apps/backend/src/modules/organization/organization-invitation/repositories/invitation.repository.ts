@@ -17,6 +17,24 @@ export class OrganizationInvitationRepository extends Repository<OrganizationInv
     });
   }
 
+  async findByOrg(organizationId: bigint, status?: OrganizationInvitationStatus): Promise<OrganizationInvitation[]> {
+    return this.find({
+      where: status ? { organizationId, status } : { organizationId },
+      relations: { inviter: true },
+      order: { createdAt: "DESC" },
+    });
+  }
+
+  async findPendingByEmail(organizationId: bigint, normalizedEmail: string): Promise<OrganizationInvitation | null> {
+    return this.createQueryBuilder("invitation")
+      .where("invitation.organization_id = :organizationId", {
+        organizationId: organizationId.toString(),
+      })
+      .andWhere("invitation.status = :status", { status: OrganizationInvitationStatus.PENDING })
+      .andWhere("LOWER(invitation.email) = :normalizedEmail", { normalizedEmail })
+      .getOne();
+  }
+
   async findByTokenHash(tokenHash: string): Promise<OrganizationInvitation | null> {
     return this.findOne({
       where: { tokenHash },

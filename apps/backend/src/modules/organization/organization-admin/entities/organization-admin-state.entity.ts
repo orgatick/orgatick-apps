@@ -54,6 +54,18 @@ export class OrganizationAdminState {
   @Column({ name: "closure_reason", type: "varchar", length: 500, nullable: true })
   closureReason?: string | null;
 
+  @Column({ name: "restricted_capabilities", type: "text", array: true, default: () => "'{}'" })
+  restrictedCapabilities!: string[];
+
+  @Column({ name: "restrictions_reason", type: "varchar", length: 500, nullable: true })
+  restrictionsReason?: string | null;
+
+  @Column({ name: "restrictions_updated_by", type: "bigint", nullable: true })
+  restrictionsUpdatedBy?: bigint | null;
+
+  @Column({ name: "restrictions_updated_at", type: "timestamp", nullable: true })
+  restrictionsUpdatedAt?: Date | null;
+
   @CreateDateColumn({ name: "created_at", type: "timestamp" })
   createdAt!: Date;
 

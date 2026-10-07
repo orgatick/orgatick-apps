@@ -8,17 +8,16 @@ export class AdminStateRepository extends Repository<OrganizationAdminState> {
     super(OrganizationAdminState, dataSource.createEntityManager());
   }
 
-  /** Returns the admin state row for an organization, creating an empty one if missing. */
+  /** Returns the admin state row for an organization, or an unsaved placeholder when missing. */
   async ensure(organizationId: bigint): Promise<OrganizationAdminState> {
     const existing = await this.findOneBy({ organizationId });
     if (existing) return existing;
-    return this.save(
-      this.create({
-        organizationId,
-        blocked: false,
-        hidden: false,
-        archived: false,
-      } satisfies DeepPartial<OrganizationAdminState>),
-    );
+    return this.create({
+      organizationId,
+      blocked: false,
+      hidden: false,
+      archived: false,
+      restrictedCapabilities: [],
+    } satisfies DeepPartial<OrganizationAdminState>);
   }
 }

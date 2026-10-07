@@ -21,6 +21,8 @@ import { OrganizationStats } from "./organization-stats.entity";
 import { OrganizationSupportContact } from "./organization-support-contact.entity";
 import { OrganizationVerification } from "../../organization-governance/entities/organization-verification.entity";
 import { OrganizationRisk } from "../../organization-governance/entities/organization-risk.entity";
+import { OrganizationReport } from "../../organization-admin/entities/organization-report.entity";
+import { OrganizationOwnershipDispute } from "../../organization-admin/entities/organization-ownership-dispute.entity";
 import { OrganizationCommissionSetting } from "../../organization-finance/entities/organization-commission-setting.entity";
 import { OrganizationDocument } from "../../organization-governance/entities/organization-document.entity";
 import { OrganizationWarning } from "../../organization-governance/entities/organization-warning.entity";
@@ -174,6 +176,18 @@ export class Organization {
     (account) => account.organization,
   )
   paymentAccounts?: OrganizationPaymentAccount[];
+
+  @OneToMany(
+    () => OrganizationReport,
+    (report) => report.organization,
+  )
+  reports?: OrganizationReport[];
+
+  @OneToMany(
+    () => OrganizationOwnershipDispute,
+    (dispute) => dispute.organization,
+  )
+  ownershipDisputes?: OrganizationOwnershipDispute[];
 }
 
 export default Organization;
