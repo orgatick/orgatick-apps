@@ -1,38 +1,17 @@
 "use client";
 
 import { IconRotateClockwise, IconX } from "@tabler/icons-react";
-import type { InvitationStatusFilter, OrganizationInvitationResponse } from "@orgatick/contracts";
+import type { OrganizationInvitationResponse } from "@orgatick/contracts";
 import { Badge } from "@orgatick/ui/components/badge";
 import { Button } from "@orgatick/ui/components/button";
+import {
+  formatDate,
+  INVITATION_STATUS_BADGE_VARIANTS,
+  INVITATION_STATUS_LABELS,
+  statusOfInvitation,
+} from "./member-helpers";
 
-export const STATUS_BADGE_VARIANTS: Record<
-  InvitationStatusFilter,
-  "secondary" | "default" | "destructive" | "outline"
-> = {
-  pending: "secondary",
-  accepted: "default",
-  rejected: "destructive",
-  expired: "outline",
-  cancelled: "outline",
-};
-
-export const STATUS_LABELS: Record<InvitationStatusFilter, string> = {
-  pending: "Pending",
-  accepted: "Accepted",
-  rejected: "Rejected",
-  expired: "Expired",
-  cancelled: "Cancelled",
-};
-
-export function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
-export function statusOf(value: string): InvitationStatusFilter {
-  return (value in STATUS_LABELS ? value : "pending") as InvitationStatusFilter;
-}
-
-interface TeamInvitationRowProps {
+interface InvitationRowProps {
   invitation: OrganizationInvitationResponse;
   roleName: string;
   canInvite: boolean;
@@ -42,7 +21,7 @@ interface TeamInvitationRowProps {
   onCancel: () => void;
 }
 
-export function TeamInvitationRow({
+export function InvitationRow({
   invitation,
   roleName,
   canInvite,
@@ -50,24 +29,32 @@ export function TeamInvitationRow({
   isBusy,
   onResend,
   onCancel,
-}: TeamInvitationRowProps) {
-  const status = statusOf(invitation.status);
+}: InvitationRowProps) {
+  const status = statusOfInvitation(invitation.status);
+
+  const inviterName =
+    (typeof invitation.invitedBy === "object" && invitation.invitedBy !== null ? invitation.invitedBy.name : null) ||
+    (invitation as unknown as { inviter?: { name?: string } }).inviter?.name ||
+    null;
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted/60">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-muted/50 sm:flex-nowrap">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-foreground">{invitation.email}</p>
+        <div className="flex items-center gap-2">
+          <p className="truncate text-sm font-semibold text-foreground">{invitation.email}</p>
+          <Badge variant={INVITATION_STATUS_BADGE_VARIANTS[status]} className="text-[10px]">
+            {INVITATION_STATUS_LABELS[status]}
+          </Badge>
+        </div>
         <p className="truncate text-xs text-muted-foreground">
           {roleName} · invited {formatDate(invitation.createdAt)}
-          {invitation.invitedBy ? ` by ${invitation.invitedBy.name}` : ""}
+          {inviterName ? ` by ${inviterName}` : ""}
           {status === "pending" ? ` · expires ${formatDate(invitation.expiresAt)}` : ""}
         </p>
       </div>
 
-      <Badge variant={STATUS_BADGE_VARIANTS[status]}>{STATUS_LABELS[status]}</Badge>
-
       {status === "pending" && (
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {canInvite && (
             <Button variant="outline" size="sm" className="gap-1.5" disabled={isBusy} onClick={onResend}>
               <IconRotateClockwise className="size-3.5" />

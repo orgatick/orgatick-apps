@@ -58,29 +58,63 @@ function ThemeCookieSync() {
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
-    const cookie = readThemeCookie();
+    let isSubscribed = true;
 
-    // A cookie from an earlier visit wins when `localStorage` was cleared, so the two stores
-    // cannot drift and cause a mismatch.
-    if (isThemeValue(cookie) && cookie !== theme) {
-      setTheme(cookie);
-      return;
+    async function syncTheme() {
+      const cookie = await readClientThemeCookie();
+      if (!isSubscribed) return;
+
+      // A cookie from an earlier visit wins when `localStorage` was cleared, so the two stores
+      // cannot drift and cause a mismatch.
+      if (isThemeValue(cookie) && cookie !== theme) {
+        setTheme(cookie);
+        return;
+      }
+
+      if (theme) {
+        writeThemeCookie(theme);
+      }
     }
 
-    if (theme) {
-      writeThemeCookie(theme);
-    }
+    void syncTheme();
+
+    return () => {
+      isSubscribed = false;
+    };
   }, [theme, setTheme]);
 
   return null;
 }
 
-function readThemeCookie(): string | undefined {
+async function readClientThemeCookie(): Promise<string | undefined> {
+  if (typeof window !== "undefined" && "cookieStore" in window && window.cookieStore) {
+    try {
+      const entry = await window.cookieStore.get(THEME_COOKIE_NAME);
+      if (entry?.value) return decodeURIComponent(entry.value);
+    } catch {
+      // Fallback to legacy document.cookie reader
+    }
+  }
+
+  if (typeof document === "undefined") return undefined;
   const match = document.cookie.match(new RegExp(`(?:^|; )${THEME_COOKIE_NAME}=([^;]*)`));
 
   return match?.[1] ? decodeURIComponent(match[1]) : undefined;
 }
 
 function writeThemeCookie(theme: string): void {
+  if (typeof window !== "undefined" && "cookieStore" in window && window.cookieStore) {
+    void window.cookieStore.set({
+      name: THEME_COOKIE_NAME,
+      value: theme,
+      path: "/",
+      expires: Date.now() + THEME_COOKIE_MAX_AGE_SECONDS * 1000,
+      sameSite: "lax",
+    });
+    return;
+  }
+
+  // Fallback for browsers that do not support the Cookie Store API (e.g. Safari, Firefox)
+  // biome-ignore lint/suspicious/noDocumentCookie: Cookie Store API fallback for non-Chromium browsers
   document.cookie = `${THEME_COOKIE_NAME}=${encodeURIComponent(theme)}; path=/; max-age=${THEME_COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
 }

@@ -48,4 +48,37 @@ export class OrganizationContextService {
   async invalidateMembershipCache(userId: bigint, organizationId: bigint): Promise<void> {
     await this.cacheService.invalidate(userId, organizationId);
   }
+
+  /**
+   * Automatically picks the user's default active organization when cookie is missing.
+   * Prioritizes highest role first, then earliest membership.
+   */
+  async resolveDefaultContext(
+    userId: bigint,
+  ): Promise<{ context: OrganizationContext; organizationId: bigint } | null> {
+    const memberships = await this.memberRepository.findActiveMembershipsByUser(userId);
+    if (!memberships || memberships.length === 0) return null;
+
+    const preferred = memberships.reduce<OrganizationMember | null>((best, current) => {
+      if (!best) return current;
+      const priority = (m: OrganizationMember) => {
+        const key = m.role?.key?.toLowerCase() ?? "";
+        if (key === "owner") return 0;
+        if (key === "admin") return 1;
+        if (key === "event_manager") return 2;
+        if (key === "volunteer") return 3;
+        return 99;
+      };
+      if (priority(current) !== priority(best)) {
+        return priority(current) < priority(best) ? current : best;
+      }
+      return current.createdAt < best.createdAt ? current : best;
+    }, null);
+
+    if (!preferred) return null;
+
+    const organizationId = BigInt(preferred.organizationId);
+    const context = await this.warmMembershipCache(userId, organizationId, preferred);
+    return { context, organizationId };
+  }
 }

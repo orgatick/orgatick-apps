@@ -24,7 +24,7 @@ export default async function OrganizationSettingsPage() {
   const isOwner = membership.role.key === "OWNER" || membership.role.key === "owner";
 
   return (
-    <div className="flex min-h-full w-full flex-col gap-6 max-w-5xl">
+    <div className="flex min-h-full w-full flex-col gap-6">
       <SettingsHeader
         orgName={org.name}
         slug={org.slug}

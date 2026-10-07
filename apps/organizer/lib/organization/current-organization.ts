@@ -25,7 +25,17 @@ export async function getCurrentOrganization(api: AxiosInstance): Promise<Sideba
     const memberships: SidebarOrganization[] = response.data?.data ?? [];
     if (memberships.length === 0) return null;
 
-    return memberships.find((entry) => String(entry.organization.id) === currentId) ?? memberships[0] ?? null;
+    const selected = memberships.find((entry) => String(entry.organization.id) === currentId) ?? memberships[0] ?? null;
+
+    if (selected && (!currentId || currentId !== String(selected.organization.id))) {
+      try {
+        await api.post("/session/organization", { organizationId: String(selected.organization.id) });
+      } catch {
+        // Safe to ignore if background cookie setting fails
+      }
+    }
+
+    return selected;
   } catch {
     return null;
   }

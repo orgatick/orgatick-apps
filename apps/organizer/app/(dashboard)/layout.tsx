@@ -27,9 +27,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
     return <NoOrganizationCard />;
   }
 
+  let activeOrgId: string | number | null = null;
+  try {
+    const sessionRes = await api.get("/session/organization");
+    if (sessionRes.data?.data?.id) {
+      activeOrgId = sessionRes.data.data.id;
+    }
+  } catch {
+    activeOrgId = null;
+  }
+
   return (
-    <SidebarLayout user={user} organizations={organizations}>
-      <div className="pt-3 ">{children} </div>
+    <SidebarLayout user={user} organizations={organizations} initialOrgId={activeOrgId}>
+      <div className="pt-3 w-full mx-auto sm:px-10">{children} </div>
     </SidebarLayout>
   );
 }

@@ -1,4 +1,5 @@
 import type {
+  AddOrganizationMember,
   CreateOrganizationInvitation,
   EffectivePermissionsResponse,
   InvitationStatusFilter,
@@ -26,6 +27,10 @@ async function unwrap<T>(request: Promise<{ data: { data?: T } }>): Promise<T> {
 
 export async function fetchTeamMembers(): Promise<OrganizationMemberResponse[]> {
   return await unwrap<OrganizationMemberResponse[]>(api.get(`${TEAM_BASE}/members`));
+}
+
+export async function addDirectMember(input: AddOrganizationMember): Promise<OrganizationMemberResponse> {
+  return await unwrap<OrganizationMemberResponse>(api.post(`${TEAM_BASE}/members`, input));
 }
 
 export async function fetchTeamRoles(): Promise<OrganizationRoleOptionResponse[]> {
@@ -76,4 +81,10 @@ export async function updateCurrentOrganization(
   data: Record<string, unknown>,
 ): Promise<unknown> {
   return await unwrap<unknown>(api.patch(`/organizations/${organizationId}`, data));
+}
+
+export async function switchOrganization(organizationId: string | number): Promise<{ id: string; name: string }> {
+  return await unwrap<{ id: string; name: string }>(
+    api.post("/session/organization", { organizationId: String(organizationId) }),
+  );
 }

@@ -1,10 +1,12 @@
 import {
+  AddOrganizationMemberSchema,
   CreateOrganizationInvitationSchema,
   OrganizationInvitationQuerySchema,
   InvitationTokenSchema,
   OrganizationMemberQuerySchema,
   UpdateMemberRoleSchema,
   UpdateMemberStatusSchema,
+  type AddOrganizationMember,
   type CreateOrganizationInvitation,
   type OrganizationInvitationQuery,
   type OrganizationMemberQuery,
@@ -13,12 +15,14 @@ import {
 } from "@orgatick/contracts";
 
 export {
+  AddOrganizationMemberSchema,
   CreateOrganizationInvitationSchema,
   OrganizationInvitationQuerySchema,
   InvitationTokenSchema,
   OrganizationMemberQuerySchema,
   UpdateMemberRoleSchema,
   UpdateMemberStatusSchema,
+  type AddOrganizationMember as AddOrganizationMemberDto,
   type CreateOrganizationInvitation as CreateOrganizationInvitationDto,
   type OrganizationInvitationQuery as OrganizationInvitationQueryDto,
   type OrganizationMemberQuery as OrganizationMemberQueryDto,

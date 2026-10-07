@@ -2,14 +2,13 @@ import {
   BadRequestException,
   type CanActivate,
   type ExecutionContext,
-  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
 import type { Response } from "express";
 import { OrganizationContextCookieService } from "../services/organization-context-cookie.service";
 import { OrganizationContextService } from "../services/organization-context.service";
-import type { OrganizationScopedRequest } from "../types/organization-context.types";
+import type { OrganizationContext, OrganizationScopedRequest } from "../types/organization-context.types";
 
 @Injectable()
 export class OrganizationContextGuard implements CanActivate {
@@ -26,17 +25,30 @@ export class OrganizationContextGuard implements CanActivate {
       throw new UnauthorizedException("Authentication required");
     }
 
+    const userId = BigInt(request.user.id);
     const organizationIdRaw = this.cookieService.getOrganizationId(request);
-    if (!organizationIdRaw) {
-      throw new BadRequestException("Current organization not selected");
+
+    let organizationContext: OrganizationContext | null = null;
+
+    if (organizationIdRaw) {
+      const organizationId = BigInt(organizationIdRaw);
+      organizationContext = await this.contextService.resolveContext(userId, organizationId);
+      if (!organizationContext) {
+        this.cookieService.clearOrganizationId(response);
+      }
     }
 
-    const organizationId = BigInt(organizationIdRaw);
-    const organizationContext = await this.contextService.resolveContext(BigInt(request.user.id), organizationId);
+    // Auto-select default active organization when cookie is missing or invalid
+    if (!organizationContext) {
+      const defaultResolved = await this.contextService.resolveDefaultContext(userId);
+      if (defaultResolved) {
+        organizationContext = defaultResolved.context;
+        this.cookieService.setOrganizationId(response, defaultResolved.organizationId);
+      }
+    }
 
     if (!organizationContext) {
-      this.cookieService.clearOrganizationId(response);
-      throw new ForbiddenException("You are not an active member of this organization");
+      throw new BadRequestException("Current organization not selected");
     }
 
     request.organizationContext = organizationContext;

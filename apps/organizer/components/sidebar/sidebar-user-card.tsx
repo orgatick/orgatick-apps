@@ -36,7 +36,7 @@ export function SidebarUserCard({
   };
 
   return (
-    <div className={cn("flex items-center gap-2.5", collapsed ? "justify-center" : "px-2")}>
+    <div className={cn("flex items-center gap-2.5", collapsed ? "flex-col items-center gap-2" : "px-2")}>
       <Avatar className="size-9 shrink-0">
         {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
         <AvatarFallback className="bg-linear-to-br from-primary to-indigo-600 font-mono text-xs font-bold text-white">

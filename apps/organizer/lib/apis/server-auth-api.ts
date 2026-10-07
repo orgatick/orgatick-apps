@@ -280,7 +280,26 @@ export function createServerApiClient(options: CreateServerApiOptions = {}): Axi
   };
 
   api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      const rawSetCookie =
+        (response.headers?.["set-cookie"] as string | string[] | undefined) ||
+        (typeof response.headers?.get === "function"
+          ? (response.headers.get("set-cookie") as string | string[] | undefined)
+          : undefined);
+      if (rawSetCookie) {
+        const parsedCookies = parseSetCookieHeader(rawSetCookie);
+        if (parsedCookies.length > 0) {
+          currentCookieHeader = mergeCookieHeader(currentCookieHeader, parsedCookies);
+          const defaultsHeaders = api.defaults.headers as Record<string, unknown>;
+          if (typeof (defaultsHeaders as { set?: HeaderSetFn }).set === "function") {
+            (defaultsHeaders as { set: HeaderSetFn }).set("Cookie", currentCookieHeader);
+          } else {
+            defaultsHeaders.Cookie = currentCookieHeader;
+          }
+        }
+      }
+      return response;
+    },
     async (error: AxiosError) => {
       const originalRequest = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
 

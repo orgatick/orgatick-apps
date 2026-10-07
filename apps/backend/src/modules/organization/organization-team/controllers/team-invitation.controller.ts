@@ -16,6 +16,7 @@ import type { AuthRequest } from "../../../../common/types/auth-request.types";
 import { CurrentOrganization } from "../../context/decorators/current-organization.decorator";
 import { OrganizationContextGuard } from "../../context/guards/organization-context.guard";
 import type { OrganizationContext } from "../../context/types/organization-context.types";
+import type { OrganizationInvitation } from "../../organization-invitation/entities/organization-invitation.entity";
 import type { OrganizationInvitationStatus } from "../../organization-invitation/enums/organization-invitation-status.enum";
 import { OrganizationInvitationService } from "../../organization-invitation/services/invitation.service";
 import { OrganizationPermissionGuard } from "../../organization-member/guards/organization-permission.guard";
@@ -31,6 +32,27 @@ import {
 export class TeamInvitationController {
   constructor(private readonly invitationService: OrganizationInvitationService) {}
 
+  private toInvitationResponse(invitation: OrganizationInvitation) {
+    return {
+      id: invitation.id.toString(),
+      email: invitation.email,
+      role: invitation.role,
+      status: invitation.status,
+      expiresAt: invitation.expiresAt.toISOString(),
+      acceptedAt: invitation.acceptedAt ? invitation.acceptedAt.toISOString() : null,
+      rejectedAt: invitation.rejectedAt ? invitation.rejectedAt.toISOString() : null,
+      cancelledAt: invitation.cancelledAt ? invitation.cancelledAt.toISOString() : null,
+      createdAt: invitation.createdAt.toISOString(),
+      invitedBy: invitation.inviter
+        ? {
+            id: invitation.inviter.id.toString(),
+            name: invitation.inviter.name,
+            email: invitation.inviter.email,
+          }
+        : null,
+    };
+  }
+
   /**
    * GET /organizations/current/invitations
    * Invitation history for the current organization, optionally filtered by status.
@@ -42,10 +64,11 @@ export class TeamInvitationController {
     @CurrentOrganization() context: OrganizationContext,
     @Query({ schema: OrganizationInvitationQuerySchema }) query: OrganizationInvitationQueryDto,
   ) {
-    return await this.invitationService.list(
+    const list = await this.invitationService.list(
       context.organizationId,
       (query.status as OrganizationInvitationStatus | undefined) ?? undefined,
     );
+    return list.map((inv) => this.toInvitationResponse(inv));
   }
 
   /**
@@ -59,7 +82,7 @@ export class TeamInvitationController {
     @Req() req: AuthRequest,
     @Body({ schema: CreateOrganizationInvitationSchema }) dto: CreateOrganizationInvitationDto,
   ) {
-    return await this.invitationService.create(
+    const invitation = await this.invitationService.create(
       context.organizationId,
       {
         id: BigInt(req.user.id),
@@ -67,6 +90,7 @@ export class TeamInvitationController {
       },
       dto,
     );
+    return this.toInvitationResponse(invitation);
   }
 
   /**
@@ -80,7 +104,8 @@ export class TeamInvitationController {
     @CurrentOrganization() context: OrganizationContext,
     @Param("invitationId") invitationId: string,
   ) {
-    return await this.invitationService.resend(context.organizationId, BigInt(invitationId));
+    const invitation = await this.invitationService.resend(context.organizationId, BigInt(invitationId));
+    return this.toInvitationResponse(invitation);
   }
 
   /**
@@ -94,6 +119,7 @@ export class TeamInvitationController {
     @CurrentOrganization() context: OrganizationContext,
     @Param("invitationId") invitationId: string,
   ) {
-    return await this.invitationService.cancel(context.organizationId, BigInt(invitationId));
+    const invitation = await this.invitationService.cancel(context.organizationId, BigInt(invitationId));
+    return this.toInvitationResponse(invitation);
   }
 }

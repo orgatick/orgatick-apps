@@ -7,6 +7,7 @@ import { SidebarBrand } from "./sidebar-brand";
 import { SidebarNav } from "./sidebar-nav";
 import { SidebarOrgSwitcher } from "./sidebar-org-switcher";
 import { SidebarUserCard } from "./sidebar-user-card";
+import { ThemeToggle } from "./theme-toggle";
 
 interface SidebarDesktopProps {
   user: UserResponse;
@@ -52,7 +53,12 @@ export function SidebarDesktop({
       </div>
 
       <div className="shrink-0 border-t border-border/40 p-3">
-        <SidebarUserCard user={user} collapsed={collapsed} />
+        <div className="flex justify-center">
+          <ThemeToggle collapsed={collapsed} align={collapsed ? "end" : "start"} />
+        </div>
+        <div className={cn("mt-2.5 border-t border-border/40 pt-2.5", collapsed && "border-t-0 pt-0")}>
+          <SidebarUserCard user={user} collapsed={collapsed} />
+        </div>
       </div>
 
       <button

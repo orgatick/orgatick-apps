@@ -84,7 +84,7 @@ export const SIDEBAR_NAV_GROUPS: SidebarNavGroup[] = [
     label: "Organization",
     items: [
       { href: "/", label: "Overview", icon: IconLayoutDashboard, exact: true },
-      { href: "/team", label: "Team & Members", icon: IconUsersGroup },
+      { href: "/members", label: "Members", icon: IconUsersGroup },
       { href: "/verification", label: "Verification", icon: IconShieldCheck },
       { href: "/settings", label: "Settings", icon: IconSettings },
     ],

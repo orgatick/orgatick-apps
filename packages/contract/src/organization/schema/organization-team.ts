@@ -39,3 +39,9 @@ export const InvitationTokenSchema = z
   .max(128, "Invalid invitation token")
   .regex(/^[a-f0-9]+$/, "Invalid invitation token");
 export type InvitationToken = z.infer<typeof InvitationTokenSchema>;
+
+export const AddOrganizationMemberSchema = z.object({
+  email: z.email("Invalid email format").max(320),
+  role: z.string().trim().min(1, "Role is required").max(100),
+});
+export type AddOrganizationMember = z.infer<typeof AddOrganizationMemberSchema>;

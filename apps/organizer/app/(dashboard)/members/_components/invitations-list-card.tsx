@@ -1,6 +1,6 @@
 "use client";
 
-import { IconMail } from "@tabler/icons-react";
+import { IconMail, IconMailPlus } from "@tabler/icons-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type {
@@ -8,24 +8,32 @@ import type {
   OrganizationInvitationResponse,
   OrganizationRoleOptionResponse,
 } from "@orgatick/contracts";
+import { Button } from "@orgatick/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@orgatick/ui/components/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@orgatick/ui/components/empty";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@orgatick/ui/components/select";
 import { Skeleton } from "@orgatick/ui/components/skeleton";
 import { handleApiError } from "@/lib/apis/api-error";
 import { cancelTeamInvitation, fetchTeamInvitations, resendTeamInvitation } from "@/lib/apis/organization.api";
-import { STATUS_LABELS, TeamInvitationRow, statusOf } from "./team-invitation-row";
+import { AddMemberDialog } from "./add-member-dialog";
+import { INVITATION_STATUS_LABELS, statusOfInvitation } from "./member-helpers";
+import { InvitationRow } from "./invitation-row";
 
-interface TeamInvitationsCardProps {
-  invitations: OrganizationInvitationResponse[];
+interface InvitationsListCardProps {
+  initialInvitations: OrganizationInvitationResponse[];
   roles: OrganizationRoleOptionResponse[];
-  canInvite: boolean;
+  canInvite?: boolean;
   canRemove: boolean;
 }
 
-export function TeamInvitationsCard({ invitations, roles, canInvite, canRemove }: TeamInvitationsCardProps) {
+export function InvitationsListCard({
+  initialInvitations,
+  roles,
+  canInvite = true,
+  canRemove,
+}: InvitationsListCardProps) {
   const [statusFilter, setStatusFilter] = useState<InvitationStatusFilter>("pending");
-  const [items, setItems] = useState<OrganizationInvitationResponse[]>(invitations);
+  const [items, setItems] = useState<OrganizationInvitationResponse[]>(initialInvitations);
   const [isLoading, setIsLoading] = useState(false);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
 
@@ -42,7 +50,7 @@ export function TeamInvitationsCard({ invitations, roles, canInvite, canRemove }
 
   const handleFilterChange = (next: string | null) => {
     if (!next) return;
-    const status = statusOf(next);
+    const status = statusOfInvitation(next);
     setStatusFilter(status);
     void reload(status);
   };
@@ -54,7 +62,7 @@ export function TeamInvitationsCard({ invitations, roles, canInvite, canRemove }
       toast.success(successMessage);
       await reload(statusFilter);
     } catch (error) {
-      handleApiError(error, "Couldn't update the invitation. Please try again.");
+      toast.error(handleApiError(error, "Operation failed"));
     } finally {
       setPendingKey(null);
     }
@@ -64,35 +72,51 @@ export function TeamInvitationsCard({ invitations, roles, canInvite, canRemove }
     roles.find((role) => role.key === invitation.role)?.name ?? invitation.role;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Invitations</CardTitle>
-        <div className="flex items-center gap-2">
-          <Select items={STATUS_LABELS} value={statusFilter} onValueChange={handleFilterChange}>
-            <SelectTrigger size="sm" className="w-32 text-xs" aria-label="Filter invitations by status">
+    <Card className="w-full border-border/60">
+      <CardHeader className="pb-3 border-b border-border/40">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CardTitle className="text-base font-semibold">
+              Sent Invitations <span className="text-xs font-normal text-muted-foreground">({items.length})</span>
+            </CardTitle>
+            <AddMemberDialog
+              roles={roles}
+              defaultMethod="invite"
+              trigger={
+                <Button size="xs" variant="outline" className="gap-1 text-xs h-7">
+                  <IconMailPlus className="size-3" />
+                  Invite
+                </Button>
+              }
+            />
+          </div>
+
+          <Select items={INVITATION_STATUS_LABELS} value={statusFilter} onValueChange={handleFilterChange}>
+            <SelectTrigger size="sm" className="w-36 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(Object.keys(STATUS_LABELS) as InvitationStatusFilter[]).map((status) => (
+              {(Object.keys(INVITATION_STATUS_LABELS) as InvitationStatusFilter[]).map((status) => (
                 <SelectItem key={status} value={status}>
-                  {STATUS_LABELS[status]}
+                  {INVITATION_STATUS_LABELS[status]}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
       </CardHeader>
-      <CardContent>
+
+      <CardContent className="pt-2">
         {isLoading ? (
-          <div className="space-y-1">
-            <Skeleton className="h-12 rounded-lg" />
-            <Skeleton className="h-12 rounded-lg" />
-            <Skeleton className="h-12 rounded-lg" />
+          <div className="space-y-2 py-4">
+            <Skeleton className="h-14 rounded-lg" />
+            <Skeleton className="h-14 rounded-lg" />
+            <Skeleton className="h-14 rounded-lg" />
           </div>
         ) : items.length === 0 ? (
-          <Empty className="border border-border/60">
+          <Empty className="py-12 border border-border/40 my-3">
             <EmptyMedia variant="icon">
-              <IconMail />
+              <IconMail className="size-6 text-muted-foreground" />
             </EmptyMedia>
             <EmptyHeader>
               <EmptyTitle>
@@ -100,15 +124,29 @@ export function TeamInvitationsCard({ invitations, roles, canInvite, canRemove }
               </EmptyTitle>
               <EmptyDescription>
                 {statusFilter === "pending"
-                  ? "Invite a teammate from the members card above and their invitation will show up here."
-                  : "Switch the status filter to see other invitations."}
+                  ? "There are currently no outstanding invitations awaiting acceptance."
+                  : `No invitations found with the "${statusFilter}" status.`}
               </EmptyDescription>
             </EmptyHeader>
+            {statusFilter === "pending" && (
+              <div className="mt-4">
+                <AddMemberDialog
+                  roles={roles}
+                  defaultMethod="invite"
+                  trigger={
+                    <Button size="sm" className="gap-1.5">
+                      <IconMailPlus className="size-4" />
+                      Invite First Teammate
+                    </Button>
+                  }
+                />
+              </div>
+            )}
           </Empty>
         ) : (
-          <div className="space-y-1">
+          <div className="divide-y divide-border/50">
             {items.map((invitation) => (
-              <TeamInvitationRow
+              <InvitationRow
                 key={invitation.id}
                 invitation={invitation}
                 roleName={roleNameOf(invitation)}

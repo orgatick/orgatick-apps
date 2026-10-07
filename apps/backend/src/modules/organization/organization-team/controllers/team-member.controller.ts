@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { ORGANIZATION_PERMISSIONS, RequirePermission } from "../../../../common/authorization";
 import type { AuthRequest } from "../../../../common/types/auth-request.types";
 import { CurrentOrganization } from "../../context/decorators/current-organization.decorator";
@@ -9,9 +9,11 @@ import type { OrganizationMemberStatus } from "../../organization-member/enums/o
 import { OrganizationMemberService } from "../../organization-member/services/member.service";
 import { OrganizationPermissionService } from "../../organization-member/services/organization-permission.service";
 import {
+  AddOrganizationMemberSchema,
   OrganizationMemberQuerySchema,
   UpdateMemberRoleSchema,
   UpdateMemberStatusSchema,
+  type AddOrganizationMemberDto,
   type OrganizationMemberQueryDto,
   type UpdateMemberRoleDto,
   type UpdateMemberStatusDto,
@@ -24,6 +26,19 @@ export class TeamMemberController {
     private readonly memberService: OrganizationMemberService,
     private readonly permissionService: OrganizationPermissionService,
   ) {}
+
+  /**
+   * POST /organizations/current/members
+   * Directly adds an existing user to the organization by email.
+   */
+  @Post("members")
+  @RequirePermission(ORGANIZATION_PERMISSIONS.MEMBER_INVITE)
+  async addMember(
+    @CurrentOrganization() context: OrganizationContext,
+    @Body({ schema: AddOrganizationMemberSchema }) dto: AddOrganizationMemberDto,
+  ) {
+    return await this.memberService.addMemberByEmail(context.organizationId, dto);
+  }
 
   /**
    * GET /organizations/current/members

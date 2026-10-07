@@ -23,6 +23,7 @@ interface RemoveMemberDialogProps {
 
 export function RemoveMemberDialog({ member, disabled, onConfirm }: RemoveMemberDialogProps) {
   const [open, setOpen] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
@@ -40,19 +41,25 @@ export function RemoveMemberDialog({ member, disabled, onConfirm }: RemoveMember
         <AlertDialogHeader>
           <AlertDialogTitle>Remove {member.user.name}?</AlertDialogTitle>
           <AlertDialogDescription>
-            They will immediately lose access to this organization. You can invite them again later.
+            They will immediately lose access to this organization. You can add or invite them again later.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isRemoving}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
+            disabled={isRemoving}
             onClick={async () => {
-              await onConfirm();
-              setOpen(false);
+              setIsRemoving(true);
+              try {
+                await onConfirm();
+                setOpen(false);
+              } finally {
+                setIsRemoving(false);
+              }
             }}
           >
-            Remove member
+            {isRemoving ? "Removing…" : "Remove member"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

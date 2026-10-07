@@ -23,6 +23,10 @@ export class OrganizationContextCookieService {
   }
 
   getOrganizationId(request: Request): string | null {
+    const headerValue = request.headers?.["x-organization-id"];
+    if (typeof headerValue === "string" && /^\d+$/.test(headerValue)) {
+      return headerValue;
+    }
     const value = request.cookies?.[CURRENT_ORGANIZATION_COOKIE_NAME];
     return typeof value === "string" && /^\d+$/.test(value) ? value : null;
   }

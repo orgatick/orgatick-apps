@@ -1,6 +1,10 @@
 import { CACHE_MANAGER, type Cache } from "@nestjs/cache-manager";
 import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { normalizeEmail } from "../../../../common/utils/email.util";
+import { User } from "../../../users/entities/user.entity";
 import { membershipCacheKey } from "../../context/constants/organization-context.constants";
+import { OrganizationInvitation } from "../../organization-invitation/entities/organization-invitation.entity";
+import { OrganizationInvitationStatus } from "../../organization-invitation/enums/organization-invitation-status.enum";
 import type { OrganizationMember } from "../entities/organization-member.entity";
 import { OrganizationMemberStatus } from "../enums/organization-member-status.enum";
 import { OrganizationMemberRepository } from "../repositories/member.repository";
@@ -144,5 +148,63 @@ export class OrganizationMemberService {
     await this.invalidateMembershipCache(member.userId, organizationId);
 
     return { id: member.id.toString(), removed: true };
+  }
+
+  async addMemberByEmail(organizationId: bigint, input: { email: string; role: string }): Promise<OrganizationMember> {
+    const role = await this.memberRepository.findRoleByKey(organizationId, input.role);
+    if (!role) {
+      throw new NotFoundException(`Role "${input.role}" not found`);
+    }
+
+    const normalizedEmail = normalizeEmail(input.email);
+    const user = await this.memberRepository.manager.findOne(User, {
+      where: { normalizedEmail },
+    });
+    if (!user) {
+      throw new NotFoundException("No registered user found with this email. Please send an invitation instead.");
+    }
+
+    const userId = BigInt(user.id);
+    let member = await this.memberRepository.findOne({
+      where: { organizationId, userId },
+    });
+    if (member?.status === OrganizationMemberStatus.ACTIVE) {
+      throw new ConflictException("This user is already an active member of this organization");
+    }
+
+    if (member) {
+      member.roleId = role.id;
+      member.status = OrganizationMemberStatus.ACTIVE;
+      member.joinedAt = member.joinedAt ?? new Date();
+      member = await this.memberRepository.save(member);
+    } else {
+      member = await this.memberRepository.save(
+        this.memberRepository.create({
+          organizationId,
+          userId,
+          roleId: role.id,
+          status: OrganizationMemberStatus.ACTIVE,
+          joinedAt: new Date(),
+        }),
+      );
+    }
+
+    await this.invalidateMembershipCache(userId, organizationId);
+
+    await this.memberRepository.manager
+      .createQueryBuilder()
+      .update(OrganizationInvitation)
+      .set({ status: OrganizationInvitationStatus.ACCEPTED, acceptedAt: new Date() })
+      .where("organization_id = :organizationId", { organizationId: organizationId.toString() })
+      .andWhere("email = :normalizedEmail", { normalizedEmail })
+      .andWhere("status = :status", { status: OrganizationInvitationStatus.PENDING })
+      .execute();
+
+    return (
+      (await this.memberRepository.findOne({
+        where: { id: member.id },
+        relations: { user: true, role: true },
+      })) ?? member
+    );
   }
 }

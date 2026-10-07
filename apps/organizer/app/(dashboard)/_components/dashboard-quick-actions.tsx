@@ -1,15 +1,14 @@
-import { Button } from "@orgatick/ui/components/button";
+import { LinkButton } from "@/components/ui/link-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@orgatick/ui/components/card";
 import { IconArrowUpRight, IconBuildingPlus, IconSettings, IconShieldCheck, IconUsers } from "@tabler/icons-react";
-import Link from "next/link";
 
 export function DashboardQuickActions() {
   const actions = [
     {
-      title: "Team & Permissions",
-      desc: "Invite teammates, manage roles, and review invitation status.",
-      href: "/team",
-      cta: "Manage Team",
+      title: "Member Management",
+      desc: "Add members, assign roles, and handle team invitations.",
+      href: "/members",
+      cta: "Manage Members",
       icon: IconUsers,
     },
     {
@@ -54,15 +53,10 @@ export function DashboardQuickActions() {
               <CardDescription className="text-xs pt-1">{act.desc}</CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
-              <Button
-                render={<Link href={act.href} />}
-                variant="outline"
-                size="sm"
-                className="gap-1.5 w-full sm:w-auto"
-              >
+              <LinkButton href={act.href} variant="outline" size="sm" className="gap-1.5 w-full sm:w-auto">
                 <span>{act.cta}</span>
                 <IconArrowUpRight className="size-3.5" />
-              </Button>
+              </LinkButton>
             </CardContent>
           </Card>
         );

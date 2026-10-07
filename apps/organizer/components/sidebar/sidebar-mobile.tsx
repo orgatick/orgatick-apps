@@ -3,7 +3,7 @@
 import type { UserResponse } from "@orgatick/contracts";
 import { Button } from "@orgatick/ui/components/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@orgatick/ui/components/avatar";
-import { Sheet, SheetContent, SheetHeader } from "@orgatick/ui/components/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@orgatick/ui/components/sheet";
 import { cn } from "@orgatick/ui/lib/utils";
 import { IconBell, IconMenu2, IconSearch } from "@tabler/icons-react";
 import type { SidebarOrganization } from "@/lib/sidebar/nav-config";
@@ -11,6 +11,7 @@ import { SidebarBrand } from "./sidebar-brand";
 import { SidebarNav } from "./sidebar-nav";
 import { SidebarOrgSwitcher } from "./sidebar-org-switcher";
 import { SidebarUserCard } from "./sidebar-user-card";
+import { ThemeOptions, ThemeToggle } from "./theme-toggle";
 
 interface SidebarMobileProps {
   user: UserResponse;
@@ -33,12 +34,20 @@ export function SidebarMobileSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-[300px] gap-0 p-0">
         <SheetHeader className="h-16 flex-row items-center gap-3 pe-12">
+          <SheetTitle className="sr-only">Organizer navigation</SheetTitle>
           <SidebarBrand className="w-full" />
         </SheetHeader>
 
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
           <SidebarOrgSwitcher organizations={organizations} activeOrgId={activeOrgId} onOrgChange={onOrgChange} />
           <SidebarNav collapsed={false} />
+
+          <div className="flex flex-col gap-1 border-t border-border/60 pt-4">
+            <p className="px-3 pb-1 font-mono text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              Appearance
+            </p>
+            <ThemeOptions />
+          </div>
         </div>
 
         <div className="shrink-0 border-t border-border/40 p-3">
@@ -77,6 +86,7 @@ export function SidebarMobileTopbar({ user, onMenuClick }: { user: UserResponse;
       <span className="font-heading text-base font-bold tracking-tight text-foreground">Orgatick</span>
 
       <div className="ms-auto flex items-center gap-1">
+        <ThemeToggle compact align="end" className="text-muted-foreground" />
         <Button type="button" variant="ghost" size="icon-sm" aria-label="Search" className="text-muted-foreground">
           <IconSearch className="size-4.5" />
         </Button>
