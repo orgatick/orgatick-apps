@@ -43,7 +43,7 @@ export function SidebarLayout({ user, organizations, initialOrgId, children }: S
         onToggleCollapsed={() => setCollapsed((value) => !value)}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex w-full flex-1 flex-col">
         <SidebarMobileTopbar user={user} onMenuClick={() => setMobileOpen(true)} />
         <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
       </div>

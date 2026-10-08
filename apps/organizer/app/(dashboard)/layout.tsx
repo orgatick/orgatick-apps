@@ -39,7 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <SidebarLayout user={user} organizations={organizations} initialOrgId={activeOrgId}>
-      <div className="pt-3 w-full mx-auto sm:px-10">{children} </div>
+      <div className="pt-3 w-full sm:px-10 px-2">{children} </div>
     </SidebarLayout>
   );
 }

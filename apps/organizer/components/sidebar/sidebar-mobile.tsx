@@ -12,6 +12,7 @@ import { SidebarNav } from "./sidebar-nav";
 import { SidebarOrgSwitcher } from "./sidebar-org-switcher";
 import { SidebarUserCard } from "./sidebar-user-card";
 import { ThemeOptions, ThemeToggle } from "./theme-toggle";
+import OrgatickLogo from "@orgatick/ui/assets/logo/orgatick-logo";
 
 interface SidebarMobileProps {
   user: UserResponse;
@@ -80,10 +81,10 @@ export function SidebarMobileTopbar({ user, onMenuClick }: { user: UserResponse;
         <IconMenu2 className="size-5" />
       </Button>
 
-      <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-xs shadow-primary/20">
-        <span className="font-heading text-sm font-bold">O</span>
+      <span className="flex size-7 items-center justify-center">
+        <OrgatickLogo />
       </span>
-      <span className="font-heading text-base font-bold tracking-tight text-foreground">Orgatick</span>
+      <span className="font-heading text-lg font-bold tracking-tight text-foreground">Orgatick</span>
 
       <div className="ms-auto flex items-center gap-1">
         <ThemeToggle compact align="end" className="text-muted-foreground" />

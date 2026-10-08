@@ -29,16 +29,6 @@ export function MembersHeader({ organizationName, roles, canInvite = true }: Mem
         <div className="flex flex-wrap items-center gap-2">
           <AddMemberDialog
             roles={roles}
-            defaultMethod="invite"
-            trigger={
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <IconMailPlus className="size-4" />
-                Invite Teammate
-              </Button>
-            }
-          />
-          <AddMemberDialog
-            roles={roles}
             defaultMethod="direct"
             trigger={
               <Button size="sm" className="gap-1.5">
