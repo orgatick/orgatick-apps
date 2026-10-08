@@ -24,7 +24,7 @@ export default async function DashboardPage() {
   const isVerified = getVerificationStatus(membership) === OrganizationVerificationStatus.VERIFIED;
 
   return (
-    <div className="flex min-h-full w-full flex-col gap-6 max-w-6xl">
+    <div className="flex min-h-full w-full flex-col gap-6">
       <DashboardHeader orgName={org.name} roleName={membership.role.name} isVerified={isVerified} />
 
       <DashboardOverviewCards categoryName={org.category?.name} email={org.email} isVerified={isVerified} />

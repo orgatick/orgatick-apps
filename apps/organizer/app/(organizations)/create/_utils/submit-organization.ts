@@ -25,7 +25,6 @@ export async function submitOrganizationApplication(data: CreateOrganizationOutp
   });
 
   await api.post("/organizations", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
     timeout: ORGANIZATION_CREATE_TIMEOUT_MS,
   });
 }

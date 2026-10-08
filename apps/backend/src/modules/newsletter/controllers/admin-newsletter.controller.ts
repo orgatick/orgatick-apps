@@ -13,14 +13,18 @@ import {
 } from "@nestjs/common";
 import {
   CreateNewsletterSchema,
+  DuplicateCampaignSchema,
   NewsletterActionSchema,
+  SendTestEmailSchema,
   type CreateNewsletterDto,
+  type DuplicateCampaignDto,
   type NewsletterActionDto,
   type NewsletterQueryDto,
   NewsletterQuerySchema,
   type NewsletterRecipientQueryDto,
   NewsletterRecipientQuerySchema,
   type NewsletterResponse,
+  type SendTestEmailDto,
   type UpdateNewsletterDto,
   UpdateNewsletterSchema,
 } from "@orgatick/contracts";
@@ -63,7 +67,6 @@ export class AdminNewsletterController {
     return await this.campaignService.update(bigintParam(id), dto, toActor(request));
   }
 
-  /** Schedule, send, pause, resume, cancel and retry are all expressed as one action endpoint. */
   @Post(":id/actions")
   @RateLimit(NEWSLETTER_RATE_LIMIT_POLICIES.dispatch)
   async performAction(
@@ -77,6 +80,24 @@ export class AdminNewsletterController {
       { scheduledAt: dto.scheduledAt, reason: dto.reason },
       toActor(request),
     );
+  }
+
+  @Post(":id/test-email")
+  async sendTestEmail(
+    @Param("id") id: string,
+    @Body({ schema: SendTestEmailSchema }) dto: SendTestEmailDto,
+    @Req() request: AuthRequest,
+  ): Promise<{ sent: boolean; email: string }> {
+    return await this.campaignService.sendTestEmail(bigintParam(id), dto.email, toActor(request));
+  }
+
+  @Post(":id/duplicate")
+  async duplicate(
+    @Param("id") id: string,
+    @Body({ schema: DuplicateCampaignSchema }) dto: DuplicateCampaignDto,
+    @Req() request: AuthRequest,
+  ): Promise<NewsletterResponse> {
+    return await this.campaignService.duplicate(bigintParam(id), dto.name, toActor(request));
   }
 
   @Get(":id/recipients")
@@ -111,9 +132,7 @@ export class AdminNewsletterController {
 
 function bigintParam(id: string): bigint {
   const value = BigInt(id);
-  if (value <= 0n) {
-    throw new BadRequestException("Invalid newsletter id");
-  }
+  if (value <= 0n) throw new BadRequestException("Invalid newsletter id");
   return value;
 }
 

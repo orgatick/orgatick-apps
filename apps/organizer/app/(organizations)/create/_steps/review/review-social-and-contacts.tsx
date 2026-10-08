@@ -57,7 +57,7 @@ export function ReviewSocialAndContacts({ onEdit }: ReviewSocialAndContactsProps
           <div className="grid gap-2 sm:grid-cols-2">
             {supportContacts.map((contact) => (
               <div
-                key={contact.name || contact.email}
+                key={contact.email || contact.name || contact.phoneNumber || "contact"}
                 className="flex flex-col gap-1 rounded-lg border border-border bg-muted/20 p-3 text-xs"
               >
                 <div className="flex items-center justify-between">

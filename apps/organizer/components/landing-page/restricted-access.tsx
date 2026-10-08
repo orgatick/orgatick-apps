@@ -5,7 +5,7 @@ import { RestrictedAccessIllustration } from "@orgatick/ui/assets/illustration/r
 
 export function RestrictedAccess() {
   return (
-    <section className="relative isolate flex min-h-full items-center justify-center overflow-hidden">
+    <section className="relative isolate flex min-h-full items-center justify-center overflow-hidden px-2">
       <div className="container relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center text-center">
         {/* Illustration Hero */}
         <div className="relative mt-12 mb-10 sm:mt-14">

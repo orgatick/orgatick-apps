@@ -1,9 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Header, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { BadRequestException } from "@nestjs/common";
 import {
-  CreateNewsletterListSchema,
-  type CreateNewsletterListDto,
-  type NewsletterListResponse,
+  BulkSubscriberActionSchema,
+  type BulkSubscriberActionDto,
   type NewsletterSubscriberQueryDto,
   NewsletterSubscriberQuerySchema,
   type NewsletterSubscriberResponse,
@@ -12,8 +11,6 @@ import {
   type SubscribeNewsletterDto,
   SubscribeNewsletterSchema,
   type SubscribeNewsletterResponse,
-  type UpdateNewsletterListDto,
-  UpdateNewsletterListSchema,
   UpdateSubscriberStatusSchema,
   type UpdateSubscriberStatusDto,
 } from "@orgatick/contracts";
@@ -26,8 +23,6 @@ import { NewsletterSubscriberService } from "../services/newsletter-subscriber.s
 export class AdminNewsletterSubscriberController {
   constructor(private readonly subscriberService: NewsletterSubscriberService) {}
 
-  // ---------------------------------------------------------------- subscribers
-
   @Get("subscribers")
   async findSubscribers(@Query({ schema: NewsletterSubscriberQuerySchema }) query: NewsletterSubscriberQueryDto) {
     return await this.subscriberService.findAll(query);
@@ -38,19 +33,23 @@ export class AdminNewsletterSubscriberController {
     return await this.subscriberService.stats(listId);
   }
 
+  @Get("subscribers/export")
+  @Header("Content-Type", "text/csv")
+  @Header("Content-Disposition", 'attachment; filename="subscribers.csv"')
+  async exportSubscribers(@Query("listId") listId?: string): Promise<string> {
+    return await this.subscriberService.exportCsv(listId);
+  }
+
+  @Post("subscribers/bulk")
+  async bulkAction(@Body({ schema: BulkSubscriberActionSchema }) dto: BulkSubscriberActionDto) {
+    return await this.subscriberService.bulkAction(dto);
+  }
+
   @Get("subscribers/:id")
   async findSubscriber(@Param("id") id: string): Promise<NewsletterSubscriberResponse> {
     return await this.subscriberService.findOne(bigintParam(id));
   }
 
-  /**
-   * Admin-side add, used when support imports or corrects a subscriber by hand.
-   *
-   * Deliberately routed through the public `subscribe()` so the record obeys the same rules:
-   * double opt-in still applies, an existing address is never duplicated, and a lapsed
-   * subscriber is reopened rather than added twice. The source is forced so the origin of the
-   * record stays visible on the subscriber.
-   */
   @Post("subscribers")
   async addSubscriber(
     @Body({ schema: SubscribeNewsletterSchema }) dto: SubscribeNewsletterDto,
@@ -62,7 +61,6 @@ export class AdminNewsletterSubscriberController {
     );
   }
 
-  /** Admin-side resubscribe, used after a support request. */
   @Patch("subscribers/:id/status")
   async updateSubscriberStatus(
     @Param("id") id: string,
@@ -76,34 +74,10 @@ export class AdminNewsletterSubscriberController {
     await this.subscriberService.remove(bigintParam(id));
     return { message: "Subscriber unsubscribed successfully" };
   }
-
-  // ---------------------------------------------------------------------- lists
-
-  @Get("lists")
-  async findLists(): Promise<NewsletterListResponse[]> {
-    return await this.subscriberService.findLists();
-  }
-
-  @Post("lists")
-  async createList(
-    @Body({ schema: CreateNewsletterListSchema }) dto: CreateNewsletterListDto,
-  ): Promise<NewsletterListResponse> {
-    return await this.subscriberService.createList(dto);
-  }
-
-  @Patch("lists/:id")
-  async updateList(
-    @Param("id") id: string,
-    @Body({ schema: UpdateNewsletterListSchema }) dto: UpdateNewsletterListDto,
-  ): Promise<NewsletterListResponse> {
-    return await this.subscriberService.updateList(bigintParam(id), dto);
-  }
 }
 
 function bigintParam(id: string): bigint {
   const value = BigInt(id);
-  if (value <= 0n) {
-    throw new BadRequestException("Invalid id");
-  }
+  if (value <= 0n) throw new BadRequestException("Invalid id");
   return value;
 }

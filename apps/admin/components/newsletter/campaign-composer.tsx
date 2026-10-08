@@ -7,16 +7,23 @@ import type {
   NewsletterTemplateResponse,
 } from "@orgatick/contracts";
 import { Button } from "@orgatick/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@orgatick/ui/components/card";
-import { Input } from "@orgatick/ui/components/input";
-import { Label } from "@orgatick/ui/components/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@orgatick/ui/components/select";
-import { Switch } from "@orgatick/ui/components/switch";
-import { IconDeviceFloppy, IconSend } from "@tabler/icons-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@orgatick/ui/components/tabs";
+import {
+  IconDeviceFloppy,
+  IconDeviceMobile,
+  IconEye,
+  IconMailForward,
+  IconPencil,
+  IconSend,
+} from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { BlockEditor } from "@/components/newsletter/block-editor";
+import { BlockPreview } from "@/components/newsletter/block-preview";
+import { CampaignMetadataCard } from "./composer/campaign-metadata-card";
+import { CampaignSenderCard } from "./composer/campaign-sender-card";
+import { CampaignTestDialog } from "./composer/campaign-test-dialog";
 import { handleApiError } from "@/lib/apis/api-error";
 import { createNewsletter, updateNewsletter } from "@/lib/newsletter.api";
 
@@ -35,24 +42,49 @@ interface CampaignComposerProps {
 export function CampaignComposer({ lists, templates, campaign }: CampaignComposerProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [testOpen, setTestOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
+
   const [form, setForm] = useState({
     name: campaign?.name ?? "",
     subject: campaign?.subject ?? "",
     previewText: campaign?.previewText ?? "",
     listId: campaign?.listId ?? lists[0]?.id ?? "",
     templateId: campaign?.templateId ?? "",
-    fromName: campaign?.fromName ?? "",
-    fromEmail: campaign?.fromEmail ?? "",
+    fromName: campaign?.fromName ?? "Orgatick Team",
+    fromEmail: campaign?.fromEmail ?? "newsletter@orgatick.in",
     replyTo: campaign?.replyTo ?? "",
     limit: campaign?.audience?.limit ? String(campaign.audience.limit) : "",
     onlyRegisteredUsers: campaign?.audience?.onlyRegisteredUsers ?? false,
   });
+
   const [content, setContent] = useState<NewsletterBlock[]>(
     campaign?.content?.length ? campaign.content : STARTER_CONTENT,
   );
   const [error, setError] = useState<string>();
 
-  const set = (values: Partial<typeof form>) => setForm((current) => ({ ...current, ...values }));
+  const patchForm = (values: Record<string, string | boolean>) => {
+    setForm((current) => ({ ...current, ...values }));
+  };
+
+  const handleTemplateChange = (templateId: string) => {
+    if (templateId === "none" || !templateId) {
+      patchForm({ templateId: "" });
+      return;
+    }
+    const selected = templates.find((t) => t.id === templateId);
+    if (selected) {
+      patchForm({
+        templateId,
+        subject: form.subject || selected.subject,
+        previewText: form.previewText || selected.previewText || "",
+      });
+      if (selected.content?.length) {
+        setContent(selected.content);
+      }
+    }
+  };
 
   const persist = (sendNow: boolean) => {
     if (!form.subject.trim() || !form.listId || !form.fromName.trim() || !form.fromEmail.trim()) {
@@ -94,188 +126,116 @@ export function CampaignComposer({ lists, templates, campaign }: CampaignCompose
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Message</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="subject" className="text-xs">
-                Subject
-              </Label>
-              <Input
-                id="subject"
-                value={form.subject}
-                onChange={(event) => set({ subject: event.target.value })}
-                placeholder="What happened this month"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Merge tags: {"{{ first_name }}"}, {"{{ list_name }}"}, {"{{ current_year }}"} are substituted per
-                recipient.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-xs">
-                  Internal name
-                </Label>
-                <Input
-                  id="name"
-                  value={form.name}
-                  onChange={(event) => set({ name: event.target.value })}
-                  placeholder="Defaults to the subject"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="previewText" className="text-xs">
-                  Preview text
-                </Label>
-                <Input
-                  id="previewText"
-                  value={form.previewText}
-                  onChange={(event) => set({ previewText: event.target.value })}
-                  placeholder="Shown after the subject in most inboxes"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Content</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BlockEditor value={content} onChange={setContent} error={error} />
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 bg-card/60 p-4">
+        <div>
+          <h2 className="text-lg font-semibold">{campaign ? "Edit Campaign" : "New Campaign"}</h2>
+          <p className="text-xs text-muted-foreground">
+            Draft and preview your newsletter before scheduling or sending.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {campaign && (
+            <Button type="button" variant="outline" size="sm" onClick={() => setTestOpen(true)}>
+              <IconMailForward className="size-4" />
+              Send Test
+            </Button>
+          )}
+          <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => persist(false)}>
+            <IconDeviceFloppy className="size-4" />
+            {pending ? "Saving..." : "Save Draft"}
+          </Button>
+          <Button type="button" size="sm" disabled={pending} onClick={() => persist(true)}>
+            <IconSend className="size-4" />
+            {pending ? "Queueing..." : "Send Now"}
+          </Button>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Audience</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Mailing list</Label>
-              <Select value={form.listId} onValueChange={(value) => set({ listId: value ?? "" })}>
-                <SelectTrigger size="sm" className="w-full">
-                  <SelectValue>Select a list</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {lists.map((list) => (
-                    <SelectItem key={list.id} value={list.id}>
-                      {list.name}
-                    </SelectItem>
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="space-y-4">
+          <CampaignMetadataCard
+            name={form.name}
+            subject={form.subject}
+            previewText={form.previewText}
+            listId={form.listId}
+            templateId={form.templateId}
+            lists={lists}
+            templates={templates}
+            onChange={patchForm}
+            onTemplateChange={handleTemplateChange}
+          />
+
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "edit" | "preview")}>
+            <div className="flex items-center justify-between pb-2">
+              <TabsList>
+                <TabsTrigger value="edit" className="gap-1.5 text-xs">
+                  <IconPencil className="size-3.5" />
+                  Visual Editor
+                </TabsTrigger>
+                <TabsTrigger value="preview" className="gap-1.5 text-xs">
+                  <IconEye className="size-3.5" />
+                  Live Preview
+                </TabsTrigger>
+              </TabsList>
+              {activeTab === "preview" && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant={previewDevice === "desktop" ? "secondary" : "ghost"}
+                    size="icon-sm"
+                    onClick={() => setPreviewDevice("desktop")}
+                    title="Desktop view"
+                  >
+                    <IconEye className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant={previewDevice === "mobile" ? "secondary" : "ghost"}
+                    size="icon-sm"
+                    onClick={() => setPreviewDevice("mobile")}
+                    title="Mobile view"
+                  >
+                    <IconDeviceMobile className="size-3.5" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <TabsContent value="edit" className="mt-0">
+              <BlockEditor value={content} onChange={setContent} error={error} />
+            </TabsContent>
+
+            <TabsContent value="preview" className="mt-0">
+              <div
+                className={`mx-auto transition-all ${previewDevice === "mobile" ? "max-w-[390px] border border-border/80 rounded-2xl p-4 shadow-sm" : "w-full"}`}
+              >
+                <div className="space-y-4">
+                  {content.map((b, i) => (
+                    <BlockPreview key={b.id ?? i} block={b} />
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">Template (optional)</Label>
-              <Select value={form.templateId} onValueChange={(value) => set({ templateId: value ?? "" })}>
-                <SelectTrigger size="sm" className="w-full">
-                  <SelectValue>Blocks only</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
-                      {template.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="limit" className="text-xs">
-                Recipient limit
-              </Label>
-              <Input
-                id="limit"
-                type="number"
-                min={1}
-                value={form.limit}
-                onChange={(event) => set({ limit: event.target.value })}
-                placeholder="All confirmed subscribers"
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="onlyRegistered" className="text-xs">
-                Only registered users
-              </Label>
-              <Switch
-                id="onlyRegistered"
-                checked={form.onlyRegisteredUsers}
-                onCheckedChange={(checked) => set({ onlyRegisteredUsers: checked })}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Sender</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="fromName" className="text-xs">
-                From name
-              </Label>
-              <Input
-                id="fromName"
-                value={form.fromName}
-                onChange={(event) => set({ fromName: event.target.value })}
-                placeholder="Orgatick"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="fromEmail" className="text-xs">
-                From email
-              </Label>
-              <Input
-                id="fromEmail"
-                type="email"
-                value={form.fromEmail}
-                onChange={(event) => set({ fromEmail: event.target.value })}
-                placeholder="news@orgatick.in"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="replyTo" className="text-xs">
-                Reply-to
-              </Label>
-              <Input
-                id="replyTo"
-                type="email"
-                value={form.replyTo}
-                onChange={(event) => set({ replyTo: event.target.value })}
-                placeholder="Defaults to the from address"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="space-y-2 p-4">
-            <Button className="w-full" onClick={() => persist(false)} disabled={pending}>
-              <IconDeviceFloppy className="size-4" />
-              Save draft
-            </Button>
-            <Button variant="outline" className="w-full" onClick={() => persist(true)} disabled={pending}>
-              <IconSend className="size-4" />
-              Save and send now
-            </Button>
-            {error && <p className="text-xs text-destructive">{error}</p>}
-          </CardContent>
-        </Card>
+        <div>
+          <CampaignSenderCard
+            fromName={form.fromName}
+            fromEmail={form.fromEmail}
+            replyTo={form.replyTo}
+            limit={form.limit}
+            onlyRegisteredUsers={form.onlyRegisteredUsers}
+            onChange={patchForm}
+          />
+        </div>
       </div>
+
+      <CampaignTestDialog
+        open={testOpen}
+        onOpenChange={setTestOpen}
+        campaignId={campaign?.id}
+        defaultEmail={form.fromEmail}
+      />
     </div>
   );
 }

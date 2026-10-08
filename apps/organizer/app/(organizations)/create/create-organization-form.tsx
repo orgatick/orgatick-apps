@@ -27,6 +27,7 @@ export function CreateOrganizationForm() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
 
   const form = useForm<CreateOrganizationInput, unknown, CreateOrganizationOutput>({
     resolver: zodResolver(CreateOrganizationSchema, {
@@ -57,25 +58,22 @@ export function CreateOrganizationForm() {
     window.scrollTo({ top: 0 });
   };
 
-  const onFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    if (currentStep < ORGANIZATION_FORM_STEPS.length - 1) {
-      e.preventDefault();
-      void nextStep();
-      return;
-    }
-    void form.handleSubmit(onSubmit)(e);
-  };
-
   const nextStep = async () => {
-    const stepConfig = (ORGANIZATION_FORM_STEPS[currentStep] ?? ORGANIZATION_FORM_STEPS[0]) as OrganizationFormStep;
-    if (stepConfig.fields.length > 0) {
-      const isValid = await form.trigger(stepConfig.fields as unknown as (keyof CreateOrganizationInput)[]);
-      if (!isValid) {
-        toast.error("Please fill in all required fields properly before continuing.");
-        return;
+    if (isValidating || isSubmitting) return;
+    setIsValidating(true);
+    try {
+      const stepConfig = (ORGANIZATION_FORM_STEPS[currentStep] ?? ORGANIZATION_FORM_STEPS[0]) as OrganizationFormStep;
+      if (stepConfig.fields.length > 0) {
+        const isValid = await form.trigger(stepConfig.fields as unknown as (keyof CreateOrganizationInput)[]);
+        if (!isValid) {
+          toast.error("Please fill in all required fields properly before continuing.");
+          return;
+        }
       }
+      advanceTo(Math.min(currentStep + 1, ORGANIZATION_FORM_STEPS.length - 1));
+    } finally {
+      setIsValidating(false);
     }
-    advanceTo(Math.min(currentStep + 1, ORGANIZATION_FORM_STEPS.length - 1));
   };
 
   const previousStep = () => {
@@ -92,12 +90,21 @@ export function CreateOrganizationForm() {
       router.replace("/");
     } catch (err: unknown) {
       console.error("Error creating organization:", err);
-      toast.info("Application submitted for processing!", {
-        description: "Your organization details have been saved.",
-      });
+      const axiosErr = err as { response?: { data?: { message?: string | string[] } } };
+      const rawMessage = axiosErr?.response?.data?.message;
+      const message = Array.isArray(rawMessage)
+        ? rawMessage.join(", ")
+        : typeof rawMessage === "string"
+          ? rawMessage
+          : "Failed to create organization. Please review your details and try again.";
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleRegister = () => {
+    void form.handleSubmit(onSubmit)();
   };
 
   return (
@@ -107,7 +114,13 @@ export function CreateOrganizationForm() {
           <ApplicationStepper currentStep={currentStep} onGoToStep={goToStep} />
         </aside>
 
-        <form id={ORGANIZATION_FORM_ID} onSubmit={onFormSubmit} className="flex w-full min-w-0 flex-col gap-6">
+        <form
+          id={ORGANIZATION_FORM_ID}
+          onSubmit={(e) => {
+            e.preventDefault();
+          }}
+          className="flex w-full min-w-0 flex-col gap-6"
+        >
           <div className="lg:hidden">
             <MobileStepProgress currentStep={currentStep} />
           </div>
@@ -125,9 +138,11 @@ export function CreateOrganizationForm() {
             totalSteps={ORGANIZATION_FORM_STEPS.length}
             stepTitle={currentStepConfig.title}
             isSubmitting={isSubmitting}
+            isValidating={isValidating}
             isLastStep={currentStep === ORGANIZATION_FORM_STEPS.length - 1}
             onBack={previousStep}
             onNext={() => void nextStep()}
+            onRegister={handleRegister}
           />
         </form>
       </div>

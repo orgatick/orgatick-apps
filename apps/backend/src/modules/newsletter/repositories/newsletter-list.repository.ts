@@ -62,6 +62,10 @@ export class NewsletterListRepository {
     return this.repo.save(list);
   }
 
+  async remove(id: bigint): Promise<void> {
+    await this.repo.delete({ id });
+  }
+
   /** Clears the default flag everywhere, then promotes a single list. */
   async makeDefault(id: bigint): Promise<void> {
     await this.repo.update({ isDefault: true }, { isDefault: false });

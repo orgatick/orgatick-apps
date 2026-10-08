@@ -45,3 +45,24 @@ export type PublicUnsubscribeEnvelope = z.infer<typeof PublicUnsubscribeEnvelope
 
 export const ManageSubscriptionEnvelopeSchema = createApiResponseSchema(ManageSubscriptionResponseSchema);
 export type ManageSubscriptionEnvelope = z.infer<typeof ManageSubscriptionEnvelopeSchema>;
+
+export const PublicNewsletterCampaignResponseSchema = z.object({
+  id: z.string(),
+  uuid: z.string(),
+  subject: z.string(),
+  previewText: z.string().nullable().optional(),
+  fromName: z.string(),
+  sentAt: z.iso.datetime().nullable().optional(),
+  html: z.string(),
+});
+
+export type PublicNewsletterCampaignResponse = z.infer<typeof PublicNewsletterCampaignResponseSchema>;
+
+export const PublicNewsletterArchiveItemSchema = z.object({
+  id: z.string(),
+  subject: z.string(),
+  previewText: z.string().nullable().optional(),
+  sentAt: z.iso.datetime().nullable().optional(),
+});
+
+export type PublicNewsletterArchiveItem = z.infer<typeof PublicNewsletterArchiveItemSchema>;

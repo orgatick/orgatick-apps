@@ -93,3 +93,15 @@ export const NewsletterRecipientQuerySchema = z.object({
 });
 
 export type NewsletterRecipientQueryDto = z.infer<typeof NewsletterRecipientQuerySchema>;
+
+export const SendTestEmailSchema = z.object({
+  email: EmailSchema,
+});
+
+export type SendTestEmailDto = z.infer<typeof SendTestEmailSchema>;
+
+export const DuplicateCampaignSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+});
+
+export type DuplicateCampaignDto = z.infer<typeof DuplicateCampaignSchema>;

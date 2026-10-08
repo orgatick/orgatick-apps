@@ -77,3 +77,10 @@ export const UpdateNewsletterListSchema = z.object({
 });
 
 export type UpdateNewsletterListDto = z.infer<typeof UpdateNewsletterListSchema>;
+
+export const BulkSubscriberActionSchema = z.object({
+  subscriberIds: z.array(z.string().trim().min(1)).min(1, "Select at least one subscriber"),
+  action: z.enum(["unsubscribe", "delete", "resubscribe"]),
+});
+
+export type BulkSubscriberActionDto = z.infer<typeof BulkSubscriberActionSchema>;

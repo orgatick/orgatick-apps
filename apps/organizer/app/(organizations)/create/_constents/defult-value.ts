@@ -22,8 +22,8 @@ export const formDefaultValues: CreateOrganizationFormDefaults = {
   basicInfo: {
     name: "",
     slug: "",
-    categoryId: 1,
-    subCategoryId: 101,
+    categoryId: null,
+    subCategoryId: undefined as unknown as number,
     description: "",
     logo: null,
     email: "",

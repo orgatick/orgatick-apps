@@ -182,6 +182,10 @@ export class NewsletterSubscriberRepository {
       },
     );
   }
+
+  async remove(id: bigint): Promise<void> {
+    await this.repo.delete({ id });
+  }
 }
 
 function normalizeStatuses(status?: NewsletterSubscriberStatus | NewsletterSubscriberStatus[]): string[] {

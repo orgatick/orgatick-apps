@@ -4,6 +4,7 @@ import { AppModule, ObserveInstrument } from "./app.module";
 import { initializeTransactionalContext } from "typeorm-transactional";
 import cookieParser from "cookie-parser";
 import { StandardSchemaValidationPipe } from "@nestjs/common";
+import "./common/utils/bigint-serializer";
 
 async function bootstrap() {
   initializeTransactionalContext();

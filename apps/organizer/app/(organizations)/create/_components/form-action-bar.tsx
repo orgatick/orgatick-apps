@@ -4,16 +4,17 @@ import { Button } from "@orgatick/ui/components/button";
 import { Spinner } from "@orgatick/ui/components/spinner";
 import { IconArrowLeft, IconArrowRight, IconCheck } from "@tabler/icons-react";
 import { motion } from "motion/react";
-import { ORGANIZATION_FORM_ID } from "../_constents/form-steps";
 
 interface FormActionBarProps {
   currentStep: number;
   totalSteps: number;
   stepTitle: string;
   isSubmitting: boolean;
+  isValidating?: boolean;
   isLastStep: boolean;
   onBack: () => void;
   onNext: () => void;
+  onRegister?: () => void;
 }
 
 export function FormActionBar({
@@ -21,9 +22,11 @@ export function FormActionBar({
   totalSteps,
   stepTitle,
   isSubmitting,
+  isValidating = false,
   isLastStep,
   onBack,
   onNext,
+  onRegister,
 }: FormActionBarProps) {
   const progress = Math.round(((currentStep + 1) / totalSteps) * 100);
 
@@ -63,7 +66,13 @@ export function FormActionBar({
         </div>
 
         {isLastStep ? (
-          <Button type="submit" form={ORGANIZATION_FORM_ID} disabled={isSubmitting} className="min-w-28">
+          <Button
+            key="action-bar-submit"
+            type="button"
+            onClick={onRegister}
+            disabled={isSubmitting}
+            className="min-w-28"
+          >
             {isSubmitting ? (
               <>
                 <Spinner data-icon="inline-start" />
@@ -77,9 +86,24 @@ export function FormActionBar({
             )}
           </Button>
         ) : (
-          <Button type="button" onClick={onNext} disabled={isSubmitting} className="min-w-28">
-            Continue
-            <IconArrowRight data-icon="inline-end" />
+          <Button
+            key="action-bar-next"
+            type="button"
+            onClick={onNext}
+            disabled={isSubmitting || isValidating}
+            className="min-w-28"
+          >
+            {isValidating ? (
+              <>
+                <Spinner data-icon="inline-start" />
+                Validating...
+              </>
+            ) : (
+              <>
+                Continue
+                <IconArrowRight data-icon="inline-end" />
+              </>
+            )}
           </Button>
         )}
       </div>

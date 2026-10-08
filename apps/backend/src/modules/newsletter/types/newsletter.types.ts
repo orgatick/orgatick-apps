@@ -6,6 +6,13 @@ export interface NewsletterActor {
   name: string;
 }
 
+/** Request metadata captured during subscription and opt-in transitions. */
+export interface NewsletterRequestContext {
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  userId?: bigint | null;
+}
+
 /** Purpose of a self-service token. Scoping tokens by purpose stops a confirm link from unsubscribing someone. */
 export type NewsletterTokenPurpose = "confirm" | "unsubscribe" | "manage";
 
