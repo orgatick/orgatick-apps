@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@orgatick/ui/components/ava
 import { Badge } from "@orgatick/ui/components/badge";
 import type { AdminOrganization } from "@/lib/types";
 import { StatusSwitch } from "./status-switch";
+import Image from "next/image";
 
 const statusBadgeClass: Record<AdminOrganization["status"], string> = {
   active: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
@@ -27,8 +28,7 @@ export function OrganizationRow({ organization }: { organization: AdminOrganizat
         <div className="flex items-center gap-3">
           <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-secondary-foreground">
             {organization.logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={organization.logo} alt="" className="size-7 rounded object-cover" />
+              <Image src={organization.logo} alt="" className="size-7 rounded object-cover" width={100} height={100} />
             ) : (
               <IconBuildingStore className="size-4" />
             )}

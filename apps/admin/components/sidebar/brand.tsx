@@ -1,4 +1,3 @@
-import { IconShieldCheck } from "@tabler/icons-react";
 import Link from "next/link";
 import { cn } from "@orgatick/ui/lib/utils";
 import OrgatickLogo from "@orgatick/ui/assets/logo/orgatick-logo";

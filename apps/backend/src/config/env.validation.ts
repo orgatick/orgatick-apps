@@ -10,12 +10,27 @@ export const envSchema = z.object({
   DATABASE_PASSWORD: z.string().min(1),
   DATABASE_NAME: z.string().min(1),
 
+  /** Full connection string (e.g., rediss://default:password@host:6379) for hosted Redis like Upstash */
+  REDIS_URL: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(1).optional()),
   REDIS_HOST: z.string().min(1).default("127.0.0.1"),
   REDIS_PORT: z.coerce.number().int().positive().default(6379),
+  /** Optional username for Redis ACL / Upstash */
+  REDIS_USERNAME: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(1).optional()),
   /** Unset or blank for a local Redis started without requirepass. */
   REDIS_PASSWORD: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(1).optional()),
   /** Database index. A dedicated one keeps the mail queue off the cache's keys. */
   REDIS_DB: z.coerce.number().int().nonnegative().default(0),
+  /** Enable TLS/SSL connection (automatically inferred for rediss:// or *.upstash.io hosts) */
+  REDIS_TLS: z.preprocess((value) => {
+    if (value === "true" || value === true || value === "1") return true;
+    if (value === "false" || value === false || value === "0") return false;
+    return undefined;
+  }, z.boolean().optional()),
+  REDIS_TLS_REJECT_UNAUTHORIZED: z.preprocess((value) => {
+    if (value === "false" || value === false || value === "0") return false;
+    if (value === "true" || value === true || value === "1") return true;
+    return undefined;
+  }, z.boolean().optional()),
 
   RESEND_API_KEY: z.string().min(1),
 

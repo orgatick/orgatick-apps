@@ -6,6 +6,8 @@ import { MAIL_QUEUE_CONFIG } from "../../config/mail-queue.config";
 import { MailQueueService } from "./mail-queue.service";
 import { MAIL_QUEUE } from "./queue.constants";
 
+import { resolveRedisConfig } from "../redis/redis.config";
+
 /**
  * Builds the BullMQ connection from the Redis settings already used by the cache.
  *
@@ -15,11 +17,16 @@ import { MAIL_QUEUE } from "./queue.constants";
  * and repair.
  */
 function buildConnection(config: ConfigService): ConnectionOptions {
+  const redis = resolveRedisConfig(config);
+
   return {
-    host: config.get<string>("REDIS_HOST") || "127.0.0.1",
-    port: Number(config.get<string>("REDIS_PORT") || 6379),
-    password: config.get<string>("REDIS_PASSWORD") || undefined,
-    db: config.get<number>("REDIS_DB") ?? 0,
+    host: redis.host,
+    port: redis.port,
+    username: redis.username,
+    password: redis.password,
+    db: redis.db,
+    tls: redis.tls,
+    maxRetriesPerRequest: null,
   };
 }
 

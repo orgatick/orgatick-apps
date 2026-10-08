@@ -5,6 +5,7 @@ import { Badge } from "@orgatick/ui/components/badge";
 import { Card, CardContent } from "@orgatick/ui/components/card";
 import type { AdminOrganization } from "@/lib/types";
 import { StatusSwitch } from "../../_components/status-switch";
+import Image from "next/image";
 
 const statusBadgeClass: Record<AdminOrganization["status"], string> = {
   active: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
@@ -26,8 +27,13 @@ export function IdentityCard({ organization }: IdentityCardProps) {
         <div className="flex items-center gap-3">
           <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-secondary text-secondary-foreground">
             {organization.logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={organization.logo} alt="" className="size-12 rounded-xl object-cover" />
+              <Image
+                src={organization.logo}
+                alt=""
+                className="size-12 rounded-xl object-cover"
+                width={100}
+                height={100}
+              />
             ) : (
               <IconBuildingStore className="size-6" />
             )}

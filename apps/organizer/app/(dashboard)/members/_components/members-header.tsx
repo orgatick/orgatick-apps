@@ -1,6 +1,6 @@
 "use client";
 
-import { IconMailPlus, IconUserPlus } from "@tabler/icons-react";
+import { IconUserPlus } from "@tabler/icons-react";
 import type { OrganizationRoleOptionResponse } from "@orgatick/contracts";
 import { Button } from "@orgatick/ui/components/button";
 import { AddMemberDialog } from "./add-member-dialog";

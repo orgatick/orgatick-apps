@@ -3,7 +3,6 @@
 import { cn } from "@orgatick/ui/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@orgatick/ui/components/avatar";
 import { DropdownMenuItem } from "@orgatick/ui/components/dropdown-menu";
-import { IconCheck } from "@tabler/icons-react";
 import type { SidebarOrganization } from "@/lib/sidebar/nav-config";
 import {
   DOT_TONE,
