@@ -18,6 +18,7 @@ import { OrganizationVerification } from "../../organization-governance/entities
 import { OrganizationMemberStatus } from "../../organization-member/enums/organization-member-status.enum";
 import { OrganizationMemberService } from "../../organization-member/services/member.service";
 import { OrganizationFinanceService } from "../../organization-finance/services/finance.service";
+import { OrganizationPricingService } from "../../organization-finance/services/pricing.service";
 import { OrganizationGovernanceService } from "../../organization-governance/services/governance.service";
 import type { CreateOrganizationDto, OrganizationQueryDto, UpdateOrganizationDto } from "../dto";
 import type { Organization } from "../entities";
@@ -33,6 +34,7 @@ export class OrganizationService {
     private readonly addressService: AddressesService,
     private readonly governanceService: OrganizationGovernanceService,
     private readonly financeService: OrganizationFinanceService,
+    private readonly pricingService: OrganizationPricingService,
     private readonly storage: R2Storage,
     @InjectRepository(OrganizationVerification)
     private readonly verificationRepository: Repository<OrganizationVerification>,
@@ -90,8 +92,9 @@ export class OrganizationService {
       // Governance: Verification + Risk Profile
       await this.governanceService.initialize(organization.id);
 
-      // Finance: Commission Settings
+      // Finance: Commission Settings & Pricing Controls
       await this.financeService.initialize(organization.id);
+      await this.pricingService.initialize(organization.id);
 
       // Aggregate: Stats + Social Links + Support Contacts
       await this.organizationRepository.createStats(organization.id);

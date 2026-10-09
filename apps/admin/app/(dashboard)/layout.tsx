@@ -9,7 +9,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   let user: UserResponse | null = null;
   try {
     const response = await api.get("/users/me");
-    user = response.data.data;
+    const raw = response?.data?.data ?? response?.data?.user ?? response?.data;
+    user = raw && typeof raw === "object" && "id" in raw ? (raw as UserResponse) : null;
   } catch {
     user = null;
   }

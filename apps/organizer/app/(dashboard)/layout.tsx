@@ -10,7 +10,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   let user: null | UserResponse = null;
   try {
     const response = await api.get("/users/me");
-    user = response.data.data;
+    const raw = response?.data?.data ?? response?.data?.user ?? response?.data;
+    user = raw && typeof raw === "object" && "id" in raw ? (raw as UserResponse) : null;
   } catch {
     user = null;
   }

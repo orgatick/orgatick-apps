@@ -125,6 +125,16 @@ export interface CreateServerApiOptions {
   refreshClient?: typeof axios;
 }
 
+export const TOKEN_COOKIE_NAMES = [
+  "access_token",
+  "accessToken",
+  "token",
+  "auth_token",
+  "orgatick_session",
+  "session_token",
+  "jwt",
+] as const;
+
 /**
  * Creates an Axios instance for server-side requests with automatic HttpOnly cookie forwarding,
  * concurrent 401 refresh deduplication, and cookie propagation for retries.
@@ -145,7 +155,7 @@ export function createServerApiClient(options: CreateServerApiOptions = {}): Axi
 
       if (!extractedBearerToken) {
         const tokenCookie = allCookies.find((c) =>
-          ["accessToken", "token", "auth_token", "orgatick_session", "session_token", "jwt"].includes(c.name),
+          TOKEN_COOKIE_NAMES.includes(c.name as (typeof TOKEN_COOKIE_NAMES)[number]),
         );
         if (tokenCookie?.value) {
           extractedBearerToken = tokenCookie.value;
@@ -156,7 +166,7 @@ export function createServerApiClient(options: CreateServerApiOptions = {}): Axi
     }
 
     if (!extractedBearerToken && typeof cookieStore.get === "function") {
-      for (const key of ["accessToken", "token", "auth_token", "orgatick_session", "session_token", "jwt"]) {
+      for (const key of TOKEN_COOKIE_NAMES) {
         const val = cookieStore.get(key)?.value;
         if (val) {
           extractedBearerToken = val;
@@ -182,11 +192,29 @@ export function createServerApiClient(options: CreateServerApiOptions = {}): Axi
 
   // Request interceptor to keep Cookie and Authorization headers updated
   api.interceptors.request.use((config) => {
-    if (currentCookieHeader && !config.headers.Cookie) {
-      config.headers.Cookie = currentCookieHeader;
+    const headers = config.headers as Record<string, unknown>;
+    const hasCookie =
+      (typeof (headers as { has?: (name: string) => boolean }).has === "function" &&
+        (headers as { has: (name: string) => boolean }).has("Cookie")) ||
+      Boolean(headers.Cookie || headers.cookie);
+    if (currentCookieHeader && !hasCookie) {
+      if (typeof (headers as { set?: HeaderSetFn }).set === "function") {
+        (headers as { set: HeaderSetFn }).set("Cookie", currentCookieHeader);
+      } else {
+        headers.Cookie = currentCookieHeader;
+      }
     }
-    if (extractedBearerToken && !config.headers.Authorization) {
-      config.headers.Authorization = `Bearer ${extractedBearerToken}`;
+
+    const hasAuth =
+      (typeof (headers as { has?: (name: string) => boolean }).has === "function" &&
+        (headers as { has: (name: string) => boolean }).has("Authorization")) ||
+      Boolean(headers.Authorization || headers.authorization);
+    if (extractedBearerToken && !hasAuth) {
+      if (typeof (headers as { set?: HeaderSetFn }).set === "function") {
+        (headers as { set: HeaderSetFn }).set("Authorization", `Bearer ${extractedBearerToken}`);
+      } else {
+        headers.Authorization = `Bearer ${extractedBearerToken}`;
+      }
     }
     return config;
   });
@@ -250,7 +278,7 @@ export function createServerApiClient(options: CreateServerApiOptions = {}): Axi
 
         // Update extracted bearer token if refreshed
         const refreshedToken = parsedCookies.find((c) =>
-          ["accessToken", "token", "auth_token", "orgatick_session", "session_token", "jwt"].includes(c.name),
+          TOKEN_COOKIE_NAMES.includes(c.name as (typeof TOKEN_COOKIE_NAMES)[number]),
         );
         if (refreshedToken?.value) {
           extractedBearerToken = refreshedToken.value;

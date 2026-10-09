@@ -56,6 +56,16 @@ export function OverviewSections({ organization }: OverviewSectionsProps) {
             }
           />
           <DetailItem
+            label="Bank Requirement"
+            value={
+              organization.pricingSetting
+                ? organization.pricingSetting.requireBankDetails
+                  ? "Mandatory"
+                  : "Optional"
+                : "Mandatory"
+            }
+          />
+          <DetailItem
             label="Created"
             value={
               organization.createdAt

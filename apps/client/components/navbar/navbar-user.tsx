@@ -15,12 +15,25 @@ import {
 } from "@orgatick/ui/components/dropdown-menu";
 import { IconChevronDown, IconLogout } from "@tabler/icons-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { USER_MENU_ITEMS } from "./navbar-constants";
 import { UserAvatar } from "./user-avatar";
 import { useLogout } from "./use-logout";
+import { useAuthStore } from "@/app/(auth)/_store";
 
-export function NavbarUser({ user }: { user: UserResponse | null }) {
+export function NavbarUser({ user: initialUser }: { user: UserResponse | null }) {
   const logout = useLogout();
+  const storeUser = useAuthStore((state) => state.user);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (initialUser && !useAuthStore.getState().user) {
+      useAuthStore.getState().setUser(initialUser);
+    }
+  }, [initialUser]);
+
+  const user = mounted ? (storeUser ?? initialUser) : initialUser;
 
   if (!user) {
     return (

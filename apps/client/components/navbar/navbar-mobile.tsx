@@ -26,7 +26,8 @@ import { useTheme } from "next-themes";
 import { DEFAULT_THEME, type ThemeValue } from "@/lib/theme";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/app/(auth)/_store";
 
 const THEME_OPTIONS = [
   { value: "system", label: "Device", icon: IconDeviceDesktop },
@@ -66,12 +67,23 @@ interface NavbarMobileProps {
   initialTheme?: ThemeValue;
 }
 
-export function NavbarMobile({ user, initialTheme = DEFAULT_THEME }: NavbarMobileProps) {
+export function NavbarMobile({ user: initialUser, initialTheme = DEFAULT_THEME }: NavbarMobileProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const logout = useLogout();
   const currentTheme = (theme ?? initialTheme) as ThemeValue;
+  const storeUser = useAuthStore((state) => state.user);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (initialUser && !useAuthStore.getState().user) {
+      useAuthStore.getState().setUser(initialUser);
+    }
+  }, [initialUser]);
+
+  const user = mounted ? (storeUser ?? initialUser) : initialUser;
 
   return (
     <div className="flex items-center sm:hidden">

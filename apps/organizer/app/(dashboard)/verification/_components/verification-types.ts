@@ -8,7 +8,10 @@ export interface VerificationReadinessItem {
   helperText: string;
 }
 
-export function computeReadinessItems(organization: SidebarOrganization["organization"]): {
+export function computeReadinessItems(
+  organization: SidebarOrganization["organization"],
+  bankAccount?: { bankName?: string; status?: string } | null,
+): {
   items: VerificationReadinessItem[];
   completedCount: number;
   totalCount: number;
@@ -53,6 +56,15 @@ export function computeReadinessItems(organization: SidebarOrganization["organiz
       isComplete: hasAddress,
       value: organization.address?.formattedAddress ?? organization.address?.addressLine1 ?? null,
       helperText: "Required for fiscal compliance and automated payouts.",
+    },
+    {
+      key: "bank_account",
+      label: "Payout Bank Account",
+      isComplete: Boolean(bankAccount && bankAccount.status !== "rejected"),
+      value: bankAccount
+        ? `${bankAccount.bankName ?? "Configured"} (${bankAccount.status === "verified" ? "Verified" : "Pending"})`
+        : null,
+      helperText: "Direct settlement account required for event payouts.",
     },
     {
       key: "logo",

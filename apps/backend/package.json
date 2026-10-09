@@ -15,6 +15,7 @@
     "lint": "biome check .",
     "check-types": "tsc -p tsconfig.build.json --noEmit",
     "check": "biome check .",
+    "test": "node -r ts-node/register -r tsconfig-paths/register --test 'src/**/__tests__/**/*.spec.ts'",
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "migration:generate": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate dist/database/migrations/Init -d dist/data-source.js",
     "migration:run": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:run -d dist/data-source.js",

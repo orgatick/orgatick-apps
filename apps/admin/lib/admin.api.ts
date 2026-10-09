@@ -15,6 +15,9 @@ import type {
   PlatformRole,
   ReportListQuery,
   UserListQuery,
+  OrganizationPricingSetting,
+  OrganizationPricingEligibility,
+  AdminBankAccount,
   VerificationQueueItem,
   VerificationQueueQuery,
 } from "./types";
@@ -176,6 +179,22 @@ export async function serverFetchOrganizations(
 export async function serverFetchOrganizationDetail(id: string): Promise<AdminOrganization> {
   const api = await serverApi();
   const response = await api.get<ApiResponseData<AdminOrganization>>(`/admin/organizations/${id}`);
+  return response.data.data;
+}
+
+export async function serverFetchOrganizationPricing(
+  id: string,
+): Promise<{ setting: OrganizationPricingSetting; eligibility: OrganizationPricingEligibility }> {
+  const api = await serverApi();
+  const response = await api.get<
+    ApiResponseData<{ setting: OrganizationPricingSetting; eligibility: OrganizationPricingEligibility }>
+  >(`/admin/organizations/${id}/pricing`);
+  return response.data.data;
+}
+
+export async function serverFetchOrganizationBankAccount(id: string): Promise<AdminBankAccount | null> {
+  const api = await serverApi();
+  const response = await api.get<ApiResponseData<AdminBankAccount | null>>(`/admin/organizations/${id}/bank-account`);
   return response.data.data;
 }
 

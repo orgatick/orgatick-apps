@@ -6,6 +6,7 @@ import {
   IconArchive,
   IconBan,
   IconCertificate,
+  IconCoin,
   IconFileText,
   IconHistory,
   IconLayoutDashboard,
@@ -17,6 +18,7 @@ import { cn } from "@orgatick/ui/lib/utils";
 
 const NAV = [
   { href: "", label: "Overview", icon: IconLayoutDashboard },
+  { href: "/pricing", label: "Pricing Controls", icon: IconCoin },
   { href: "/access", label: "Access", icon: IconShieldLock },
   { href: "/restrictions", label: "Restrictions", icon: IconBan },
   { href: "/verification", label: "Verification", icon: IconCertificate },

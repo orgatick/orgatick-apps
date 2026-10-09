@@ -12,7 +12,8 @@ export async function Navbar() {
   try {
     const api = await serverApi();
     const response = await api.get("/users/me");
-    user = response.data.data as UserResponse;
+    const raw = response?.data?.data ?? response?.data?.user ?? response?.data;
+    user = raw && typeof raw === "object" && "id" in raw ? (raw as UserResponse) : null;
   } catch {
     user = null;
   }

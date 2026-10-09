@@ -15,6 +15,8 @@ export const ORGANIZATION_PERMISSIONS = {
   PAYOUT_MANAGE: "organization:payout:manage",
   SETTING_VIEW: "organization:setting:view",
   SETTING_UPDATE: "organization:setting:update",
+  PRICING_VIEW: "organization:pricing:view",
+  PRICING_MANAGE: "organization:pricing:manage",
 } as const;
 
 export type OrganizationPermission = (typeof ORGANIZATION_PERMISSIONS)[keyof typeof ORGANIZATION_PERMISSIONS];
@@ -143,6 +145,24 @@ export const ORGANIZATION_PERMISSION_DEFINITIONS: readonly PermissionDefinition[
     description: "Allows modifying organization-level preferences, branding, and defaults",
     resource: "setting",
     action: "update",
+    scope: "organization",
+    category: "organization_setting",
+  },
+  {
+    key: ORGANIZATION_PERMISSIONS.PRICING_VIEW,
+    name: "View Pricing Controls",
+    description: "Allows viewing organization paid event eligibility and pricing controls",
+    resource: "pricing",
+    action: "view",
+    scope: "organization",
+    category: "organization_setting",
+  },
+  {
+    key: ORGANIZATION_PERMISSIONS.PRICING_MANAGE,
+    name: "Manage Pricing Controls",
+    description: "Allows managing organization paid event permissions and bank details requirements",
+    resource: "pricing",
+    action: "manage",
     scope: "organization",
     category: "organization_setting",
   },

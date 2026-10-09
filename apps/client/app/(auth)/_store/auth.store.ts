@@ -11,6 +11,7 @@ import type {
   LoginData,
   ResetPasswordData,
   SignupData,
+  UserResponse,
   VerifyEmailData,
 } from "@orgatick/contracts";
 
@@ -76,7 +77,10 @@ export const useAuthStore = create<AuthState>()(
           const response = await authService.login(credentials);
           const token =
             response.token || response.accessToken || response.data?.token || response.data?.accessToken || null;
-          let user = response.user || response.data?.user || null;
+          let user =
+            response.user ||
+            response.data?.user ||
+            (response.data && "email" in response.data ? (response.data as unknown as UserResponse) : null);
 
           if (token) {
             setAccessToken(token);
@@ -130,7 +134,10 @@ export const useAuthStore = create<AuthState>()(
           const response = await authService.handleGoogleCallback(code);
           const token =
             response.token || response.accessToken || response.data?.token || response.data?.accessToken || null;
-          let user = response.user || response.data?.user || null;
+          let user =
+            response.user ||
+            response.data?.user ||
+            (response.data && "email" in response.data ? (response.data as unknown as UserResponse) : null);
 
           if (token) {
             setAccessToken(token);

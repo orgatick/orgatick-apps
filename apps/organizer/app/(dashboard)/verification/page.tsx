@@ -30,6 +30,14 @@ export default async function VerificationPage() {
   const canSubmit = roleKey === "owner" || roleKey === "admin" || !roleKey;
   const canRequest = status !== OrganizationVerificationStatus.VERIFIED;
 
+  let bankAccount = null;
+  try {
+    const bankRes = await api.get(`/organizations/${organization.id}/bank-account`);
+    bankAccount = bankRes.data?.data ?? null;
+  } catch {
+    bankAccount = null;
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 pb-12">
       {/* Header with Title and Primary Action */}
@@ -59,7 +67,7 @@ export default async function VerificationPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Column */}
         <div className="space-y-6 lg:col-span-2">
-          <OrganizationReadinessCard organization={organization} />
+          <OrganizationReadinessCard organization={organization} bankAccount={bankAccount} />
           <VerificationPerksCard />
         </div>
 

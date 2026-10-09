@@ -8,3 +8,4 @@ export * from "./newsletter/newsletter-welcome";
 export * from "./newsletter/newsletter-unsubscribed";
 export * from "./newsletter/newsletter-issue";
 export * from "./organization/organization-invitation";
+export * from "./organization/organization-pricing-updated";

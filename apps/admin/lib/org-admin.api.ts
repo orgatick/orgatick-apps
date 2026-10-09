@@ -8,6 +8,9 @@ import type {
   OrgHistories,
   RestrictedCapability,
   VerificationLogEntry,
+  OrganizationPricingSetting,
+  OrganizationPricingEligibility,
+  AdminBankAccount,
 } from "./types";
 
 export async function blockOrganization(id: string, reason: string): Promise<AdminOrganization> {
@@ -235,6 +238,57 @@ export interface OrganizationDocumentUrl {
 export async function fetchOrganizationDocumentUrl(id: string, documentId: string): Promise<OrganizationDocumentUrl> {
   const response = await api.get<ApiResponseData<OrganizationDocumentUrl>>(
     `/admin/organizations/${id}/documents/${documentId}/url`,
+  );
+  return response.data.data;
+}
+
+// ---- Organization Pricing Controls ----
+
+export interface OrganizationPricingData {
+  setting: OrganizationPricingSetting;
+  eligibility: OrganizationPricingEligibility;
+}
+
+export interface UpdateOrganizationPricingPayload {
+  paidEventsEnabled: boolean;
+  requireBankDetails: boolean;
+  disabledReason?: string | null;
+}
+
+export async function getOrganizationPricing(id: string): Promise<OrganizationPricingData> {
+  const response = await api.get<ApiResponseData<OrganizationPricingData>>(`/admin/organizations/${id}/pricing`);
+  return response.data.data;
+}
+
+export async function updateOrganizationPricing(
+  id: string,
+  data: UpdateOrganizationPricingPayload,
+): Promise<OrganizationPricingData> {
+  const response = await api.patch<ApiResponseData<OrganizationPricingData>>(
+    `/admin/organizations/${id}/pricing`,
+    data,
+  );
+  return response.data.data;
+}
+
+// ---- Organization Bank Account ----
+
+export async function fetchOrganizationBankAccount(id: string): Promise<AdminBankAccount | null> {
+  const response = await api.get<ApiResponseData<AdminBankAccount | null>>(`/admin/organizations/${id}/bank-account`);
+  return response.data.data;
+}
+
+export async function verifyOrganizationBankAccount(
+  id: string,
+  status: "verified" | "rejected",
+  verificationNotes?: string | null,
+): Promise<AdminBankAccount> {
+  const response = await api.patch<ApiResponseData<AdminBankAccount>>(
+    `/admin/organizations/${id}/bank-account/verify`,
+    {
+      status,
+      verificationNotes: verificationNotes || null,
+    },
   );
   return response.data.data;
 }

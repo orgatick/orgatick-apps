@@ -5,7 +5,10 @@ import type {
   InvitationStatusFilter,
   OrganizationInvitationResponse,
   OrganizationMemberResponse,
+  OrganizationPricingEligibilityResponse,
   OrganizationRoleOptionResponse,
+  OrganizationBankAccountResponse,
+  SaveOrganizationBankAccountDto,
 } from "@orgatick/contracts";
 import api from "./auth.api";
 
@@ -87,4 +90,25 @@ export async function switchOrganization(organizationId: string | number): Promi
   return await unwrap<{ id: string; name: string }>(
     api.post("/session/organization", { organizationId: String(organizationId) }),
   );
+}
+
+export async function fetchOrganizationPricingEligibility(
+  organizationId: string,
+): Promise<OrganizationPricingEligibilityResponse> {
+  return await unwrap<OrganizationPricingEligibilityResponse>(
+    api.get(`/organizations/${organizationId}/pricing-eligibility`),
+  );
+}
+
+export async function fetchOrganizationBankAccount(
+  organizationId: string,
+): Promise<OrganizationBankAccountResponse | null> {
+  return await unwrap<OrganizationBankAccountResponse | null>(api.get(`/organizations/${organizationId}/bank-account`));
+}
+
+export async function saveOrganizationBankAccount(
+  organizationId: string,
+  data: SaveOrganizationBankAccountDto,
+): Promise<OrganizationBankAccountResponse> {
+  return await unwrap<OrganizationBankAccountResponse>(api.put(`/organizations/${organizationId}/bank-account`, data));
 }

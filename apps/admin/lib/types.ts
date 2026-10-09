@@ -196,10 +196,49 @@ export interface AdminOrganization {
   stats?: OrgStats | null;
   verification?: VerificationRef | null;
   adminState?: AdminStateRef | null;
+  pricingSetting?: OrganizationPricingSetting | null;
+  bankAccount?: AdminBankAccount | null;
   documents?: OrgDocumentRef[];
   notes?: AdminNoteEntry[];
   histories?: OrgHistories;
   members?: MemberRef[];
+}
+
+export interface OrganizationPricingSetting {
+  organizationId: string | number;
+  paidEventsEnabled: boolean;
+  requireBankDetails: boolean;
+  disabledReason?: string | null;
+  updatedBy?: string | number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganizationPricingEligibility {
+  organizationId: string;
+  paidEventsEnabled: boolean;
+  requireBankDetails: boolean;
+  bankDetailsVerified: boolean;
+  eligibleForPaidEvents: boolean;
+  reasons: string[];
+}
+
+export interface AdminBankAccount {
+  id: string;
+  organizationId: string;
+  accountHolderName: string;
+  accountNumber?: string;
+  accountNumberMasked: string;
+  accountNumberLast4: string;
+  ifscCode: string;
+  bankName: string;
+  branchName?: string | null;
+  accountType: "current" | "savings";
+  status: "pending" | "verified" | "rejected";
+  verificationNotes?: string | null;
+  verifiedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PaginationMeta {

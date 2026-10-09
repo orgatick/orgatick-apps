@@ -7,10 +7,11 @@ import { LinkButton } from "@/components/ui/link-button";
 
 interface OrganizationReadinessCardProps {
   organization: SidebarOrganization["organization"];
+  bankAccount?: { bankName?: string; status?: string } | null;
 }
 
-export function OrganizationReadinessCard({ organization }: OrganizationReadinessCardProps) {
-  const { items, completedCount, totalCount, scorePercentage } = computeReadinessItems(organization);
+export function OrganizationReadinessCard({ organization, bankAccount }: OrganizationReadinessCardProps) {
+  const { items, completedCount, totalCount, scorePercentage } = computeReadinessItems(organization, bankAccount);
   const isFullyReady = completedCount === totalCount;
 
   return (

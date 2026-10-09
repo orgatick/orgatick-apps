@@ -24,9 +24,11 @@ import { OrganizationRisk } from "../../organization-governance/entities/organiz
 import { OrganizationReport } from "../../organization-admin/entities/organization-report.entity";
 import { OrganizationOwnershipDispute } from "../../organization-admin/entities/organization-ownership-dispute.entity";
 import { OrganizationCommissionSetting } from "../../organization-finance/entities/organization-commission-setting.entity";
+import { OrganizationPricingSetting } from "../../organization-finance/entities/organization-pricing-setting.entity";
 import { OrganizationDocument } from "../../organization-governance/entities/organization-document.entity";
 import { OrganizationWarning } from "../../organization-governance/entities/organization-warning.entity";
 import { OrganizationPaymentAccount } from "../../organization-finance/entities/organization-payment-account.entity";
+import { OrganizationBankAccount } from "../../organization-finance/entities/organization-bank-account.entity";
 import { OrganizationAdminState } from "../../organization-admin/entities/organization-admin-state.entity";
 
 /**
@@ -135,6 +137,12 @@ export class Organization {
   )
   commissionSetting?: OrganizationCommissionSetting;
 
+  @OneToOne(
+    () => OrganizationPricingSetting,
+    (pricingSetting) => pricingSetting.organization,
+  )
+  pricingSetting?: OrganizationPricingSetting;
+
   @OneToMany(
     () => OrganizationMember,
     (member) => member.organization,
@@ -176,6 +184,12 @@ export class Organization {
     (account) => account.organization,
   )
   paymentAccounts?: OrganizationPaymentAccount[];
+
+  @OneToOne(
+    () => OrganizationBankAccount,
+    (account) => account.organization,
+  )
+  bankAccount?: OrganizationBankAccount;
 
   @OneToMany(
     () => OrganizationReport,

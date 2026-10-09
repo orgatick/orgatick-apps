@@ -41,7 +41,8 @@ export class OrganizationRepository extends Repository<Organization> {
       .leftJoinAndSelect("org.adminState", "adminState")
       .leftJoinAndSelect("org.socialLinks", "socialLinks")
       .leftJoinAndSelect("org.supportContacts", "supportContacts")
-      .leftJoinAndSelect("org.commissionSetting", "commissionSetting");
+      .leftJoinAndSelect("org.commissionSetting", "commissionSetting")
+      .leftJoinAndSelect("org.pricingSetting", "pricingSetting");
   }
 
   /** Rich admin-only detail. Includes members with roles, documents, risk and warnings. */
