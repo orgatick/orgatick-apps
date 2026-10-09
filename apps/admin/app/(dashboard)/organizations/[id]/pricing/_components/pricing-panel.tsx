@@ -10,6 +10,7 @@ import {
   IconCoin,
   IconInfoCircle,
   IconLock,
+  IconReceiptTax,
   IconShieldCheck,
   IconX,
 } from "@tabler/icons-react";
@@ -25,8 +26,13 @@ import type {
   AdminOrganization,
   OrganizationPricingEligibility,
   OrganizationPricingSetting,
+  OrganizationCommissionSetting,
 } from "@/lib/types";
-import { updateOrganizationPricing, verifyOrganizationBankAccount } from "@/lib/org-admin.api";
+import {
+  updateOrganizationPricing,
+  verifyOrganizationBankAccount,
+  updateOrganizationCommission,
+} from "@/lib/org-admin.api";
 import { useOrgAction } from "../../_components/use-org-action";
 
 interface PricingPanelProps {
@@ -34,6 +40,7 @@ interface PricingPanelProps {
   initialSetting: OrganizationPricingSetting;
   initialEligibility: OrganizationPricingEligibility;
   initialBankAccount?: AdminBankAccount | null;
+  initialCommission?: OrganizationCommissionSetting | null;
 }
 
 export function PricingPanel({
@@ -41,12 +48,18 @@ export function PricingPanel({
   initialSetting,
   initialEligibility,
   initialBankAccount,
+  initialCommission,
 }: PricingPanelProps) {
   const { pending, run } = useOrgAction({ successMessage: "Organization pricing controls updated" });
 
   const [paidEventsEnabled, setPaidEventsEnabled] = useState(initialSetting.paidEventsEnabled);
   const [requireBankDetails, setRequireBankDetails] = useState(initialSetting.requireBankDetails);
   const [disabledReason, setDisabledReason] = useState(initialSetting.disabledReason ?? "");
+
+  // Commission state
+  const initialCommissionRate = initialCommission?.commissionPercentage ?? initialEligibility.commissionPercentage ?? 7;
+  const [commissionPercentage, setCommissionPercentage] = useState<number>(initialCommissionRate);
+  const [savedCommission, setSavedCommission] = useState<number>(initialCommissionRate);
 
   // Bank account verification state
   const [bankAccount, setBankAccount] = useState<AdminBankAccount | null>(initialBankAccount ?? null);
@@ -94,6 +107,14 @@ export function PricingPanel({
     });
   };
 
+  const handleSaveCommission = () => {
+    run(async () => {
+      const updated = await updateOrganizationCommission(id, commissionPercentage);
+      setCommissionPercentage(updated.commissionPercentage);
+      setSavedCommission(updated.commissionPercentage);
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner / Status Overview */}
@@ -117,12 +138,15 @@ export function PricingPanel({
               <Badge variant={initialSetting.requireBankDetails ? "secondary" : "outline"}>
                 {initialSetting.requireBankDetails ? "Bank Details: Mandatory" : "Bank Details: Optional"}
               </Badge>
+              <Badge variant="outline" className="font-mono text-xs">
+                Commission: {savedCommission}%
+              </Badge>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {/* Diagnostic Grid */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {/* Status 1: Paid Event Permission */}
             <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3.5">
               <div
@@ -192,6 +216,18 @@ export function PricingPanel({
                     ? "Organization satisfies all paid ticket conditions"
                     : "Prerequisites unmet for paid event ticketing"}
                 </p>
+              </div>
+            </div>
+
+            {/* Status 4: Platform Commission */}
+            <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3.5">
+              <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <IconReceiptTax className="size-4" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Platform Commission</p>
+                <p className="text-sm font-semibold text-foreground">{savedCommission}%</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">Active rate applied to paid tickets</p>
               </div>
             </div>
           </div>
@@ -350,6 +386,76 @@ export function PricingPanel({
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Platform Commission Fee Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <IconReceiptTax className="size-5 text-primary" />
+                Platform Commission Fee
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Configure the percentage commission fee deducted by the platform on paid ticket sales for{" "}
+                {organization.name}.
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="font-mono text-xs w-fit">
+              Active: {savedCommission}%
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div className="w-full max-w-xs space-y-2">
+              <Label htmlFor="commission-rate" className="text-xs font-semibold">
+                Platform Commission Rate (%)
+              </Label>
+              <div className="relative">
+                <Input
+                  id="commission-rate"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.01}
+                  value={commissionPercentage}
+                  onChange={(e) => {
+                    const val = Number.parseFloat(e.target.value);
+                    setCommissionPercentage(Number.isNaN(val) ? 0 : Math.min(100, Math.max(0, val)));
+                  }}
+                  disabled={pending}
+                  className="pr-8"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Standard platform default is 7.00%. Enter a value between 0.00% and 100.00%.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={handleSaveCommission}
+                disabled={pending || commissionPercentage === savedCommission}
+              >
+                {pending ? "Saving..." : "Update Commission Rate"}
+              </Button>
+              {commissionPercentage !== savedCommission && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCommissionPercentage(savedCommission)}
+                  disabled={pending}
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 

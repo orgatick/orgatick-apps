@@ -1,7 +1,16 @@
 import type { Metadata } from "next";
 import { getOrganizationOr404 } from "@/lib/server-org";
-import { serverFetchOrganizationPricing, serverFetchOrganizationBankAccount } from "@/lib/admin.api";
-import type { AdminBankAccount, OrganizationPricingEligibility, OrganizationPricingSetting } from "@/lib/types";
+import {
+  serverFetchOrganizationPricing,
+  serverFetchOrganizationBankAccount,
+  serverFetchOrganizationCommission,
+} from "@/lib/admin.api";
+import type {
+  AdminBankAccount,
+  OrganizationPricingEligibility,
+  OrganizationPricingSetting,
+  OrganizationCommissionSetting,
+} from "@/lib/types";
 import { PricingPanel } from "./_components/pricing-panel";
 
 export const metadata: Metadata = {
@@ -15,14 +24,17 @@ export default async function OrganizationPricingPage({ params }: { params: Prom
 
   let initialData: { setting: OrganizationPricingSetting; eligibility: OrganizationPricingEligibility };
   let initialBankAccount: AdminBankAccount | null = null;
+  let initialCommission: OrganizationCommissionSetting | null = null;
 
   try {
-    const [pricingData, bankAccountData] = await Promise.all([
+    const [pricingData, bankAccountData, commissionData] = await Promise.all([
       serverFetchOrganizationPricing(id),
       serverFetchOrganizationBankAccount(id).catch(() => null),
+      serverFetchOrganizationCommission(id).catch(() => null),
     ]);
     initialData = pricingData;
     initialBankAccount = bankAccountData;
+    initialCommission = commissionData;
   } catch {
     initialData = {
       setting: {
@@ -52,6 +64,7 @@ export default async function OrganizationPricingPage({ params }: { params: Prom
       initialSetting={initialData.setting}
       initialEligibility={initialData.eligibility}
       initialBankAccount={initialBankAccount}
+      initialCommission={initialCommission}
     />
   );
 }

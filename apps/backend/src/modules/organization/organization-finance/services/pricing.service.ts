@@ -6,12 +6,13 @@ import { OrganizationPaymentAccountStatus, OrganizationBankAccountStatus } from 
 import { OrganizationDocumentStatus } from "../../organization/enums/organization-document-status.enum";
 import { OrganizationDocumentType } from "../../organization/enums/organization-document-type.enum";
 import Organization from "../../organization/entities/organization.entity";
+import { OrganizationDocument } from "../../organization-governance/entities/organization-document.entity";
 import { OrganizationPaymentAccount } from "../entities/organization-payment-account.entity";
 import { OrganizationPricingSetting } from "../entities/organization-pricing-setting.entity";
 import { OrganizationBankAccount } from "../entities/organization-bank-account.entity";
 import { OrganizationPricingRepository } from "../repositories/pricing.repository";
 import { OrganizationPricingMailerService } from "./organization-pricing-mailer.service";
-import { OrganizationDocument } from "../../organization-governance/entities/organization-document.entity";
+import { OrganizationFinanceRepository } from "../repositories/finance.repository";
 
 export interface PricingEligibilityResult {
   organizationId: string;
@@ -19,6 +20,7 @@ export interface PricingEligibilityResult {
   requireBankDetails: boolean;
   bankDetailsVerified: boolean;
   eligibleForPaidEvents: boolean;
+  commissionPercentage?: number;
   reasons: string[];
 }
 
@@ -26,6 +28,7 @@ export interface PricingEligibilityResult {
 export class OrganizationPricingService {
   constructor(
     private readonly pricingRepository: OrganizationPricingRepository,
+    private readonly financeRepository: OrganizationFinanceRepository,
     @InjectRepository(Organization)
     private readonly organizationRepository: Repository<Organization>,
     @InjectRepository(OrganizationPaymentAccount)
@@ -108,6 +111,7 @@ export class OrganizationPricingService {
 
   async checkEligibility(organizationId: bigint): Promise<PricingEligibilityResult> {
     const setting = await this.pricingRepository.ensure(organizationId);
+    const commission = await this.financeRepository.ensure(organizationId);
 
     // 1. Check for active payment account (Stripe/Bank/etc.)
     const activePaymentAccount = await this.paymentAccountRepository.findOne({
@@ -156,6 +160,7 @@ export class OrganizationPricingService {
       requireBankDetails: setting.requireBankDetails,
       bankDetailsVerified,
       eligibleForPaidEvents,
+      commissionPercentage: Number(commission.commissionPercentage),
       reasons,
     };
   }

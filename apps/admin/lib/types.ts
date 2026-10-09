@@ -220,7 +220,15 @@ export interface OrganizationPricingEligibility {
   requireBankDetails: boolean;
   bankDetailsVerified: boolean;
   eligibleForPaidEvents: boolean;
+  commissionPercentage?: number;
   reasons: string[];
+}
+
+export interface OrganizationCommissionSetting {
+  organizationId: string;
+  commissionPercentage: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AdminBankAccount {

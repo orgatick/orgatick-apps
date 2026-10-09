@@ -19,7 +19,7 @@ export default function GoogleCallbackView() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<CallbackStatus>("authenticating");
   const [error, setError] = useState<string | null>(null);
-  const [redirectPath, setRedirectPath] = useState<string>("/dashboard");
+  const [redirectPath, setRedirectPath] = useState<string>("/events");
 
   const googleLogin = useAuthStore((state) => state.googleLogin);
   const { startGoogleAuth, loading: isRetrying } = useGoogleAuth();

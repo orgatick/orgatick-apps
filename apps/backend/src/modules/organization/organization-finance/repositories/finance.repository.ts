@@ -8,6 +8,17 @@ export class OrganizationFinanceRepository extends Repository<OrganizationCommis
     super(OrganizationCommissionSetting, dataSource.createEntityManager());
   }
 
+  async findByOrganizationId(organizationId: bigint): Promise<OrganizationCommissionSetting | null> {
+    return this.findOne({ where: { organizationId } });
+  }
+
+  async ensure(organizationId: bigint, defaultPercentage = 7.0): Promise<OrganizationCommissionSetting> {
+    const existing = await this.findByOrganizationId(organizationId);
+    if (existing) return existing;
+
+    return this.createCommissionSetting(organizationId, defaultPercentage);
+  }
+
   async createCommissionSetting(
     organizationId: bigint,
     commissionPercentage = 7.0,
@@ -18,5 +29,11 @@ export class OrganizationFinanceRepository extends Repository<OrganizationCommis
         commissionPercentage,
       } satisfies DeepPartial<OrganizationCommissionSetting>),
     );
+  }
+
+  async updateCommission(organizationId: bigint, percentage: number): Promise<OrganizationCommissionSetting> {
+    const setting = await this.ensure(organizationId);
+    setting.commissionPercentage = percentage;
+    return this.save(setting);
   }
 }

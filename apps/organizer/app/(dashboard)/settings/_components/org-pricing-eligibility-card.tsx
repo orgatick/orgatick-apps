@@ -5,6 +5,7 @@ import {
   IconCheck,
   IconCoin,
   IconLock,
+  IconReceiptTax,
   IconShieldCheck,
   IconX,
 } from "@tabler/icons-react";
@@ -22,6 +23,7 @@ export function OrgPricingEligibilityCard({ eligibility }: OrgPricingEligibility
   const requireBank = eligibility ? eligibility.requireBankDetails : true;
   const bankVerified = eligibility ? eligibility.bankDetailsVerified : false;
   const isEligible = eligibility ? eligibility.eligibleForPaidEvents : false;
+  const commissionPercentage = eligibility?.commissionPercentage ?? 7;
 
   return (
     <Card className="rounded-xl border border-border/60 bg-card">
@@ -47,7 +49,7 @@ export function OrgPricingEligibilityCard({ eligibility }: OrgPricingEligibility
 
       <CardContent className="space-y-4">
         {/* Metric / Status Grid */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Tile 1: Paid Event Creation */}
           <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3.5">
             <div
@@ -101,6 +103,18 @@ export function OrgPricingEligibilityCard({ eligibility }: OrgPricingEligibility
               <p className="mt-0.5 text-[11px] text-muted-foreground">
                 {bankVerified ? "Payout account active & cleared" : "Bank account proof not yet approved"}
               </p>
+            </div>
+          </div>
+
+          {/* Tile 4: Platform Commission */}
+          <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3.5">
+            <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <IconReceiptTax className="size-4" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Platform Commission</p>
+              <p className="text-sm font-semibold text-foreground">{commissionPercentage}%</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">Standard platform fee per paid ticket</p>
             </div>
           </div>
         </div>

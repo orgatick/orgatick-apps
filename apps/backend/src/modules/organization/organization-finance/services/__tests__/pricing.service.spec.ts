@@ -98,6 +98,22 @@ describe("Organization Pricing Control & Paid Event Restrictions", () => {
       findOne: async () => (overrides as { bankAccount?: unknown }).bankAccount ?? null,
     };
 
+    let currentCommission = {
+      organizationId: 100n,
+      commissionPercentage: "7.00",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const mockFinanceRepo = {
+      ensure: async () => currentCommission,
+      findByOrganizationId: async () => currentCommission,
+      updateCommission: async (_orgId: bigint, percentage: number) => {
+        currentCommission = { ...currentCommission, commissionPercentage: percentage.toFixed(2) };
+        return currentCommission;
+      },
+    };
+
     const sentEmails: MockSentEmail[] = [];
     const mockMailer = {
       sendPricingUpdatedNotification: async (payload: MockSentEmail) => {
@@ -107,6 +123,7 @@ describe("Organization Pricing Control & Paid Event Restrictions", () => {
 
     const service = new OrganizationPricingService(
       mockPricingRepo as never,
+      mockFinanceRepo as never,
       mockOrgRepo as never,
       mockPaymentAccountRepo as never,
       mockDocumentRepo as never,
@@ -114,7 +131,7 @@ describe("Organization Pricing Control & Paid Event Restrictions", () => {
       mockMailer as never,
     );
 
-    return { service, mockPricingRepo, mockOrgRepo, sentEmails, getCurrentOrg: () => currentOrg };
+    return { service, mockPricingRepo, mockFinanceRepo, mockOrgRepo, sentEmails, getCurrentOrg: () => currentOrg };
   };
 
   describe("checkEligibility", () => {

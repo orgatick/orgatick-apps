@@ -18,6 +18,7 @@ import type {
   OrganizationPricingSetting,
   OrganizationPricingEligibility,
   AdminBankAccount,
+  OrganizationCommissionSetting,
   VerificationQueueItem,
   VerificationQueueQuery,
 } from "./types";
@@ -195,6 +196,14 @@ export async function serverFetchOrganizationPricing(
 export async function serverFetchOrganizationBankAccount(id: string): Promise<AdminBankAccount | null> {
   const api = await serverApi();
   const response = await api.get<ApiResponseData<AdminBankAccount | null>>(`/admin/organizations/${id}/bank-account`);
+  return response.data.data;
+}
+
+export async function serverFetchOrganizationCommission(id: string): Promise<OrganizationCommissionSetting | null> {
+  const api = await serverApi();
+  const response = await api.get<ApiResponseData<OrganizationCommissionSetting>>(
+    `/admin/organizations/${id}/commission`,
+  );
   return response.data.data;
 }
 

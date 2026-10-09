@@ -25,7 +25,6 @@ export class AuthenticationGuard implements CanActivate {
     if (isPublic) return true;
     const http = context.switchToHttp();
     const request = http.getRequest();
-    const response = http.getResponse();
     const token = this.cookieService.getAccessToken(request);
     if (!token) throw new UnauthorizedException("Authentication token missing");
 
@@ -39,7 +38,6 @@ export class AuthenticationGuard implements CanActivate {
       request.session = session;
       return true;
     } catch (error) {
-      this.cookieService.clearAuthCookies(response);
       if (error instanceof UnauthorizedException) {
         throw error;
       }

@@ -114,7 +114,7 @@ export const authService = {
     return user;
   },
 
-  async getGoogleAuthUrl(redirect = "/dashboard"): Promise<string> {
+  async getGoogleAuthUrl(redirect = "/events"): Promise<string> {
     const response = await baseApi.get<{
       url?: string;
       data?: { url?: string };

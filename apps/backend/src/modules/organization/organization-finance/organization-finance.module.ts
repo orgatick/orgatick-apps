@@ -15,6 +15,8 @@ import { AdminPricingController } from "./controllers/admin-pricing.controller";
 import { OrganizationPricingController } from "./controllers/organization-pricing.controller";
 import { AdminBankAccountController } from "./controllers/admin-bank-account.controller";
 import { OrganizationBankAccountController } from "./controllers/organization-bank-account.controller";
+import { AdminCommissionController } from "./controllers/admin-commission.controller";
+import { OrganizationCommissionController } from "./controllers/organization-commission.controller";
 import { OrganizationFinanceRepository } from "./repositories/finance.repository";
 import { OrganizationPricingRepository } from "./repositories/pricing.repository";
 import { OrganizationBankAccountRepository } from "./repositories/bank-account.repository";
@@ -41,6 +43,8 @@ import { OrganizationBankAccountService } from "./services/bank-account.service"
     OrganizationPricingController,
     AdminBankAccountController,
     OrganizationBankAccountController,
+    AdminCommissionController,
+    OrganizationCommissionController,
   ],
   providers: [
     OrganizationFinanceService,

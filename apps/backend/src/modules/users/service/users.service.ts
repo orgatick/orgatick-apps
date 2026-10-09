@@ -1,3 +1,4 @@
+/// <reference types="multer" />
 import { Inject, Injectable } from "@nestjs/common";
 import type { UpdateUserDto } from "../dto/update-user.dto";
 import { InjectRepository } from "@nestjs/typeorm";

@@ -19,6 +19,7 @@ export const OrganizationPricingEligibilityResponseSchema = z.object({
   requireBankDetails: z.boolean(),
   bankDetailsVerified: z.boolean(),
   eligibleForPaidEvents: z.boolean(),
+  commissionPercentage: z.number().optional(),
   reasons: z.array(z.string()),
 });
 

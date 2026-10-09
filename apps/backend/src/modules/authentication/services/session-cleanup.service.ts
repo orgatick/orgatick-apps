@@ -132,14 +132,15 @@ export class SessionCleanupService {
    * Safely deletes expired sessions in batches and evicts their Redis cache entries.
    */
   private async cleanExpiredSessions(): Promise<number> {
-    const now = new Date();
+    // 24-hour grace buffer to protect against clock skew and ensure genuine recent sessions are not prematurely deleted
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
     let totalDeleted = 0;
 
     while (true) {
       const records = await this.userSessionRepository
         .createQueryBuilder("session")
         .select("session.id")
-        .where("session.expiresAt IS NOT NULL AND session.expiresAt < :now", { now })
+        .where("session.expiresAt IS NOT NULL AND session.expiresAt < :cutoff", { cutoff })
         .limit(this.BATCH_SIZE)
         .getMany();
 

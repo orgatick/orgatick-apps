@@ -22,7 +22,8 @@ import { TokenService } from "./token.service";
 export class TokenRefreshService {
   private readonly logger = new Logger(TokenRefreshService.name);
   private readonly bcryptUtils = new BcryptUtils();
-  private readonly gracePeriodSeconds = 60; // 60s grace window to handle concurrent requests, multi-tab bursts & SSR
+  private readonly gracePeriodSeconds = 300; // 5m grace window to handle concurrent requests, multi-tab bursts & SSR
+  private readonly memoryGraceCache = new Map<string, { tokenPair: TokenPair; expiresAt: number }>();
 
   constructor(
     @InjectRepository(User)
@@ -38,6 +39,46 @@ export class TokenRefreshService {
     @Inject(REDIS_CLIENT)
     private readonly redis: Redis,
   ) {}
+
+  private async getGraceTokens(key: string): Promise<TokenPair | null> {
+    const mem = this.memoryGraceCache.get(key);
+    if (mem) {
+      if (Date.now() < mem.expiresAt) {
+        return mem.tokenPair;
+      }
+      this.memoryGraceCache.delete(key);
+    }
+
+    try {
+      const cached = await this.redis.get(key);
+      if (cached) {
+        return JSON.parse(cached) as TokenPair;
+      }
+    } catch (err) {
+      this.logger.warn(`Redis get failed for grace key ${key}: ${(err as Error).message}`);
+    }
+    return null;
+  }
+
+  private async setGraceTokens(key: string, tokenPair: TokenPair): Promise<void> {
+    const now = Date.now();
+    this.memoryGraceCache.set(key, {
+      tokenPair,
+      expiresAt: now + this.gracePeriodSeconds * 1000,
+    });
+
+    for (const [k, v] of this.memoryGraceCache.entries()) {
+      if (v.expiresAt <= now) {
+        this.memoryGraceCache.delete(k);
+      }
+    }
+
+    try {
+      await this.redis.set(key, JSON.stringify(tokenPair), "EX", this.gracePeriodSeconds);
+    } catch (err) {
+      this.logger.warn(`Redis set failed for grace key ${key}: ${(err as Error).message}`);
+    }
+  }
 
   async refreshToken(
     request: Request,
@@ -88,48 +129,35 @@ export class TokenRefreshService {
     // Detect refresh token reuse (the token counter is strictly less than current active rotation)
     if (tokenCounter < sessionCounter) {
       const isImmediatePredecessor = tokenCounter === sessionCounter - 1;
-      const rotationAgeMs = session.lastActivityAt
-        ? Date.now() - new Date(session.lastActivityAt).getTime()
-        : Number.POSITIVE_INFINITY;
-      const isWithinGraceWindow = rotationAgeMs <= this.gracePeriodSeconds * 1000;
 
       // Check if this token was rotated within the concurrent-request grace period (e.g. multi-tab burst or SSR)
       const graceKey = `refresh_grace:${session.id}:${tokenCounter}`;
-      const cachedGraceTokens = await this.redis.get(graceKey);
+      const cachedGraceTokens = await this.getGraceTokens(graceKey);
 
       if (cachedGraceTokens) {
         this.logger.warn(
           `Concurrent refresh token request within grace period for session ${session.id} (counter: ${tokenCounter})`,
         );
-        const tokenPair = JSON.parse(cachedGraceTokens) as TokenPair;
-        this.cookieService.setAuthCookies(response, tokenPair);
+        this.cookieService.setAuthCookies(response, cachedGraceTokens);
         return {
           message: "Access token refreshed successfully",
-          token: tokenPair.accessToken,
-          accessToken: tokenPair.accessToken,
+          token: cachedGraceTokens.accessToken,
+          accessToken: cachedGraceTokens.accessToken,
         };
       }
 
-      // If Redis key was evicted/missing, but it is the immediate predecessor within the grace window:
-      if (isImmediatePredecessor && isWithinGraceWindow) {
+      // If it is the immediate predecessor, do NOT revoke the active session or wipe cookies!
+      // Multi-tab lag or sleep could cause this tab to send a 1-step stale token.
+      if (isImmediatePredecessor) {
         this.logger.warn(
-          `In-flight token refresh request for session ${session.id} (counter: ${tokenCounter}, active: ${sessionCounter}, age: ${Math.round(rotationAgeMs / 1000)}s). Re-issuing active tokens.`,
+          `Stale refresh token request for session ${session.id} (counter: ${tokenCounter}, active: ${sessionCounter}). Rejecting request without revoking active session.`,
         );
-        const currentTokenPair = await this.tokenService.generateTokenPair({
-          email: user.email,
-          sessionId: session.id,
-          token: tokenPayload.token,
-          rotationCounter: sessionCounter,
-        });
-        this.cookieService.setAuthCookies(response, currentTokenPair);
-        return {
-          message: "Access token refreshed successfully",
-          token: currentTokenPair.accessToken,
-          accessToken: currentTokenPair.accessToken,
-        };
+        throw new UnauthorizedException(
+          "Refresh token was already rotated in another window. Please use the current session.",
+        );
       }
 
-      // OUTSIDE GRACE PERIOD or older generation -> Token Reuse / Replay Attack Detected!
+      // OUTSIDE GRACE PERIOD and older generation -> Token Reuse / Replay Attack Detected!
       this.logger.error(
         `SECURITY ALERT: Refresh token reuse detected for user ${user.id}, session ${session.id}. Token counter: ${tokenCounter}, active counter: ${sessionCounter}. Revoking session family.`,
       );
@@ -177,14 +205,20 @@ export class TokenRefreshService {
     const nextHash = await this.bcryptUtils.hashString(nextSecret);
     const nextCounter = sessionCounter + 1;
     const now = new Date();
+    const newExpiresAt = new Date(Date.now() + this.sessionService.sessionLifespanMs);
 
     session.sessionTokenHash = nextHash;
     session.rotationCounter = nextCounter;
     session.lastActivityAt = now;
+    session.expiresAt = newExpiresAt;
     await this.userSessionRepository.save(session);
 
     // Refresh Redis session cache
-    await this.cacheManager.set(`session:${session.id}`, session, this.sessionService.cacheTTL);
+    try {
+      await this.cacheManager.set(`session:${session.id}`, session, this.sessionService.cacheTTL);
+    } catch (err) {
+      this.logger.warn(`Failed to update session cache for session ${session.id}: ${(err as Error).message}`);
+    }
 
     // Generate new rotated token pair
     const tokenPair: TokenPair = await this.tokenService.generateTokenPair({
@@ -194,13 +228,8 @@ export class TokenRefreshService {
       rotationCounter: nextCounter,
     });
 
-    // Store in Redis grace cache for network race conditions
-    await this.redis.set(
-      `refresh_grace:${session.id}:${sessionCounter}`,
-      JSON.stringify(tokenPair),
-      "EX",
-      this.gracePeriodSeconds,
-    );
+    // Store in grace cache for network race conditions / multi-tab bursts
+    await this.setGraceTokens(`refresh_grace:${session.id}:${sessionCounter}`, tokenPair);
 
     // Issue updated secure httpOnly cookies (rotates both access and refresh tokens)
     this.cookieService.setAuthCookies(response, tokenPair);

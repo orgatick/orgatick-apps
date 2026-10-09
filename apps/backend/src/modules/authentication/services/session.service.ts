@@ -13,8 +13,8 @@ import { parseBrowser, parsePlatform } from "@/common/utils/user-agent.util";
 @Injectable()
 export class SessionService {
   readonly cacheTTL = 900_000; // Cache TTL in milliseconds (15 minutes)
-  private readonly sessionLifespanMs = 30 * 24 * 60 * 60 * 1000; // 30 days
-  private readonly maxActiveSessions = 6; // Maximum concurrent active sessions per user
+  readonly sessionLifespanMs = 30 * 24 * 60 * 60 * 1000; // 30 days
+  private readonly maxActiveSessions = 15; // Maximum concurrent active sessions per user
   private readonly bcryptUtils = new BcryptUtils();
 
   constructor(
@@ -69,11 +69,13 @@ export class SessionService {
 
   async touchSessionActivity(sessionId: number): Promise<void> {
     const now = new Date();
-    await this.userSessionRepository.update(sessionId, { lastActivityAt: now });
+    const expiresAt = new Date(Date.now() + this.sessionLifespanMs);
+    await this.userSessionRepository.update(sessionId, { lastActivityAt: now, expiresAt });
     const cacheKey = `session:${sessionId}`;
     const cachedSession = await this.cacheManager.get<UserSession>(cacheKey);
     if (cachedSession) {
       cachedSession.lastActivityAt = now;
+      cachedSession.expiresAt = expiresAt;
       await this.cacheManager.set(cacheKey, cachedSession, this.cacheTTL);
     }
   }
@@ -217,8 +219,13 @@ export class SessionService {
     const fiveMinutes = 5 * 60 * 1000;
     if (now - lastActivityTime > fiveMinutes) {
       const newActivityAt = new Date();
+      const newExpiresAt = new Date(now + this.sessionLifespanMs);
       session.lastActivityAt = newActivityAt;
-      await this.userSessionRepository.update(session.id, { lastActivityAt: newActivityAt });
+      session.expiresAt = newExpiresAt;
+      await this.userSessionRepository.update(session.id, {
+        lastActivityAt: newActivityAt,
+        expiresAt: newExpiresAt,
+      });
       await this.cacheManager.set(`session:${session.id}`, session, this.cacheTTL);
     }
   }

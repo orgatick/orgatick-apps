@@ -11,6 +11,7 @@ import type {
   OrganizationPricingSetting,
   OrganizationPricingEligibility,
   AdminBankAccount,
+  OrganizationCommissionSetting,
 } from "./types";
 
 export async function blockOrganization(id: string, reason: string): Promise<AdminOrganization> {
@@ -289,6 +290,26 @@ export async function verifyOrganizationBankAccount(
       status,
       verificationNotes: verificationNotes || null,
     },
+  );
+  return response.data.data;
+}
+
+// ---- Organization Commission Settings ----
+
+export async function fetchOrganizationCommission(id: string): Promise<OrganizationCommissionSetting> {
+  const response = await api.get<ApiResponseData<OrganizationCommissionSetting>>(
+    `/admin/organizations/${id}/commission`,
+  );
+  return response.data.data;
+}
+
+export async function updateOrganizationCommission(
+  id: string,
+  commissionPercentage: number,
+): Promise<OrganizationCommissionSetting> {
+  const response = await api.patch<ApiResponseData<OrganizationCommissionSetting>>(
+    `/admin/organizations/${id}/commission`,
+    { commissionPercentage },
   );
   return response.data.data;
 }
