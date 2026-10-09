@@ -12,21 +12,18 @@ export function SessionsHeader({ sessionCount }: SessionsHeaderProps) {
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex gap-4 itmes-center w-full justify-start">
+            <div className="flex gap-4 items-center w-full justify-start">
               <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
                 <IconDevices className="size-5" />
               </div>
-              <div className="flex items-center flex-wrap">
+              <div className="flex items-center flex-wrap gap-2">
                 <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
                   Active Sessions & Devices
                 </h1>
                 <Badge variant="secondary" className="font-mono text-xs px-2.5 py-0.5">
                   {sessionCount} {sessionCount === 1 ? "Session" : "Sessions"}
                 </Badge>
-                <Badge
-                  variant="outline"
-                  className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-medium"
-                >
+                <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-xs font-medium">
                   <IconShieldCheck className="size-3 mr-1 inline" />
                   Protected
                 </Badge>

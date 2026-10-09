@@ -10,11 +10,12 @@ export class CookieService {
   private readonly accessTokenTime: number = 15 * 60 * 1000; // 15 minutes in milliseconds
   constructor(private readonly configService: ConfigService) {
     const isProd = this.configService.get<string>("NODE_ENV") === "production";
+    const cookieDomain = isProd ? this.configService.get<string>("COOKIE_DOMAIN") : undefined;
     this.cookieOptions = {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? "none" : "lax",
-      domain: this.configService.get<string>("COOKIE_DOMAIN"),
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
       path: "/",
     };
   }

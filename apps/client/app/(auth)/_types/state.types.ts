@@ -13,6 +13,8 @@ export interface LoginResult {
   success: boolean;
   data?: AuthSuccessResponse;
   requiresEmailVerification?: boolean;
+  isLockedOut?: boolean;
+  retryAfterSeconds?: number;
   message?: string;
 }
 
@@ -36,7 +38,7 @@ export interface AuthState {
   forgotPassword: (data: ForgotPasswordData) => Promise<{ success: boolean }>;
   resendVerification: (email: string) => Promise<{ success: boolean }>;
   verifyEmail: (data: VerifyEmailData) => Promise<{ success: boolean; message?: string }>;
-  resetPassword: (data: ResetPasswordData) => Promise<{ success: boolean }>;
+  resetPassword: (data: ResetPasswordData) => Promise<{ success: boolean; isReusedToken?: boolean; message?: string }>;
   changePassword: (data: ChangePasswordInput) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
   fetchCurrentUser: () => Promise<UserResponse | null>;

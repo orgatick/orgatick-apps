@@ -1,14 +1,12 @@
 import { LinkButton } from "@/components/ui/link-button";
-import { Badge } from "@orgatick/ui/components/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@orgatick/ui/components/card";
-import { IconArrowRight, IconCheck, IconSparkles } from "@tabler/icons-react";
+import { IconArrowRight, IconCheck } from "@tabler/icons-react";
 import * as motion from "motion/react-client";
 
 export function PricingSection() {
   const plans = [
     {
       name: "Club Starter",
-      badge: "For Student Clubs",
       price: "Free",
       period: "for free events",
       fee: "+ 2% on paid tickets",
@@ -27,8 +25,7 @@ export function PricingSection() {
     },
     {
       name: "Fest & Summit Pro",
-      badge: "Most Popular for Flagship Fests",
-      price: "$49",
+      price: "₹2000",
       period: "per flagship event",
       fee: "+ 1.5% low transaction fee",
       description: "The complete operational stack for college hackathons, cultural carnivals, and tech summits.",
@@ -48,7 +45,6 @@ export function PricingSection() {
     },
     {
       name: "University Enterprise",
-      badge: "Campus-Wide SaaS",
       price: "Custom",
       period: "annual university plan",
       fee: "volume-based pricing",
@@ -80,9 +76,6 @@ export function PricingSection() {
           transition={{ duration: 0.5 }}
           className="text-center max-w-3xl mx-auto space-y-4"
         >
-          <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10">
-            Transparent SaaS Pricing
-          </Badge>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-foreground tracking-tight">
             Simple Plans for Every College Event Scale
           </h2>
@@ -110,21 +103,11 @@ export function PricingSection() {
                     : "border-border/60 hover:border-border hover:-translate-y-1 shadow-md"
                 }`}
               >
-                {plan.highlighted && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-linear-to-r from-primary to-indigo-600 text-white text-xs font-bold px-4 py-1 rounded-full shadow-md flex items-center gap-1 z-10 shrink-0">
-                    <IconSparkles className="size-3.5" />
-                    <span>RECOMMENDED FOR COLLEGE FESTS</span>
-                  </div>
-                )}
-
                 <div className="space-y-6">
                   {/* Title & Badge */}
                   <CardHeader className="space-y-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-2xl font-bold text-foreground">{plan.name}</CardTitle>
-                      <Badge variant="outline" className="text-[11px] font-mono">
-                        {plan.badge}
-                      </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed font-normal">{plan.description}</p>
                   </CardHeader>

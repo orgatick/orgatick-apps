@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { LinkButton } from "@/components/ui/link-button";
 
@@ -21,9 +20,9 @@ export default function InvalidTokenView() {
           Request new reset link
         </LinkButton>
 
-        <Link href="/login" className="w-full rounded-full text-base h-11">
+        <LinkButton href="/login" variant="outline" className="w-full rounded-full text-base h-11">
           Back to login
-        </Link>
+        </LinkButton>
       </div>
     </div>
   );

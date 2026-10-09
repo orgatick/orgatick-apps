@@ -1,42 +1,214 @@
-import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import crypto from "node:crypto";
+import { type Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
+import { Inject, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { Request, Response } from "express";
+import type Redis from "ioredis";
 import type { Repository } from "typeorm";
-
+import { REDIS_CLIENT } from "@/infrastructure/redis/redis.constants";
+import { BcryptUtils } from "@/common/utils/bcrypt.utils";
+import { normalizeEmail } from "@/common/utils/email.util";
+import { LoginAttemptStatus } from "@/modules/identity/entities/user-login-attempt.entity";
+import { UserSession } from "@/modules/identity/entities/user-session.entity";
+import { LoginAttemptService } from "@/modules/identity/service/login-attempt.service";
+import { User } from "@/modules/users/entities/user.entity";
+import type { JwtPayload } from "../types/jwt-payload.types";
+import type { TokenPair } from "../types/token-pair.types";
 import { CookieService } from "./cookies.service";
 import { SessionService } from "./session.service";
 import { TokenService } from "./token.service";
-import { User } from "@/modules/users/entities/user.entity";
-import { normalizeEmail } from "@/common/utils/email.util";
 
 @Injectable()
 export class TokenRefreshService {
+  private readonly logger = new Logger(TokenRefreshService.name);
+  private readonly bcryptUtils = new BcryptUtils();
+  private readonly gracePeriodSeconds = 60; // 60s grace window to handle concurrent requests, multi-tab bursts & SSR
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(UserSession)
+    private readonly userSessionRepository: Repository<UserSession>,
     private readonly cookieService: CookieService,
     private readonly tokenService: TokenService,
     private readonly sessionService: SessionService,
+    private readonly loginAttemptService: LoginAttemptService,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
+    @Inject(REDIS_CLIENT)
+    private readonly redis: Redis,
   ) {}
 
-  async refreshToken(request: Request, response: Response) {
+  async refreshToken(
+    request: Request,
+    response: Response,
+  ): Promise<{ message: string; token?: string; accessToken?: string }> {
     const refreshToken = this.cookieService.getRefreshToken(request);
-    if (!refreshToken) throw new UnauthorizedException("No refresh token found");
+    if (!refreshToken) {
+      throw new UnauthorizedException("No refresh token found");
+    }
 
-    const tokenPayload = await this.tokenService.verifyRefreshToken(refreshToken);
+    let tokenPayload: JwtPayload;
+    try {
+      tokenPayload = await this.tokenService.verifyRefreshToken(refreshToken);
+    } catch {
+      this.cookieService.clearAuthCookies(response);
+      throw new UnauthorizedException("Invalid or expired refresh token");
+    }
 
     const normalizedEmail = normalizeEmail(tokenPayload.email);
     const user = await this.userRepository.findOne({ where: { normalizedEmail } });
-    if (!user) throw new NotFoundException("User not found");
+    if (!user) {
+      this.cookieService.clearAuthCookies(response);
+      throw new UnauthorizedException("User not found");
+    }
 
-    const session = await this.sessionService.validateSession(user, tokenPayload.sessionId);
+    // Load session including the hidden sessionTokenHash
+    const session = await this.sessionService.getSessionWithTokenHash(tokenPayload.sessionId, user.id);
+    if (!session) {
+      this.cookieService.clearAuthCookies(response);
+      throw new UnauthorizedException("Session not found");
+    }
 
-    const token = await this.tokenService.generateAccessToken({
+    // Check if session is already revoked
+    if (session.revokedAt) {
+      this.cookieService.clearAuthCookies(response);
+      throw new UnauthorizedException("Session has been revoked");
+    }
+
+    // Check if session is expired
+    if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+      this.cookieService.clearAuthCookies(response);
+      throw new UnauthorizedException("Session has expired");
+    }
+
+    const tokenCounter = tokenPayload.rotationCounter ?? 1;
+    const sessionCounter = session.rotationCounter ?? 1;
+
+    // Detect refresh token reuse (the token counter is strictly less than current active rotation)
+    if (tokenCounter < sessionCounter) {
+      const isImmediatePredecessor = tokenCounter === sessionCounter - 1;
+      const rotationAgeMs = session.lastActivityAt
+        ? Date.now() - new Date(session.lastActivityAt).getTime()
+        : Number.POSITIVE_INFINITY;
+      const isWithinGraceWindow = rotationAgeMs <= this.gracePeriodSeconds * 1000;
+
+      // Check if this token was rotated within the concurrent-request grace period (e.g. multi-tab burst or SSR)
+      const graceKey = `refresh_grace:${session.id}:${tokenCounter}`;
+      const cachedGraceTokens = await this.redis.get(graceKey);
+
+      if (cachedGraceTokens) {
+        this.logger.warn(
+          `Concurrent refresh token request within grace period for session ${session.id} (counter: ${tokenCounter})`,
+        );
+        const tokenPair = JSON.parse(cachedGraceTokens) as TokenPair;
+        this.cookieService.setAuthCookies(response, tokenPair);
+        return {
+          message: "Access token refreshed successfully",
+          token: tokenPair.accessToken,
+          accessToken: tokenPair.accessToken,
+        };
+      }
+
+      // If Redis key was evicted/missing, but it is the immediate predecessor within the grace window:
+      if (isImmediatePredecessor && isWithinGraceWindow) {
+        this.logger.warn(
+          `In-flight token refresh request for session ${session.id} (counter: ${tokenCounter}, active: ${sessionCounter}, age: ${Math.round(rotationAgeMs / 1000)}s). Re-issuing active tokens.`,
+        );
+        const currentTokenPair = await this.tokenService.generateTokenPair({
+          email: user.email,
+          sessionId: session.id,
+          token: tokenPayload.token,
+          rotationCounter: sessionCounter,
+        });
+        this.cookieService.setAuthCookies(response, currentTokenPair);
+        return {
+          message: "Access token refreshed successfully",
+          token: currentTokenPair.accessToken,
+          accessToken: currentTokenPair.accessToken,
+        };
+      }
+
+      // OUTSIDE GRACE PERIOD or older generation -> Token Reuse / Replay Attack Detected!
+      this.logger.error(
+        `SECURITY ALERT: Refresh token reuse detected for user ${user.id}, session ${session.id}. Token counter: ${tokenCounter}, active counter: ${sessionCounter}. Revoking session family.`,
+      );
+
+      // Revoke the entire session / token family immediately according to policy
+      await this.sessionService.revokeSession(session.id, user.id, "refresh_token_reuse");
+      this.cookieService.clearAuthCookies(response);
+
+      // Record security audit attempt
+      await this.loginAttemptService.recordAttempt({
+        email: user.email,
+        userId: user.id,
+        ipAddress: request.ip ?? null,
+        userAgent: (request.headers["user-agent"] as string) ?? null,
+        status: LoginAttemptStatus.FAILED,
+        failureReason: `Refresh token reuse detected: counter ${tokenCounter} < ${sessionCounter}. Session family revoked.`,
+      });
+
+      throw new UnauthorizedException("Refresh token reuse detected. Session has been revoked for security.");
+    }
+
+    // If counter is ahead of the database, the token was forged or invalid
+    if (tokenCounter > sessionCounter) {
+      this.logger.error(
+        `SECURITY ALERT: Invalid refresh token counter sequence for user ${user.id}, session ${session.id}. Token counter: ${tokenCounter}, active: ${sessionCounter}. Revoking session.`,
+      );
+      await this.sessionService.revokeSession(session.id, user.id, "invalid_refresh_token_sequence");
+      this.cookieService.clearAuthCookies(response);
+      throw new UnauthorizedException("Invalid refresh token sequence. Session revoked.");
+    }
+
+    // Check token secret hash matching
+    const isTokenValid = await this.bcryptUtils.compareString(tokenPayload.token, session.sessionTokenHash);
+    if (!isTokenValid) {
+      this.logger.error(
+        `SECURITY ALERT: Refresh token hash mismatch for session ${session.id}. Revoking session family.`,
+      );
+      await this.sessionService.revokeSession(session.id, user.id, "invalid_refresh_token_hash");
+      this.cookieService.clearAuthCookies(response);
+      throw new UnauthorizedException("Invalid refresh token. Session revoked.");
+    }
+
+    // --- SECURE REFRESH TOKEN ROTATION AND REPLACEMENT ---
+    const nextSecret = crypto.randomBytes(32).toString("hex");
+    const nextHash = await this.bcryptUtils.hashString(nextSecret);
+    const nextCounter = sessionCounter + 1;
+    const now = new Date();
+
+    session.sessionTokenHash = nextHash;
+    session.rotationCounter = nextCounter;
+    session.lastActivityAt = now;
+    await this.userSessionRepository.save(session);
+
+    // Refresh Redis session cache
+    await this.cacheManager.set(`session:${session.id}`, session, this.sessionService.cacheTTL);
+
+    // Generate new rotated token pair
+    const tokenPair: TokenPair = await this.tokenService.generateTokenPair({
       email: user.email,
       sessionId: session.id,
-      token: tokenPayload.token,
+      token: nextSecret,
+      rotationCounter: nextCounter,
     });
-    this.cookieService.setAccessToken(response, token);
-    await this.sessionService.touchSessionActivity(session.id);
+
+    // Store in Redis grace cache for network race conditions
+    await this.redis.set(
+      `refresh_grace:${session.id}:${sessionCounter}`,
+      JSON.stringify(tokenPair),
+      "EX",
+      this.gracePeriodSeconds,
+    );
+
+    // Issue updated secure httpOnly cookies (rotates both access and refresh tokens)
+    this.cookieService.setAuthCookies(response, tokenPair);
+
+    return {
+      message: "Access token refreshed successfully",
+      token: tokenPair.accessToken,
+      accessToken: tokenPair.accessToken,
+    };
   }
 }

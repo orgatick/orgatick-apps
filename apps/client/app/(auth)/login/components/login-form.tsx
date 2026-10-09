@@ -17,6 +17,9 @@ const LoginForm = () => {
   const callbackUrl = searchParams.get("callbackUrl") || "/";
 
   const [step, setStep] = useState(1);
+  const [lockout, setLockout] = useState<{ isLocked: boolean; retryAfterSeconds: number; message?: string } | null>(
+    null,
+  );
   const login = useAuthStore((state) => state.login);
   const isLoading = useAuthStore((state) => state.isLoading);
 
@@ -39,10 +42,17 @@ const LoginForm = () => {
   const handleSubmit = async (data: LoginData) => {
     const result = await login(data);
     if (result.success) {
+      setLockout(null);
       router.push(callbackUrl);
       router.refresh();
     } else if (result.requiresEmailVerification) {
       router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+    } else if (result.isLockedOut) {
+      setLockout({
+        isLocked: true,
+        retryAfterSeconds: result.retryAfterSeconds ?? 900,
+        message: result.message,
+      });
     }
   };
 
@@ -50,7 +60,15 @@ const LoginForm = () => {
     <form onSubmit={form.handleSubmit(handleSubmit)} className="w-full">
       {step === 1 && <Step1Form form={form} handleNext={handleNext} shouldRevalidate={shouldRevalidate} />}
 
-      {step === 2 && <Step2Form form={form} setStep={setStep} isLoading={isLoading} />}
+      {step === 2 && (
+        <Step2Form
+          form={form}
+          setStep={setStep}
+          isLoading={isLoading}
+          lockout={lockout}
+          onClearLockout={() => setLockout(null)}
+        />
+      )}
     </form>
   );
 };

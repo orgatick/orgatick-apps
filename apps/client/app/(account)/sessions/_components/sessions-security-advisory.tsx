@@ -42,6 +42,20 @@ export function SessionsSecurityAdvisory() {
           </div>
         </div>
 
+        {/* Tip 3 */}
+        <div className="flex gap-2.5 items-start">
+          <div className="flex size-6 items-center justify-center rounded-md bg-muted text-muted-foreground shrink-0 mt-0.5">
+            <IconShieldExclamation className="size-3.5" />
+          </div>
+          <div className="space-y-0.5">
+            <span className="font-semibold text-foreground block">Session Token Protection</span>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Refresh tokens rotate on every use. Any detected reuse triggers automatic revocation of the entire session
+              family.
+            </p>
+          </div>
+        </div>
+
         {/* Action link */}
         <div className="pt-2">
           <Link

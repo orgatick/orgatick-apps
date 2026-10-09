@@ -30,7 +30,7 @@ export function CurrentSessionCard({ session }: CurrentSessionCardProps) {
   return (
     <Card className="border-border/80 shadow-xs relative overflow-hidden">
       {/* Subtle indicator bar */}
-      <div className="absolute top-0 inset-x-0 h-1 bg-linear-to-r from-emerald-500 via-emerald-400 to-teal-500" />
+      <div className="absolute top-0 inset-x-0 h-1 bg-primary" />
 
       <CardHeader className="border-b border-border/60 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -48,12 +48,9 @@ export function CurrentSessionCard({ session }: CurrentSessionCardProps) {
 
           <Badge
             variant="outline"
-            className="w-fit border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold px-2.5 py-1 gap-1.5"
+            className="w-fit border-primary/30 bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 gap-1.5"
           >
-            <span className="relative flex size-2">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-            </span>
+            <span className="size-1.5 rounded-full bg-primary" />
             This Device (Active Now)
           </Badge>
         </div>
@@ -106,7 +103,7 @@ export function CurrentSessionCard({ session }: CurrentSessionCardProps) {
           {/* Last Activity */}
           <div className="p-3 rounded-lg border border-border/60 bg-muted/10 space-y-1">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <IconActivity className="size-3.5 text-emerald-500" />
+              <IconActivity className="size-3.5 text-primary" />
               <span>Last Activity</span>
             </div>
             <p className="text-xs font-medium text-foreground">{relativeActive}</p>
@@ -126,10 +123,10 @@ export function CurrentSessionCard({ session }: CurrentSessionCardProps) {
 
         {/* Security Note */}
         <div className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/30 border border-border/50 text-[11px] text-muted-foreground leading-relaxed">
-          <IconInfoCircle className="size-4 text-muted-foreground shrink-0 mt-0.5" />
+          <IconInfoCircle className="size-4 text-primary shrink-0 mt-0.5" />
           <span>
-            This session is authenticated with your primary security token. Signing out will invalidate your session on
-            this browser.
+            Protected with single-use refresh token rotation and automatic reuse detection. If a token is compromised or
+            reused, the entire session is immediately revoked.
           </span>
         </div>
       </CardContent>

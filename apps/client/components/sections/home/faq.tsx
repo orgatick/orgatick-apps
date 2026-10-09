@@ -1,4 +1,3 @@
-import { Badge } from "@orgatick/ui/components/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@orgatick/ui/components/card";
 import * as motion from "motion/react-client";
 
@@ -37,9 +36,6 @@ export function FAQSection() {
           transition={{ duration: 0.5 }}
           className="text-center max-w-3xl mx-auto space-y-4"
         >
-          <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10">
-            Frequently Asked Questions
-          </Badge>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-foreground tracking-tight">
             Got Questions? We Have Answers.
           </h2>

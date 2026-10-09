@@ -193,7 +193,35 @@ export function createServerApiClient(options: CreateServerApiOptions = {}): Axi
 
   let refreshPromise: Promise<string | null> | null = null;
 
+  const isCookieStoreMutable = (): boolean => {
+    if (!cookieStore) return false;
+    const cookieHolder = cookieStore as Record<string, unknown>;
+    if (typeof cookieHolder.set !== "function") return false;
+    try {
+      // In Next.js Server Components, any call to cookieStore.set throws:
+      // "Cookies can only be modified in a Server Action or Route Handler."
+      const testKey = "__cookie_mutability_probe__";
+      (cookieHolder.set as (name: string, val: string, opt?: object) => void).call(cookieStore, testKey, "", {
+        maxAge: 0,
+      });
+      if (typeof cookieHolder.delete === "function") {
+        (cookieHolder.delete as (name: string) => void).call(cookieStore, testKey);
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const performRefresh = async (): Promise<string | null> => {
+    // In read-only Server Component rendering contexts, cookies CANNOT be persisted to the browser.
+    // If we were to call /auth/refresh here, the backend would rotate the token in the database,
+    // but the client browser would never receive the rotated cookie, causing the browser to send
+    // an outdated token on the next request and trigger a false-positive token reuse security alert.
+    if (!isCookieStoreMutable()) {
+      return null;
+    }
+
     try {
       const refreshUrl = `${baseURL}/auth/refresh`;
       const refreshHeaders: Record<string, string> = {};

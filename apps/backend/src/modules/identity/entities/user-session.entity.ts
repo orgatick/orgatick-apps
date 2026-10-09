@@ -17,6 +17,12 @@ export class UserSession {
   @Column({ type: "timestamp", nullable: true })
   revokedAt!: Date | null;
 
+  @Column({ name: "revoked_reason", type: "varchar", length: 100, nullable: true })
+  revokedReason!: string | null;
+
+  @Column({ name: "rotation_counter", type: "integer", default: 1 })
+  rotationCounter!: number;
+
   @Column({ type: "timestamp", nullable: true })
   lastActivityAt!: Date | null;
 

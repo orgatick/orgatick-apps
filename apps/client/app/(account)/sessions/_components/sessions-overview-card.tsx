@@ -44,15 +44,12 @@ export function SessionsOverviewCard({ sessions }: SessionsOverviewCardProps) {
         <div className="flex items-center justify-between p-3 rounded-xl border border-border/70 bg-muted/20">
           <div className="space-y-0.5">
             <span className="font-semibold text-foreground flex items-center gap-1.5">
-              <IconCheck className="size-3.5 text-emerald-500" />
+              <IconCheck className="size-3.5 text-primary" />
               Current Connection
             </span>
             <p className="text-[11px] text-muted-foreground">{currentSession?.ipAddress || "Verified"}</p>
           </div>
-          <Badge
-            variant="outline"
-            className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-medium"
-          >
+          <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-[11px] font-medium">
             Connected
           </Badge>
         </div>
@@ -77,8 +74,8 @@ export function SessionsOverviewCard({ sessions }: SessionsOverviewCardProps) {
 
         {/* Session Inactivity Policy */}
         <div className="rounded-lg bg-muted/40 p-3 text-[11px] text-muted-foreground leading-relaxed border border-border/50">
-          Sessions expire automatically after 30 days of inactivity. Revoked sessions are immediately evicted from the
-          distributed auth cache.
+          Sessions are secured with single-use refresh token rotation. Stale sessions expire after 30 days and are
+          cleaned up on a schedule. Revoked sessions are evicted immediately across all caches.
         </div>
       </CardContent>
     </Card>

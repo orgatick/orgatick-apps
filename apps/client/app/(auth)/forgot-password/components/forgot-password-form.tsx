@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Step1Form from "./forgot-password-form/step-1-form";
@@ -10,12 +11,12 @@ import { type ForgotPasswordData, forgotPasswordSchema } from "@orgatick/contrac
 import { useAuthStore } from "@/app/(auth)/_store";
 
 const ForgotPasswordForm = () => {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
   const [isResending, setIsResending] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
 
   const forgotPassword = useAuthStore((state) => state.forgotPassword);
-  const resendVerification = useAuthStore((state) => state.resendVerification);
   const loading = useAuthStore((state) => state.isLoading);
 
   const form = useForm<ForgotPasswordData>({
@@ -26,6 +27,14 @@ const ForgotPasswordForm = () => {
   });
 
   const { validate, shouldRevalidate } = useStepValidation(form);
+
+  useEffect(() => {
+    const urlEmail = searchParams.get("email");
+    if (urlEmail) {
+      form.setValue("email", urlEmail);
+      setSubmittedEmail(urlEmail);
+    }
+  }, [searchParams, form]);
 
   const handleSubmit = async (data: ForgotPasswordData) => {
     const valid = await validate(["email"]);
@@ -44,7 +53,7 @@ const ForgotPasswordForm = () => {
 
     setIsResending(true);
     try {
-      await resendVerification(targetEmail);
+      await forgotPassword({ email: targetEmail });
     } finally {
       setIsResending(false);
     }

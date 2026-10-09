@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Step1Form from "./reset-password-form/step-1-form";
 import Step2Form from "./reset-password-form/step-2-form";
 import InvalidTokenView from "./reset-password-form/invalid-token-view";
+import TokenAlreadyUsedView from "./reset-password-form/token-already-used-view";
 import ResetPasswordSkeleton from "./reset-password-skeleton";
 import { resetPasswordSchema, type ResetPasswordData } from "@orgatick/contracts";
 import { useStepValidation } from "@/hooks/use-step-validation";
@@ -19,6 +20,7 @@ const ResetPasswordForm = () => {
   const [token, setToken] = useState<string | null>(null);
   const [email, setEmail] = useState<string>("");
   const [isTokenChecked, setIsTokenChecked] = useState(false);
+  const [isTokenReused, setIsTokenReused] = useState(false);
 
   const resetPassword = useAuthStore((state) => state.resetPassword);
   const loading = useAuthStore((state) => state.isLoading);
@@ -64,11 +66,17 @@ const ResetPasswordForm = () => {
     const result = await resetPassword(data);
     if (result.success) {
       setStep(2);
+    } else if (result.isReusedToken) {
+      setIsTokenReused(true);
     }
   };
 
   if (!isTokenChecked) {
     return <ResetPasswordSkeleton />;
+  }
+
+  if (isTokenReused) {
+    return <TokenAlreadyUsedView email={email} />;
   }
 
   if (!token) {

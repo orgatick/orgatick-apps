@@ -6,7 +6,6 @@ import {
   IconCheck,
   IconGenderBigender,
   IconMail,
-  IconMapPin,
   IconPencil,
   IconPhone,
   IconQuote,
@@ -49,9 +48,9 @@ export function ProfileDetailsCard({ user }: ProfileDetailsCardProps) {
         </CardHeader>
 
         <CardContent className="">
-          <div className="grid gap-6 sm:grid-cols-2 grid-cols-1 w-full">
+          <div className="grid gap-1">
             {/* Full Name */}
-            <div className="space-y-1.5 p-3.5 rounded-xl border border-border/60 bg-muted/20">
+            <div className="space-y-1 px-3 py-1 rounded-xl border border-border/60 bg-muted/20">
               <span className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <IconUser className="size-3.5 text-primary" />
                 Full Name
@@ -60,7 +59,7 @@ export function ProfileDetailsCard({ user }: ProfileDetailsCardProps) {
             </div>
 
             {/* Email Address */}
-            <div className="space-y-1.5 p-3.5 rounded-xl border border-border/60 bg-muted/20">
+            <div className="space-y-1 px-3 py-1 rounded-xl border border-border/60 bg-muted/20">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground flex items-center gap-1.5">
                   <IconMail className="size-3.5 text-primary" />
@@ -80,7 +79,7 @@ export function ProfileDetailsCard({ user }: ProfileDetailsCardProps) {
             </div>
 
             {/* Gender */}
-            <div className="space-y-1.5 p-3.5 rounded-xl border border-border/60 bg-muted/20">
+            <div className="space-y-1 px-3 py-1 rounded-xl border border-border/60 bg-muted/20">
               <span className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <IconGenderBigender className="size-3.5 text-primary" />
                 Gender
@@ -89,7 +88,7 @@ export function ProfileDetailsCard({ user }: ProfileDetailsCardProps) {
             </div>
 
             {/* Phone Number */}
-            <div className="space-y-1.5 p-3.5 rounded-xl border border-border/60 bg-muted/20">
+            <div className="space-y-1 px-3 py-1 rounded-xl border border-border/60 bg-muted/20">
               <span className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <IconPhone className="size-3.5 text-primary" />
                 Phone Number
@@ -100,21 +99,6 @@ export function ProfileDetailsCard({ user }: ProfileDetailsCardProps) {
                 )}
               </p>
             </div>
-          </div>
-
-          {/* Address */}
-          <div className="mt-5 space-y-1.5 p-3.5 rounded-xl border border-border/60 bg-muted/20">
-            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <IconMapPin className="size-3.5 text-primary" />
-              Address & Location
-            </span>
-            <p className="text-sm text-foreground leading-relaxed">
-              {user?.address || (
-                <span className="text-muted-foreground text-xs font-normal">
-                  No residential or billing address provided
-                </span>
-              )}
-            </p>
           </div>
         </CardContent>
       </Card>

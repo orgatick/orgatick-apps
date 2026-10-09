@@ -1,6 +1,6 @@
 import { Badge } from "@orgatick/ui/components/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@orgatick/ui/components/card";
-import { IconAlertTriangle, IconCheck, IconSparkles, IconX } from "@tabler/icons-react";
+import { IconCheck, IconStar, IconX } from "@tabler/icons-react";
 import * as motion from "motion/react-client";
 
 export function ProblemSolutionSection() {
@@ -61,10 +61,6 @@ export function ProblemSolutionSection() {
           transition={{ duration: 0.5 }}
           className="text-center max-w-3xl mx-auto space-y-4"
         >
-          <Badge variant="outline" className="border-destructive/30 text-destructive bg-destructive/10">
-            <IconAlertTriangle className="size-3.5 mr-1" />
-            The Operational Reality
-          </Badge>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-foreground tracking-tight">
             Stop Juggling 5 Tools for One College Event
           </h2>
@@ -128,8 +124,8 @@ export function ProblemSolutionSection() {
               <div className="absolute top-0 right-0 size-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
               <CardHeader className="p-0 pb-6 border-b border-border/40 flex flex-row items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-md shadow-primary/30 shrink-0">
-                    <IconSparkles className="size-6" />
+                  <div className="size-10 rounded-xl bg-success/20 text-success flex items-center justify-center shadow-md shadow-primary/30 shrink-0">
+                    <IconStar className="size-6" />
                   </div>
                   <div>
                     <CardTitle className="font-bold text-lg text-foreground">The Orgatick Standard</CardTitle>

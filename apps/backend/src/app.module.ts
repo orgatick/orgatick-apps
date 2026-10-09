@@ -1,3 +1,4 @@
+import { ScheduleModule } from "@nestjs/schedule";
 import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
@@ -26,6 +27,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     configModule,
     databaseModule,
     cacheModule,
+    ScheduleModule.forRoot(),
     RateLimitModule,
     UsersModule,
     IdentityModule,

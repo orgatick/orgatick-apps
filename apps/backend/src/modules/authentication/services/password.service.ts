@@ -21,6 +21,8 @@ import { parseDeviceName } from "@/common/utils/user-agent.util";
 import { normalizeEmail } from "@/common/utils/email.util";
 import type { ClientMetadata } from "@/common/decorators/client-info.decorator";
 
+import { AuthThrottleService } from "./auth-throttle.service";
+
 @Injectable()
 export class PasswordService {
   private readonly SALT_ROUNDS = 12;
@@ -38,6 +40,7 @@ export class PasswordService {
     private readonly sessionService: SessionService,
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
+    private readonly authThrottleService: AuthThrottleService,
   ) {}
 
   async hashPassword(password: string): Promise<string> {
@@ -156,12 +159,16 @@ export class PasswordService {
       }
     }
 
-    // Remove any existing pending password reset tokens
-    await this.userVerificationRepository.delete({
-      userId: user.id,
-      type: VerificationType.EMAIL,
-      purpose: VerificationPurpose.CHANGE,
-    });
+    // Remove any existing pending unverified password reset tokens
+    await this.userVerificationRepository
+      .createQueryBuilder()
+      .delete()
+      .from(UserVerification)
+      .where("user_id = :userId", { userId: user.id })
+      .andWhere("type = :type", { type: VerificationType.EMAIL })
+      .andWhere("purpose = :purpose", { purpose: VerificationPurpose.CHANGE })
+      .andWhere("verified_at IS NULL")
+      .execute();
 
     const token = crypto.randomBytes(32).toString("hex");
     const tokenHash = await this.bcryptUtils.hashString(token);
@@ -203,6 +210,7 @@ export class PasswordService {
 
     const verifications = await this.userVerificationRepository.find({
       where: { userId: user.id, type: VerificationType.EMAIL, purpose: VerificationPurpose.CHANGE },
+      order: { createdAt: "DESC" },
     });
 
     if (!verifications || verifications.length === 0) {
@@ -211,7 +219,6 @@ export class PasswordService {
 
     let matchingRecord: UserVerification | null = null;
     for (const record of verifications) {
-      if (record.verifiedAt) continue;
       const isMatch = await this.bcryptUtils.compareString(dto.token, record.tokenHash);
       if (isMatch) {
         matchingRecord = record;
@@ -229,6 +236,13 @@ export class PasswordService {
       throw new UnauthorizedException("Invalid or expired password reset token");
     }
 
+    // Explicit reuse prevention: reject if this token was already verified/used
+    if (matchingRecord.verifiedAt !== null) {
+      throw new BadRequestException(
+        "This password reset token has already been used. Password reset tokens are single-use only. Please request a new password reset link.",
+      );
+    }
+
     if (matchingRecord.attempts >= 5) {
       throw new BadRequestException("Reset attempts limit exceeded. Please request a new password reset link.");
     }
@@ -236,6 +250,29 @@ export class PasswordService {
     if (matchingRecord.expiresAt < new Date()) {
       throw new BadRequestException("Password reset token has expired. Please request a new password reset link.");
     }
+
+    // Atomic consumption: conditionally mark token as verified to prevent concurrent race condition reuse
+    const consumeResult = await this.userVerificationRepository
+      .createQueryBuilder()
+      .update(UserVerification)
+      .set({ verifiedAt: new Date() })
+      .where("id = :id AND verified_at IS NULL", { id: matchingRecord.id })
+      .execute();
+
+    if (consumeResult.affected === 0) {
+      throw new BadRequestException("This password reset token has already been used.");
+    }
+
+    // Invalidate any other pending unverified password reset tokens for this user
+    await this.userVerificationRepository
+      .createQueryBuilder()
+      .delete()
+      .from(UserVerification)
+      .where("user_id = :userId AND id != :id", { userId: user.id, id: matchingRecord.id })
+      .andWhere("type = :type", { type: VerificationType.EMAIL })
+      .andWhere("purpose = :purpose", { purpose: VerificationPurpose.CHANGE })
+      .andWhere("verified_at IS NULL")
+      .execute();
 
     // Update password
     const newHash = await this.hashPassword(dto.password);
@@ -265,15 +302,11 @@ export class PasswordService {
       });
     }
 
-    // Clean up verification tokens
-    await this.userVerificationRepository.delete({
-      userId: user.id,
-      type: VerificationType.EMAIL,
-      purpose: VerificationPurpose.CHANGE,
-    });
-
     // Policy: Revoke ALL existing sessions across all devices on unauthenticated password reset
-    const { revokedCount } = await this.sessionService.revokeAllSessions(user.id);
+    const { revokedCount } = await this.sessionService.revokeAllSessions(user.id, "password_reset");
+
+    // Clear any temporary account lockout from prior failed login attempts
+    await this.authThrottleService.clearAccountLockout(user.email);
 
     // Send security alert email with template "password-change"
     const device =

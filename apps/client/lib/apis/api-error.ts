@@ -8,6 +8,7 @@ export interface ApiErrorResponse {
   errors?: Record<string, string[]> | string[];
   statusCode?: number;
   requiresVerification?: boolean;
+  retryAfter?: number;
 }
 
 /**
@@ -42,6 +43,83 @@ export function isEmailUnverifiedError(error: unknown): boolean {
     ) {
       return true;
     }
+  }
+
+  return false;
+}
+
+export interface LockoutErrorInfo {
+  isLocked: boolean;
+  retryAfterSeconds?: number;
+  message?: string;
+}
+
+/**
+ * Checks if an error corresponds to an account, IP, or device lockout / rate-limiting.
+ */
+export function isAccountLockoutError(error: unknown): LockoutErrorInfo {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as ApiErrorResponse | undefined;
+    const status = error.response?.status;
+    const msg = data?.message || data?.error || "";
+    const lower = msg.toLowerCase();
+    const retryAfter =
+      data?.retryAfter ||
+      (error.response?.headers?.["retry-after"] ? Number(error.response.headers["retry-after"]) : undefined);
+
+    if (
+      status === 429 ||
+      lower.includes("locked") ||
+      lower.includes("lockout") ||
+      lower.includes("too many failed") ||
+      lower.includes("too many login attempts") ||
+      lower.includes("suspended")
+    ) {
+      return {
+        isLocked: true,
+        retryAfterSeconds: retryAfter && !Number.isNaN(retryAfter) ? retryAfter : 900,
+        message: msg || "Account is temporarily locked due to multiple failed login attempts.",
+      };
+    }
+  }
+
+  if (error instanceof Error) {
+    const lower = error.message.toLowerCase();
+    if (lower.includes("locked") || lower.includes("too many failed") || lower.includes("suspended")) {
+      return {
+        isLocked: true,
+        retryAfterSeconds: 900,
+        message: error.message,
+      };
+    }
+  }
+
+  return { isLocked: false };
+}
+
+/**
+ * Checks if an error corresponds to a single-use token that was already used.
+ */
+export function isTokenReuseError(error: unknown): boolean {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as ApiErrorResponse | undefined;
+    const msg = (data?.message || data?.error || "").toLowerCase();
+    return (
+      msg.includes("already been used") ||
+      msg.includes("single-use only") ||
+      msg.includes("reuse detected") ||
+      msg.includes("already used")
+    );
+  }
+
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    return (
+      msg.includes("already been used") ||
+      msg.includes("single-use only") ||
+      msg.includes("reuse detected") ||
+      msg.includes("already used")
+    );
   }
 
   return false;

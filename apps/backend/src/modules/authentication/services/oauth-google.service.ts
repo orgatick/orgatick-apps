@@ -127,6 +127,7 @@ export class GoogleOAuthService {
       email: user.email,
       sessionId: session.id,
       token: session.sessionToken,
+      rotationCounter: session.rotationCounter ?? 1,
     });
     if (response) this.cookieService.setAuthCookies(response, token);
     return user;

@@ -1,10 +1,10 @@
-import Link from "next/link";
-import { IconCheck } from "@tabler/icons-react";
+import { LinkButton } from "@/components/ui/link-button";
+import { IconCheck, IconShieldCheck } from "@tabler/icons-react";
 
 export default function Step2Form() {
   return (
     <div className="w-full rounded-2xl border border-border bg-card/80 p-6 space-y-4 shadow-sm text-center">
-      <div className="mx-auto h-12 w-12 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+      <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
         <IconCheck size={26} />
       </div>
 
@@ -15,10 +15,15 @@ export default function Step2Form() {
         </p>
       </div>
 
+      <div className="rounded-xl border border-border/70 bg-muted/30 px-3.5 py-2.5 text-xs text-muted-foreground flex items-center justify-center gap-2">
+        <IconShieldCheck size={16} className="text-primary shrink-0" />
+        <span>All previous sessions and devices have been securely signed out.</span>
+      </div>
+
       <div className="pt-2">
-        <Link href="/login" className="w-full rounded-full text-base h-11">
+        <LinkButton href="/login" className="w-full rounded-full text-base h-11">
           Back to login
-        </Link>
+        </LinkButton>
       </div>
     </div>
   );

@@ -20,6 +20,9 @@ import { MailModule } from "@/infrastructure/mail/mail.module";
 import { IdentityModule } from "../identity/identity.module";
 import { UsersModule } from "../users/users.module";
 
+import { AuthThrottleService } from "./services/auth-throttle.service";
+import { SessionCleanupService } from "./services/session-cleanup.service";
+
 @Module({
   imports: [
     JwtModule.registerAsync({
@@ -46,7 +49,18 @@ import { UsersModule } from "../users/users.module";
     UserLogoutService,
     OAuthService,
     GoogleOAuthService,
+    AuthThrottleService,
+    SessionCleanupService,
   ],
-  exports: [AuthenticationService, SessionService, CookieService, TokenService, GoogleOAuthService, PasswordService],
+  exports: [
+    AuthenticationService,
+    SessionService,
+    CookieService,
+    TokenService,
+    GoogleOAuthService,
+    PasswordService,
+    AuthThrottleService,
+    SessionCleanupService,
+  ],
 })
 export class AuthenticationModule {}

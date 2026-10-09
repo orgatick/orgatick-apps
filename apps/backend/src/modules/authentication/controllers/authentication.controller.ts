@@ -99,8 +99,7 @@ export class AuthenticationController {
   @Post("refresh")
   @HttpCode(200)
   async refreshToken(@Res({ passthrough: true }) response: Response, @Request() req: AuthRequest) {
-    await this.authenticationService.refreshToken(req, response);
-    return "Access token refreshed successfully";
+    return await this.authenticationService.refreshToken(req, response);
   }
 
   @Post("logout")

@@ -406,7 +406,7 @@ export function SessionsList({ initialSessions }: SessionsListProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+          <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-foreground leading-relaxed">
             Total of <strong className="font-semibold">{otherSessions.length}</strong> other device(s) will be logged
             out and their session tokens evicted.
           </div>

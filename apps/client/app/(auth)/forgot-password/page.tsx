@@ -1,6 +1,8 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import Header from "../_components/Header";
 import ForgotPasswordForm from "./components/forgot-password-form";
+import ResetPasswordSkeleton from "../reset-password/components/reset-password-skeleton";
 
 export default function ForgotPasswordPage() {
   return (
@@ -15,7 +17,9 @@ export default function ForgotPasswordPage() {
               Log in
             </Link>
           </div>
-          <ForgotPasswordForm />
+          <Suspense fallback={<ResetPasswordSkeleton />}>
+            <ForgotPasswordForm />
+          </Suspense>
         </div>
       </div>
     </div>

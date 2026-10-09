@@ -21,7 +21,7 @@ export default function SuccessState({ email }: SuccessStateProps) {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
-        className="mx-auto h-16 w-16 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center"
+        className="mx-auto h-16 w-16 rounded-full bg-primary/10 text-primary flex items-center justify-center"
       >
         <IconCheck size={32} />
       </motion.div>

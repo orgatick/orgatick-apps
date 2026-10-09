@@ -56,7 +56,7 @@ export default function ErrorState({
       )}
 
       {resendSuccess && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">
+        <div className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-sm text-primary">
           A new verification link has been sent to your email!
         </div>
       )}

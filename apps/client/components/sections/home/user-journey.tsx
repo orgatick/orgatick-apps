@@ -1,4 +1,3 @@
-import { Badge } from "@orgatick/ui/components/badge";
 import { Card, CardContent } from "@orgatick/ui/components/card";
 import { IconUserCheck as IconOrganizer, IconUserCheck } from "@tabler/icons-react";
 import * as motion from "motion/react-client";
@@ -91,9 +90,6 @@ export function UserJourneySection() {
           transition={{ duration: 0.5 }}
           className="text-center max-w-3xl mx-auto space-y-4"
         >
-          <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10">
-            End-to-End Workflows
-          </Badge>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-foreground tracking-tight">
             Designed for Both Sides of the Gate
           </h2>

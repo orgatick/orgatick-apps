@@ -8,62 +8,95 @@ export class AddOrganizationRestrictions1792026000000 implements MigrationInterf
   public async up(queryRunner: QueryRunner): Promise<void> {
     const table = new Table({ name: "organization_admin_state", schema: "organization" });
 
-    await queryRunner.addColumn(
-      table,
-      new TableColumn({
-        name: "restricted_capabilities",
-        type: "text",
-        isArray: true,
-        default: "'{}'",
-        isNullable: false,
-      }),
-    );
-    await queryRunner.addColumn(
-      table,
-      new TableColumn({
-        name: "restrictions_reason",
-        type: "varchar",
-        length: "500",
-        isNullable: true,
-      }),
-    );
-    await queryRunner.addColumn(
-      table,
-      new TableColumn({
-        name: "restrictions_updated_by",
-        type: "bigint",
-        isNullable: true,
-      }),
-    );
-    await queryRunner.addColumn(
-      table,
-      new TableColumn({
-        name: "restrictions_updated_at",
-        type: "timestamp",
-        isNullable: true,
-      }),
-    );
+    if (!(await queryRunner.hasColumn(table, "restricted_capabilities"))) {
+      await queryRunner.addColumn(
+        table,
+        new TableColumn({
+          name: "restricted_capabilities",
+          type: "text",
+          isArray: true,
+          default: "'{}'",
+          isNullable: false,
+        }),
+      );
+    }
 
-    await queryRunner.createForeignKey(
-      table,
-      new TableForeignKey({
-        name: "FK_organization_admin_state_restrictions_updated_by",
-        columnNames: ["restrictions_updated_by"],
-        referencedSchema: "identity",
-        referencedTableName: "users",
-        referencedColumnNames: ["id"],
-        onDelete: "SET NULL",
-        onUpdate: "CASCADE",
-      }),
+    if (!(await queryRunner.hasColumn(table, "restrictions_reason"))) {
+      await queryRunner.addColumn(
+        table,
+        new TableColumn({
+          name: "restrictions_reason",
+          type: "varchar",
+          length: "500",
+          isNullable: true,
+        }),
+      );
+    }
+
+    if (!(await queryRunner.hasColumn(table, "restrictions_updated_by"))) {
+      await queryRunner.addColumn(
+        table,
+        new TableColumn({
+          name: "restrictions_updated_by",
+          type: "bigint",
+          isNullable: true,
+        }),
+      );
+    }
+
+    if (!(await queryRunner.hasColumn(table, "restrictions_updated_at"))) {
+      await queryRunner.addColumn(
+        table,
+        new TableColumn({
+          name: "restrictions_updated_at",
+          type: "timestamp",
+          isNullable: true,
+        }),
+      );
+    }
+
+    const currentTable = await queryRunner.getTable("organization.organization_admin_state");
+    const hasFk = currentTable?.foreignKeys.some(
+      (fk) =>
+        fk.name === "FK_organization_admin_state_restrictions_updated_by" ||
+        fk.columnNames.includes("restrictions_updated_by"),
     );
+    if (!hasFk) {
+      await queryRunner.createForeignKey(
+        table,
+        new TableForeignKey({
+          name: "FK_organization_admin_state_restrictions_updated_by",
+          columnNames: ["restrictions_updated_by"],
+          referencedSchema: "identity",
+          referencedTableName: "users",
+          referencedColumnNames: ["id"],
+          onDelete: "SET NULL",
+          onUpdate: "CASCADE",
+        }),
+      );
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     const table = new Table({ name: "organization_admin_state", schema: "organization" });
-    await queryRunner.dropForeignKey(table, "FK_organization_admin_state_restrictions_updated_by");
-    await queryRunner.dropColumn(table, "restrictions_updated_at");
-    await queryRunner.dropColumn(table, "restrictions_updated_by");
-    await queryRunner.dropColumn(table, "restrictions_reason");
-    await queryRunner.dropColumn(table, "restricted_capabilities");
+    const currentTable = await queryRunner.getTable("organization.organization_admin_state");
+    const hasFk = currentTable?.foreignKeys.some(
+      (fk) => fk.name === "FK_organization_admin_state_restrictions_updated_by",
+    );
+    if (hasFk) {
+      await queryRunner.dropForeignKey(table, "FK_organization_admin_state_restrictions_updated_by");
+    }
+    if (await queryRunner.hasColumn(table, "restrictions_updated_at")) {
+      await queryRunner.dropColumn(table, "restrictions_updated_at");
+    }
+    if (await queryRunner.hasColumn(table, "restrictions_updated_by")) {
+      await queryRunner.dropColumn(table, "restrictions_updated_by");
+    }
+    if (await queryRunner.hasColumn(table, "restrictions_reason")) {
+      await queryRunner.dropColumn(table, "restrictions_reason");
+    }
+    if (await queryRunner.hasColumn(table, "restricted_capabilities")) {
+      await queryRunner.dropColumn(table, "restricted_capabilities");
+    }
   }
 }

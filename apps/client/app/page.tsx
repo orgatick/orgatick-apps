@@ -3,10 +3,8 @@ import { Navbar } from "@/components/navbar";
 import { CapabilitiesGrid } from "@/components/sections/home/capabilities-grid";
 import { FAQSection } from "@/components/sections/home/faq";
 import { HeroSection } from "@/components/sections/home/hero";
-import { PersonaMatrixSection } from "@/components/sections/home/persona-matrix";
 import { PricingSection } from "@/components/sections/home/pricing";
 import { ProblemSolutionSection } from "@/components/sections/home/problem-solution";
-import { TechArchitectureSection } from "@/components/sections/home/tech-architecture";
 import { ThreePillarsSection } from "@/components/sections/home/three-pillars";
 import { TrustSection } from "@/components/sections/home/trust-section";
 import { UserJourneySection } from "@/components/sections/home/user-journey";
@@ -21,8 +19,6 @@ export default function Home() {
         <ThreePillarsSection />
         <CapabilitiesGrid />
         <UserJourneySection />
-        <PersonaMatrixSection />
-        <TechArchitectureSection />
         <PricingSection />
         <TrustSection />
         <FAQSection />

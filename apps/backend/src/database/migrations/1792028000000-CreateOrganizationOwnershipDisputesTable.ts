@@ -29,22 +29,33 @@ export class CreateOrganizationOwnershipDisputesTable1792028000000 implements Mi
       true,
     );
 
-    await queryRunner.createIndex(
-      new Table({ name: "organization_ownership_disputes", schema: "organization" }),
-      new TableIndex({ name: "IDX_organization_ownership_disputes_org_id", columnNames: ["organization_id"] }),
-    );
-    await queryRunner.createIndex(
-      new Table({ name: "organization_ownership_disputes", schema: "organization" }),
-      new TableIndex({ name: "IDX_organization_ownership_disputes_disputant_id", columnNames: ["disputant_id"] }),
-    );
-    await queryRunner.createIndex(
-      new Table({ name: "organization_ownership_disputes", schema: "organization" }),
-      new TableIndex({ name: "IDX_organization_ownership_disputes_status", columnNames: ["status"] }),
-    );
+    const disputesTable = await queryRunner.getTable("organization.organization_ownership_disputes");
 
-    await queryRunner.createForeignKeys(
-      new Table({ name: "organization_ownership_disputes", schema: "organization" }),
-      [
+    const existingIndices = new Set(disputesTable?.indices.map((i) => i.name?.toLowerCase()).filter(Boolean));
+    if (!existingIndices.has("idx_organization_ownership_disputes_org_id")) {
+      await queryRunner.createIndex(
+        new Table({ name: "organization_ownership_disputes", schema: "organization" }),
+        new TableIndex({ name: "IDX_organization_ownership_disputes_org_id", columnNames: ["organization_id"] }),
+      );
+    }
+    if (!existingIndices.has("idx_organization_ownership_disputes_disputant_id")) {
+      await queryRunner.createIndex(
+        new Table({ name: "organization_ownership_disputes", schema: "organization" }),
+        new TableIndex({ name: "IDX_organization_ownership_disputes_disputant_id", columnNames: ["disputant_id"] }),
+      );
+    }
+    if (!existingIndices.has("idx_organization_ownership_disputes_status")) {
+      await queryRunner.createIndex(
+        new Table({ name: "organization_ownership_disputes", schema: "organization" }),
+        new TableIndex({ name: "IDX_organization_ownership_disputes_status", columnNames: ["status"] }),
+      );
+    }
+
+    const existingFkCols = new Set(disputesTable?.foreignKeys.flatMap((f) => f.columnNames) ?? []);
+
+    const fksToCreate: TableForeignKey[] = [];
+    if (!existingFkCols.has("organization_id")) {
+      fksToCreate.push(
         new TableForeignKey({
           name: "FK_organization_ownership_disputes_organization_id",
           columnNames: ["organization_id"],
@@ -54,6 +65,10 @@ export class CreateOrganizationOwnershipDisputesTable1792028000000 implements Mi
           onDelete: "CASCADE",
           onUpdate: "CASCADE",
         }),
+      );
+    }
+    if (!existingFkCols.has("disputant_id")) {
+      fksToCreate.push(
         new TableForeignKey({
           name: "FK_organization_ownership_disputes_disputant_id",
           columnNames: ["disputant_id"],
@@ -63,6 +78,10 @@ export class CreateOrganizationOwnershipDisputesTable1792028000000 implements Mi
           onDelete: "CASCADE",
           onUpdate: "CASCADE",
         }),
+      );
+    }
+    if (!existingFkCols.has("current_owner_id")) {
+      fksToCreate.push(
         new TableForeignKey({
           name: "FK_organization_ownership_disputes_current_owner",
           columnNames: ["current_owner_id"],
@@ -72,6 +91,10 @@ export class CreateOrganizationOwnershipDisputesTable1792028000000 implements Mi
           onDelete: "SET NULL",
           onUpdate: "CASCADE",
         }),
+      );
+    }
+    if (!existingFkCols.has("resolved_by")) {
+      fksToCreate.push(
         new TableForeignKey({
           name: "FK_organization_ownership_disputes_resolved_by",
           columnNames: ["resolved_by"],
@@ -81,8 +104,15 @@ export class CreateOrganizationOwnershipDisputesTable1792028000000 implements Mi
           onDelete: "SET NULL",
           onUpdate: "CASCADE",
         }),
-      ],
-    );
+      );
+    }
+
+    if (fksToCreate.length > 0) {
+      await queryRunner.createForeignKeys(
+        new Table({ name: "organization_ownership_disputes", schema: "organization" }),
+        fksToCreate,
+      );
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

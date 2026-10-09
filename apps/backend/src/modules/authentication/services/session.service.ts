@@ -12,7 +12,7 @@ import { parseBrowser, parsePlatform } from "@/common/utils/user-agent.util";
 
 @Injectable()
 export class SessionService {
-  private readonly cacheTTL = 900_000; // Cache TTL in milliseconds (15 minutes)
+  readonly cacheTTL = 900_000; // Cache TTL in milliseconds (15 minutes)
   private readonly sessionLifespanMs = 30 * 24 * 60 * 60 * 1000; // 30 days
   private readonly maxActiveSessions = 6; // Maximum concurrent active sessions per user
   private readonly bcryptUtils = new BcryptUtils();
@@ -50,6 +50,8 @@ export class SessionService {
     const session = new UserSession();
     session.userId = user.id;
     session.sessionTokenHash = sessionTokenHash;
+    session.rotationCounter = 1;
+    session.revokedReason = null;
     session.lastActivityAt = new Date();
     session.expiresAt = new Date(Date.now() + this.sessionLifespanMs);
     session.ipAddress = clientInfo?.ipAddress ?? null;
@@ -99,19 +101,37 @@ export class SessionService {
     return this.mapToSessionResponse(session, currentSessionId);
   }
 
-  async revokeSession(sessionId: number, userId?: number): Promise<void> {
+  async getSessionWithTokenHash(sessionId: number, userId?: number): Promise<UserSession | null> {
+    const qb = this.userSessionRepository
+      .createQueryBuilder("session")
+      .addSelect("session.sessionTokenHash")
+      .where("session.id = :sessionId", { sessionId });
+
+    if (userId !== undefined) {
+      qb.andWhere("session.userId = :userId", { userId });
+    }
+
+    return await qb.getOne();
+  }
+
+  async revokeSession(sessionId: number, userId?: number, reason = "manual_revocation"): Promise<void> {
     const session = await this.userSessionRepository.findOne({
       where: userId !== undefined ? { id: sessionId, userId } : { id: sessionId },
     });
     if (!session) throw new NotFoundException("Session not found");
     if (!session.revokedAt) {
       session.revokedAt = new Date();
+      session.revokedReason = reason;
       await this.userSessionRepository.save(session);
     }
     await this.cacheManager.del(`session:${sessionId}`);
   }
 
-  async revokeOtherSessions(userId: number, currentSessionId: number): Promise<{ revokedCount: number }> {
+  async revokeOtherSessions(
+    userId: number,
+    currentSessionId: number,
+    reason = "revoke_other_sessions",
+  ): Promise<{ revokedCount: number }> {
     const sessions = await this.userSessionRepository
       .createQueryBuilder("session")
       .where("session.userId = :userId", { userId })
@@ -129,7 +149,7 @@ export class SessionService {
     await this.userSessionRepository
       .createQueryBuilder()
       .update(UserSession)
-      .set({ revokedAt: now })
+      .set({ revokedAt: now, revokedReason: reason })
       .where("id IN (:...ids)", { ids: sessionIds })
       .execute();
 
@@ -138,7 +158,7 @@ export class SessionService {
     return { revokedCount: sessions.length };
   }
 
-  async revokeAllSessions(userId: number): Promise<{ revokedCount: number }> {
+  async revokeAllSessions(userId: number, reason = "revoke_all_sessions"): Promise<{ revokedCount: number }> {
     const sessions = await this.userSessionRepository
       .createQueryBuilder("session")
       .where("session.userId = :userId", { userId })
@@ -155,7 +175,7 @@ export class SessionService {
     await this.userSessionRepository
       .createQueryBuilder()
       .update(UserSession)
-      .set({ revokedAt: now })
+      .set({ revokedAt: now, revokedReason: reason })
       .where("id IN (:...ids)", { ids: sessionIds })
       .execute();
 
@@ -183,7 +203,7 @@ export class SessionService {
       await this.userSessionRepository
         .createQueryBuilder()
         .update(UserSession)
-        .set({ revokedAt: now })
+        .set({ revokedAt: now, revokedReason: "active_session_limit_exceeded" })
         .where("id IN (:...ids)", { ids: sessionIds })
         .execute();
 

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { toast } from "@/components/ui/sonner";
-import { handleApiError, isEmailUnverifiedError } from "@/lib/apis/api-error";
+import { handleApiError, isAccountLockoutError, isEmailUnverifiedError, isTokenReuseError } from "@/lib/apis/api-error";
 import { clearAccessToken, setAccessToken } from "@/lib/apis/auth.api";
 import { authService } from "../_services/auth.service";
 import type { AuthState, LoginResult } from "../_types";
@@ -105,15 +105,20 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           set({ isLoading: false });
           const isUnverified = isEmailUnverifiedError(error);
+          const lockout = isAccountLockoutError(error);
           const errorMessage = handleApiError(
             error,
             isUnverified
               ? "Please verify your email before logging in."
-              : "Failed to sign in. Please check your credentials.",
+              : lockout.isLocked
+                ? lockout.message || "Account is temporarily locked. Please try again later."
+                : "Failed to sign in. Please check your credentials.",
           );
           return {
             success: false,
             requiresEmailVerification: isUnverified,
+            isLockedOut: lockout.isLocked,
+            retryAfterSeconds: lockout.retryAfterSeconds,
             message: errorMessage,
           };
         }
@@ -228,8 +233,14 @@ export const useAuthStore = create<AuthState>()(
           return { success: true };
         } catch (error) {
           set({ isLoading: false });
-          handleApiError(error, "Failed to reset password. The link may have expired.");
-          return { success: false };
+          const isReused = isTokenReuseError(error);
+          const message = handleApiError(
+            error,
+            isReused
+              ? "This password reset token has already been used. Please request a new link."
+              : "Failed to reset password. The link may have expired.",
+          );
+          return { success: false, isReusedToken: isReused, message };
         }
       },
 
