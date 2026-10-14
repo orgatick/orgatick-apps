@@ -13,7 +13,8 @@ import {
   SelectValue,
 } from "@orgatick/ui/components/select";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@orgatick/ui/components/input-group";
-import { IconTrash, IconWorld } from "@tabler/icons-react";
+import { IconTrash } from "@tabler/icons-react";
+import { getSocialIcon } from "./social-links-section";
 
 interface SocialLinkItemProps {
   index: number;
@@ -34,7 +35,7 @@ export function SocialLinkItem({ index, canRemove, onRemove }: SocialLinkItemPro
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-2xs sm:flex-row sm:items-start">
-      <div className="w-full shrink-0 sm:w-52">
+      <div className="w-full shrink-0 sm:w-56">
         <Field data-invalid={Boolean(linkError?.platform)}>
           <Controller
             control={control}
@@ -52,7 +53,10 @@ export function SocialLinkItem({ index, canRemove, onRemove }: SocialLinkItemPro
                   <SelectGroup>
                     {Object.values(OrganizationSocialPlatform).map((plat) => (
                       <SelectItem key={plat} value={plat}>
-                        <span className="capitalize">{plat.toLowerCase()}</span>
+                        <div className="flex items-center gap-2">
+                          {getSocialIcon(plat)}
+                          <span className="capitalize">{plat.toLowerCase()}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -72,9 +76,7 @@ export function SocialLinkItem({ index, canRemove, onRemove }: SocialLinkItemPro
               aria-invalid={Boolean(linkError?.url)}
               {...register(`socialLinks.${index}.url`)}
             />
-            <InputGroupAddon>
-              <IconWorld className="size-4 text-primary" />
-            </InputGroupAddon>
+            <InputGroupAddon>{getSocialIcon(currentPlatform)}</InputGroupAddon>
           </InputGroup>
           <FieldError errors={[linkError?.url]} />
         </Field>

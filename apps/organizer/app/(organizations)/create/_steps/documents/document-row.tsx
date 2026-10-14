@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { type CreateOrganizationInput, OrganizationDocumentType } from "@orgatick/contracts";
+import { cn } from "@orgatick/ui/lib/utils";
 import { Field, FieldError, FieldLabel, FieldDescription } from "@orgatick/ui/components/field";
 import { Button } from "@orgatick/ui/components/button";
 import {
@@ -29,9 +31,32 @@ export function DocumentRow({ index, canRemove, onRemove, onFileChange }: Docume
     formState: { errors },
   } = useFormContext<CreateOrganizationInput>();
 
+  const [isDragging, setIsDragging] = useState(false);
   const currentDoc = watch(`document.${index}`);
   const docFile = currentDoc?.file;
   const docErrors = Array.isArray(errors.document) ? errors.document[index] : undefined;
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0 && files[0]) {
+      onFileChange(files[0]);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-2xs">
@@ -116,9 +141,19 @@ export function DocumentRow({ index, canRemove, onRemove, onFileChange }: Docume
                 </Button>
               </div>
             ) : (
-              <label className="flex h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-input bg-muted/20 px-3 text-xs text-muted-foreground transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary">
+              <label
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={cn(
+                  "flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed px-3 text-xs transition-colors duration-200",
+                  isDragging
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-input bg-muted/20 text-muted-foreground hover:border-primary hover:bg-primary/5 hover:text-primary",
+                )}
+              >
                 <IconFileUpload className="size-4" />
-                <span>Upload PDF, DOC, or DOCX (Max 5MB)</span>
+                <span>{isDragging ? "Drop document file here" : "Upload PDF, DOC, or DOCX (Max 5MB)"}</span>
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"

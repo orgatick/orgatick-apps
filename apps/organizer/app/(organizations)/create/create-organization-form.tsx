@@ -4,18 +4,21 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   type CreateOrganizationInput,
   type CreateOrganizationOutput,
   CreateOrganizationSchema,
 } from "@orgatick/contracts";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import { formDefaultValues } from "./_constents/defult-value";
 import { ORGANIZATION_FORM_ID, ORGANIZATION_FORM_STEPS, type OrganizationFormStep } from "./_constents/form-steps";
 import { ApplicationStepper, MobileStepProgress } from "./_components/application-stepper";
 import { FormActionBar } from "./_components/form-action-bar";
 import { SubmissionOverlay } from "./_components/submission-overlay";
+import { DraftRestoreBanner } from "./_components/draft-restore-banner";
+import { DraftStatusIndicator } from "./_components/draft-status-indicator";
+import { useDraftSync } from "./_hooks/use-draft-sync";
 import { BasicInfoStep } from "./_steps/basic-info-step";
 import { AddressStep } from "./_steps/address-step";
 import { DocumentsStep } from "./_steps/documents-step";
@@ -42,6 +45,13 @@ export function CreateOrganizationForm() {
     reValidateMode: "onChange",
     defaultValues: formDefaultValues,
   });
+
+  const { draftStatus, lastSavedAt, hasSavedDraft, draftInfo, saveDraft, restoreDraft, discardDraft, clearDraft } =
+    useDraftSync({
+      form,
+      currentStep,
+      onSetStep: (step) => advanceTo(step),
+    });
 
   const currentStepConfig = (ORGANIZATION_FORM_STEPS[currentStep] ??
     ORGANIZATION_FORM_STEPS[0]) as OrganizationFormStep;
@@ -84,6 +94,7 @@ export function CreateOrganizationForm() {
     setIsSubmitting(true);
     try {
       await submitOrganizationApplication(data);
+      clearDraft();
       toast.success("Organization successfully registered!", {
         description: "Your organization application is currently under review.",
       });
@@ -121,17 +132,46 @@ export function CreateOrganizationForm() {
           }}
           className="flex w-full min-w-0 flex-col gap-6"
         >
+          <div className="flex items-center justify-between border-b border-border/40 pb-3">
+            <div>
+              <h2 className="text-base font-bold text-foreground sm:text-lg">{currentStepConfig.title}</h2>
+              <p className="hidden text-xs text-muted-foreground sm:block">{currentStepConfig.description}</p>
+            </div>
+
+            <DraftStatusIndicator
+              status={draftStatus}
+              lastSavedAt={lastSavedAt}
+              onSave={() => void saveDraft({ silent: false })}
+              onDiscard={discardDraft}
+            />
+          </div>
+
           <div className="lg:hidden">
             <MobileStepProgress currentStep={currentStep} />
           </div>
 
-          <div key={currentStep} className="flex flex-col gap-8">
-            {currentStep === 0 && <BasicInfoStep />}
-            {currentStep === 1 && <AddressStep />}
-            {currentStep === 2 && <DocumentsStep />}
-            {currentStep === 3 && <ContactsStep />}
-            {currentStep === 4 && <ReviewStep onEditStep={(index) => goToStep(index)} />}
-          </div>
+          <AnimatePresence>
+            {hasSavedDraft && draftInfo && (
+              <DraftRestoreBanner draftInfo={draftInfo} onResume={restoreDraft} onDiscard={discardDraft} />
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 14 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -14 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="flex flex-col gap-8"
+            >
+              {currentStep === 0 && <BasicInfoStep />}
+              {currentStep === 1 && <AddressStep />}
+              {currentStep === 2 && <DocumentsStep />}
+              {currentStep === 3 && <ContactsStep />}
+              {currentStep === 4 && <ReviewStep onEditStep={(index) => goToStep(index)} />}
+            </motion.div>
+          </AnimatePresence>
 
           <FormActionBar
             currentStep={currentStep}
@@ -140,9 +180,12 @@ export function CreateOrganizationForm() {
             isSubmitting={isSubmitting}
             isValidating={isValidating}
             isLastStep={currentStep === ORGANIZATION_FORM_STEPS.length - 1}
+            draftStatus={draftStatus}
+            lastSavedAt={lastSavedAt}
             onBack={previousStep}
             onNext={() => void nextStep()}
             onRegister={handleRegister}
+            onSaveDraft={() => void saveDraft({ silent: false })}
           />
         </form>
       </div>

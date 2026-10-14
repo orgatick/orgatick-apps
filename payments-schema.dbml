@@ -1,0 +1,595 @@
+// ==============================================================================
+// ORGATICK - FINANCIAL & PAYMENT SUBSYSTEM (DBML SPECIFICATION)
+// Target: PostgreSQL 16+
+// Conventions:
+//   - Schema: "payments" (plus explicit foreign keys to "organization", "events", "registrations", "identity")
+//   - Primary Keys: bigint (identity/increment) mapped to string/bigint in NestJS / TypeORM
+//   - Monetary amounts: bigint (minor units, e.g. Paise for INR, Cents for USD) to prevent rounding errors
+//   - Timestamps: timestamptz with default now()
+//   - Audit & Idempotency: Immutable ledger, idempotency keys, durable webhooks
+//   - Shadow Accounting / Dual Ledger: Mirror shadow tables for independent audit verification
+// ==============================================================================
+
+// ------------------------------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------------------------------
+
+Enum "payments"."payment_order_status" {
+  "pending"             [note: "Initial draft order created"]
+  "awaiting_payment"    [note: "Gateway order initiated; waiting for customer"]
+  "paid"                [note: "Successfully paid & verified server-side"]
+  "partially_refunded"  [note: "One or more partial refunds completed"]
+  "refunded"            [note: "Fully refunded"]
+  "failed"              [note: "Payment attempt failed or was rejected"]
+  "expired"             [note: "Order window expired without completion"]
+  "cancelled"           [note: "Order voided by user or system"]
+}
+
+Enum "payments"."payment_attempt_status" {
+  "pending"             [note: "Attempt initiated with gateway"]
+  "authorized"          [note: "Funds authorized (pre-capture)"]
+  "captured"            [note: "Funds successfully captured"]
+  "failed"              [note: "Payment attempt rejected by bank/gateway"]
+  "refunded"            [note: "Attempt refunded"]
+}
+
+Enum "payments"."payment_method_type" {
+  "card"
+  "upi"
+  "netbanking"
+  "wallet"
+  "bank_transfer"
+  "offline"
+}
+
+Enum "payments"."ledger_entry_type" {
+  "payment_received"          [note: "Credit to held balance upon successful checkout"]
+  "settlement_released"       [note: "Transfer from held balance to available balance post-event"]
+  "settlement_blocked"        [note: "Transfer held to locked/quarantined due to dispute"]
+  "refund_held_deduction"     [note: "Debit to held balance for pre-settlement refund"]
+  "refund_available_deduction"[note: "Debit to available balance for post-settlement refund"]
+  "payout_reserved"           [note: "Transfer available balance to locked balance for withdrawal"]
+  "payout_completed"          [note: "Debit locked balance upon confirmed bank credit"]
+  "payout_failed_reversal"    [note: "Transfer locked balance back to available upon payout failure"]
+  "fee_adjustment"            [note: "Platform manual debit/credit adjustment with audit note"]
+  "dispute_hold"              [note: "Transfer to locked balance for chargeback reserve"]
+}
+
+Enum "payments"."balance_bucket_type" {
+  "held"
+  "available"
+  "locked"
+}
+
+Enum "payments"."refund_status" {
+  "pending"             [note: "Refund requested; eligibility checked"]
+  "processing"          [note: "Submitted to gateway"]
+  "completed"           [note: "Confirmed by gateway/webhook; ledger posted"]
+  "failed"              [note: "Gateway rejected refund (e.g. insufficient merchant balance)"]
+}
+
+Enum "payments"."refund_reason_type" {
+  "customer_request"
+  "event_cancelled"
+  "event_rescheduled"
+  "duplicate_charge"
+  "fraudulent"
+  "admin_discretion"
+}
+
+Enum "payments"."settlement_status" {
+  "pending"             [note: "Event ongoing or within holding period"]
+  "eligible"            [note: "Holding period passed; clear for release"]
+  "processing"          [note: "Release execution in-flight"]
+  "released"            [note: "Funds transferred to available balance in wallet"]
+  "blocked"             [note: "Release halted by admin or risk rule"]
+}
+
+Enum "payments"."payout_status" {
+  "pending"             [note: "Requested; funds locked in wallet"]
+  "queued"              [note: "Dispatched to worker queue"]
+  "processing"          [note: "Submitted to banking provider / gateway payout"]
+  "completed"           [note: "Successfully credited to organization bank account"]
+  "failed"              [note: "Bank or gateway transfer failed; funds restored"]
+  "reversed"            [note: "Transfer bounced after processing; reversed via ledger"]
+}
+
+Enum "payments"."webhook_processing_status" {
+  "received"            [note: "Persisted verbatim with signature verified"]
+  "processing"          [note: "Worker processing payload"]
+  "processed"           [note: "Handler executed and state transitioned"]
+  "failed"              [note: "Processing failed; pending retry"]
+  "skipped"             [note: "Duplicate, superseded, or ignored event type"]
+}
+
+Enum "payments"."discrepancy_status" {
+  "open"
+  "investigating"
+  "resolved"
+  "ignored"
+}
+
+Enum "payments"."shadow_verification_status" {
+  "matched"             [note: "Shadow calculation matches live balance exactly"]
+  "mismatch"            [note: "Discrepancy detected between shadow ledger and live wallet snapshot"]
+  "flagged"             [note: "Suspicious drift quarantined for compliance audit"]
+}
+
+// ------------------------------------------------------------------------------
+// CONTEXTUAL DOMAIN REFERENCE TABLES (ACTUAL POSTGRESQL SCHEMAS)
+// ------------------------------------------------------------------------------
+
+Table "organization"."organizations" {
+  "id" bigint [pk, increment]
+  "name" varchar(255) [not null]
+  "slug" varchar(255) [unique, not null]
+  "category_id" bigint
+  "sub_category_id" bigint
+  "address_id" bigint
+  "description" text
+  "logo" varchar(1000)
+  "email" varchar(320)
+  "phone_number" varchar(30)
+  "status" varchar(30) [not null, default: 'active']
+  "created_by" bigint [not null]
+  "allow_paid_events" boolean [not null, default: false]
+  "created_at" timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  note: "Authoritative organization aggregate table in PostgreSQL 'organization' schema"
+}
+
+Table "organization"."organization_bank_accounts" {
+  "id" bigint [pk, increment]
+  "organization_id" bigint [not null, unique]
+  "account_holder_name" varchar(255) [not null]
+  "account_number" varchar(100) [not null]
+  "ifsc_code" varchar(20) [not null]
+  "bank_name" varchar(255) [not null]
+  "branch_name" varchar(255)
+  "account_type" varchar(30) [not null, default: 'current']
+  "status" varchar(30) [not null, default: 'pending']
+  "verification_notes" varchar(500)
+  "document_id" bigint
+  "verified_by" bigint
+  "verified_at" timestamp
+  "created_at" timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  note: "Payout bank account stored in 'organization' schema"
+}
+
+Table "identity"."users" {
+  "id" bigint [pk, increment]
+  "name" varchar(255) [not null]
+  "email" varchar(320) [not null]
+  "normalized_email" varchar(320)
+  "role" varchar(20) [not null, default: 'user']
+  "created_at" timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  "updated_at" timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  note: "Authoritative platform user in PostgreSQL 'identity' schema"
+}
+
+// ------------------------------------------------------------------------------
+// PAYMENTS FINANCIAL CORE TABLES
+// ------------------------------------------------------------------------------
+
+Table "payments"."payment_orders" {
+  "id" bigint [pk, increment, note: "Unique payment order ID"]
+  "public_id" varchar(36) [not null, unique, note: "External ULID/UUID for client reference"]
+  "organization_id" bigint [not null, note: "FK -> organization.organizations.id"]
+  "event_id" bigint [not null, note: "FK -> events.id"]
+  "registration_id" bigint [note: "FK -> registrations.id (nullable during initial intent)"]
+  "user_id" bigint [not null, note: "Payer FK -> identity.users.id"]
+  
+  "gateway" varchar(50) [not null, default: 'razorpay', note: "Gateway provider key ('razorpay', 'stripe')"]
+  "gateway_order_id" varchar(255) [unique, note: "Provider order ID (e.g. order_MWq78...)"]
+  "idempotency_key" varchar(255) [not null, unique, note: "Client/Service idempotency token"]
+  
+  "currency" varchar(3) [not null, default: 'INR', note: "ISO 4217 Currency Code"]
+  "gross_amount" bigint [not null, note: "Total order amount in minor units (paise)"]
+  "status" "payments"."payment_order_status" [not null, default: 'pending']
+  
+  "expires_at" timestamptz [not null, note: "Expiration threshold (e.g. 15 minutes)"]
+  "paid_at" timestamptz [note: "When payment was verified"]
+  
+  "client_metadata" jsonb [note: "Browser IP, User-Agent, checkout preferences"]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    organization_id [name: "idx_pay_orders_org_id"]
+    event_id [name: "idx_pay_orders_event_id"]
+    registration_id [name: "idx_pay_orders_registration_id"]
+    user_id [name: "idx_pay_orders_user_id"]
+    (status, expires_at) [name: "idx_pay_orders_status_expires"]
+    created_at [name: "idx_pay_orders_created_at"]
+  }
+}
+
+Table "payments"."payment_attempts" {
+  "id" bigint [pk, increment]
+  "payment_order_id" bigint [not null, note: "FK -> payments.payment_orders.id"]
+  "attempt_number" int [not null, default: 1, note: "Sequence of attempt for this order"]
+  "gateway" varchar(50) [not null, default: 'razorpay']
+  "gateway_payment_id" varchar(255) [unique, note: "Provider transaction/payment ID (e.g. pay_29QQ...)"]
+  
+  "amount" bigint [not null, note: "Attempt amount in minor units (paise)"]
+  "currency" varchar(3) [not null, default: 'INR']
+  "status" "payments"."payment_attempt_status" [not null, default: 'pending']
+  
+  "payment_method" "payments"."payment_method_type"
+  "payment_method_details" jsonb [note: "Card brand/last4, VPA mask, bank code"]
+  
+  "error_code" varchar(100) [note: "Normalized error code"]
+  "error_description" text [note: "Provider failure message"]
+  "gateway_response" jsonb [note: "Sanitized provider response for audit"]
+  
+  "captured_at" timestamptz
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    payment_order_id [name: "idx_pay_attempts_order_id"]
+    gateway_payment_id [name: "idx_pay_attempts_gateway_pay_id"]
+    status [name: "idx_pay_attempts_status"]
+  }
+}
+
+Table "payments"."fee_snapshots" {
+  "id" bigint [pk, increment]
+  "payment_order_id" bigint [not null, unique, note: "FK -> payments.payment_orders.id"]
+  
+  "gross_amount" bigint [not null, note: "Total order paid in minor units (paise)"]
+  "commission_rate_bps" int [not null, note: "Platform commission in basis points (700 = 7.00%)"]
+  "platform_fee" bigint [not null, note: "Calculated platform fee in minor units (paise)"]
+  
+  "gateway_fee_rate_bps" int [not null, default: 200, note: "Estimated gateway fee in basis points (200 = 2.00%)"]
+  "gateway_fee" bigint [not null, note: "Calculated gateway processing fee in paise"]
+  
+  "tax_rate_bps" int [not null, default: 1800, note: "GST/VAT rate in basis points (1800 = 18.00% on fees)"]
+  "tax_amount" bigint [not null, default: 0, note: "Tax on platform commission in paise"]
+  
+  "net_to_organization" bigint [not null, note: "gross_amount - platform_fee - gateway_fee - tax_amount"]
+  "currency" varchar(3) [not null, default: 'INR']
+  
+  "pricing_model_version" varchar(50) [not null, default: 'v1.0']
+  "created_at" timestamptz [not null, default: `now()`, note: "Immutable once written"]
+
+  Indexes {
+    payment_order_id [name: "idx_fee_snapshots_order_id"]
+  }
+}
+
+Table "payments"."organization_wallets" {
+  "id" bigint [pk, increment]
+  "organization_id" bigint [not null, unique, note: "FK -> organization.organizations.id (1:1)"]
+  "currency" varchar(3) [not null, default: 'INR']
+  
+  "held_balance" bigint [not null, default: 0, note: "Funds held pending event settlement completion"]
+  "available_balance" bigint [not null, default: 0, note: "Funds ready for withdrawal/payout"]
+  "locked_balance" bigint [not null, default: 0, note: "Funds reserved for in-flight payouts or dispute holds"]
+  
+  "lifetime_gross_earned" bigint [not null, default: 0, note: "Cumulative gross earnings in paise"]
+  "lifetime_net_earned" bigint [not null, default: 0, note: "Cumulative net earnings in paise"]
+  "lifetime_payouts" bigint [not null, default: 0, note: "Cumulative successful payouts in paise"]
+  "lifetime_refunds" bigint [not null, default: 0, note: "Cumulative refunds deducted in paise"]
+  
+  "is_frozen" boolean [not null, default: false, note: "If frozen, payouts and settlements are halted"]
+  "frozen_reason" varchar(500)
+  "frozen_at" timestamptz
+  "frozen_by" bigint [note: "Admin user ID who froze the wallet"]
+  
+  "version" int [not null, default: 1, note: "Optimistic lock counter for high concurrency"]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    organization_id [name: "idx_org_wallets_org_id"]
+    is_frozen [name: "idx_org_wallets_frozen"]
+  }
+}
+
+Table "payments"."ledger_entries" {
+  "id" bigint [pk, increment, note: "Chronological financial journal entry"]
+  "organization_id" bigint [not null, note: "FK -> organization.organizations.id"]
+  "entry_type" "payments"."ledger_entry_type" [not null]
+  
+  "balance_bucket" "payments"."balance_bucket_type" [not null, note: "held | available | locked"]
+  "debit" bigint [not null, default: 0, note: "Outflow in paise"]
+  "credit" bigint [not null, default: 0, note: "Inflow in paise"]
+  "balance_after" bigint [not null, note: "Running balance of the designated bucket post-operation"]
+  
+  "currency" varchar(3) [not null, default: 'INR']
+  
+  // Polymorphic references
+  "reference_type" varchar(50) [not null, note: "'payment_order', 'settlement', 'payout', 'refund', 'adjustment'"]
+  "reference_id" bigint [not null, note: "ID of referencing entity"]
+  
+  "payment_order_id" bigint [note: "Direct foreign reference when applicable"]
+  "refund_id" bigint [note: "Direct foreign reference when applicable"]
+  "settlement_id" bigint [note: "Direct foreign reference when applicable"]
+  "payout_id" bigint [note: "Direct foreign reference when applicable"]
+  
+  "actor_type" varchar(20) [not null, default: 'system', note: "'user', 'admin', 'system', 'webhook'"]
+  "actor_id" bigint [note: "User ID performing the action, if human"]
+  "notes" text [note: "Audit explanation / adjustment note"]
+  
+  "created_at" timestamptz [not null, default: `now()`, note: "Strictly immutable - never updated or deleted"]
+
+  Indexes {
+    (organization_id, created_at) [name: "idx_ledger_org_created"]
+    (organization_id, balance_bucket, created_at) [name: "idx_ledger_org_bucket_created"]
+    (reference_type, reference_id) [name: "idx_ledger_reference"]
+    payment_order_id [name: "idx_ledger_payment_order_id"]
+    refund_id [name: "idx_ledger_refund_id"]
+    settlement_id [name: "idx_ledger_settlement_id"]
+    payout_id [name: "idx_ledger_payout_id"]
+  }
+}
+
+Table "payments"."refunds" {
+  "id" bigint [pk, increment]
+  "public_id" varchar(36) [not null, unique, note: "External ULID/UUID"]
+  "payment_order_id" bigint [not null, note: "FK -> payments.payment_orders.id"]
+  "payment_attempt_id" bigint [note: "FK -> payments.payment_attempts.id"]
+  "organization_id" bigint [not null, note: "FK -> organization.organizations.id"]
+  "registration_id" bigint [note: "FK -> registrations.id"]
+  
+  "amount" bigint [not null, note: "Refund amount in minor units (paise)"]
+  "currency" varchar(3) [not null, default: 'INR']
+  "status" "payments"."refund_status" [not null, default: 'pending']
+  "reason_type" "payments"."refund_reason_type" [not null, default: 'customer_request']
+  "reason_note" text
+  
+  "gateway" varchar(50) [not null, default: 'razorpay']
+  "gateway_refund_id" varchar(255) [unique, note: "Provider refund ID (e.g. rfnd_29Q8...)"]
+  "gateway_response" jsonb
+  
+  "deducted_from_bucket" "payments"."balance_bucket_type" [not null, default: 'held', note: "'held' before settlement, 'available' after settlement"]
+  
+  "requested_by" bigint [not null, note: "User ID who initiated the refund"]
+  "approved_by" bigint [note: "Admin/Owner ID who approved, if above limit"]
+  
+  "processed_at" timestamptz
+  "failed_at" timestamptz
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    payment_order_id [name: "idx_refunds_order_id"]
+    organization_id [name: "idx_refunds_org_id"]
+    gateway_refund_id [name: "idx_refunds_gateway_rfnd_id"]
+    status [name: "idx_refunds_status"]
+  }
+}
+
+Table "payments"."settlements" {
+  "id" bigint [pk, increment]
+  "organization_id" bigint [not null, note: "FK -> organization.organizations.id"]
+  "event_id" bigint [not null, unique, note: "FK -> events.id (One settlement cycle per event)"]
+  "status" "payments"."settlement_status" [not null, default: 'pending']
+  
+  "currency" varchar(3) [not null, default: 'INR']
+  "gross_revenue" bigint [not null, default: 0, note: "Total ticket earnings in paise"]
+  "platform_fees_deducted" bigint [not null, default: 0, note: "Total commission in paise"]
+  "gateway_fees_deducted" bigint [not null, default: 0, note: "Total gateway fees in paise"]
+  "refunds_deducted" bigint [not null, default: 0, note: "Pre-settlement refunds in paise"]
+  "net_settled_amount" bigint [not null, default: 0, note: "Amount transferred from held -> available"]
+  
+  "hold_until" timestamptz [not null, note: "Event end timestamp + risk buffer (e.g. 3 business days)"]
+  "eligible_at" timestamptz [note: "When settlement became unblocked for release"]
+  "released_at" timestamptz [note: "When funds were transferred to available balance"]
+  "released_by" bigint [note: "Admin ID or null if automated cron"]
+  
+  "is_blocked" boolean [not null, default: false]
+  "block_reason" varchar(500)
+  
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    organization_id [name: "idx_settlements_org_id"]
+    event_id [name: "idx_settlements_event_id"]
+    (status, hold_until) [name: "idx_settlements_status_hold"]
+  }
+}
+
+Table "payments"."payouts" {
+  "id" bigint [pk, increment]
+  "public_id" varchar(36) [not null, unique, note: "External ULID/UUID"]
+  "organization_id" bigint [not null, note: "FK -> organization.organizations.id"]
+  "bank_account_id" bigint [not null, note: "FK -> organization.organization_bank_accounts.id"]
+  
+  "amount" bigint [not null, note: "Payout amount in minor units (paise)"]
+  "currency" varchar(3) [not null, default: 'INR']
+  "status" "payments"."payout_status" [not null, default: 'pending']
+  
+  "gateway" varchar(50) [not null, default: 'razorpay_x', note: "'razorpay_x', 'cashfree', 'manual_neft'"]
+  "gateway_payout_id" varchar(255) [unique, note: "Provider transfer ID (e.g. pout_09ABC...)"]
+  "gateway_batch_id" varchar(255)
+  "utr" varchar(100) [note: "Bank Unique Transaction Reference / Ref Number"]
+  
+  "narration" varchar(100) [note: "Text visible on bank passbook, e.g. 'ORGATICK PAYOUT'"]
+  "gateway_response" jsonb
+  
+  "requested_by" bigint [not null, note: "Org Owner or Admin requesting withdrawal"]
+  "approved_by" bigint [note: "Platform Admin who approved (if exceeding automated limit)"]
+  
+  "initiated_at" timestamptz
+  "processed_at" timestamptz
+  "failed_at" timestamptz
+  "failure_reason" varchar(500)
+  
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    organization_id [name: "idx_payouts_org_id"]
+    bank_account_id [name: "idx_payouts_bank_acc_id"]
+    gateway_payout_id [name: "idx_payouts_gateway_id"]
+    status [name: "idx_payouts_status"]
+    created_at [name: "idx_payouts_created_at"]
+  }
+}
+
+Table "payments"."webhook_events" {
+  "id" bigint [pk, increment]
+  "gateway" varchar(50) [not null, note: "'razorpay', 'stripe', 'razorpay_x'"]
+  "gateway_event_id" varchar(255) [not null, note: "Event ID from provider header/payload"]
+  "event_type" varchar(100) [not null, note: "'payment.captured', 'refund.processed', 'payout.processed'"]
+  
+  "headers" jsonb [not null, note: "HTTP request headers (including signature and timestamps)"]
+  "payload" jsonb [not null, note: "Complete raw JSON webhook payload"]
+  
+  "status" "payments"."webhook_processing_status" [not null, default: 'received']
+  "attempts" int [not null, default: 0, note: "Worker retry counter"]
+  "last_error" text [note: "Execution stack trace if processing threw an error"]
+  
+  "processed_at" timestamptz
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (gateway, gateway_event_id) [unique, name: "idx_webhooks_gateway_event_id"]
+    (status, created_at) [name: "idx_webhooks_status_created"]
+    event_type [name: "idx_webhooks_event_type"]
+  }
+}
+
+// ------------------------------------------------------------------------------
+// SHADOW ACCOUNTING TABLES (SHADOW LEDGER / INDEPENDENT RECONCILIATION AUDIT)
+// ------------------------------------------------------------------------------
+
+Table "payments"."shadow_wallets" {
+  "id" bigint [pk, increment, note: "Shadow mirror of organization wallet"]
+  "organization_id" bigint [not null, unique, note: "FK -> organization.organizations.id (1:1)"]
+  "currency" varchar(3) [not null, default: 'INR']
+  
+  "recalculated_held_balance" bigint [not null, default: 0, note: "Sum of held ledger debits/credits"]
+  "recalculated_available_balance" bigint [not null, default: 0, note: "Sum of available ledger debits/credits"]
+  "recalculated_locked_balance" bigint [not null, default: 0, note: "Sum of locked ledger debits/credits"]
+  
+  "verification_status" "payments"."shadow_verification_status" [not null, default: 'matched']
+  "discrepancy_amount" bigint [not null, default: 0, note: "Delta if live snapshot differs from shadow journal"]
+  "last_verified_ledger_id" bigint [not null, default: 0, note: "Watermark of last ledger entry audited"]
+  
+  "last_audited_at" timestamptz [not null, default: `now()`]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    organization_id [name: "idx_shadow_wallets_org_id"]
+    verification_status [name: "idx_shadow_wallets_status"]
+  }
+  
+  note: "Shadow wallet recalculated independently by background worker to detect snapshot drift or tampering"
+}
+
+Table "payments"."shadow_ledger_audits" {
+  "id" bigint [pk, increment]
+  "organization_id" bigint [not null, note: "FK -> organization.organizations.id"]
+  "audit_run_id" varchar(64) [not null, note: "Batch execution identifier"]
+  
+  "start_ledger_id" bigint [not null]
+  "end_ledger_id" bigint [not null]
+  
+  "live_held_balance" bigint [not null]
+  "shadow_held_balance" bigint [not null]
+  
+  "live_available_balance" bigint [not null]
+  "shadow_available_balance" bigint [not null]
+  
+  "live_locked_balance" bigint [not null]
+  "shadow_locked_balance" bigint [not null]
+  
+  "is_balanced" boolean [not null, default: true]
+  "discrepancy_notes" text
+  
+  "audited_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (organization_id, audited_at) [name: "idx_shadow_audits_org_time"]
+    audit_run_id [name: "idx_shadow_audits_run_id"]
+    is_balanced [name: "idx_shadow_audits_balanced"]
+  }
+
+  note: "Periodic audit checkpoints recording mathematical proofs of balance integrity"
+}
+
+Table "payments"."reconciliation_runs" {
+  "id" bigint [pk, increment]
+  "gateway" varchar(50) [not null, default: 'razorpay']
+  "run_date" date [not null, note: "Settlement date being reconciled"]
+  "started_at" timestamptz [not null, default: `now()`]
+  "completed_at" timestamptz
+  
+  "total_records_checked" int [not null, default: 0]
+  "matched_records" int [not null, default: 0]
+  "discrepancies_found" int [not null, default: 0]
+  
+  "status" varchar(30) [not null, default: 'running', note: "'running', 'completed', 'failed'"]
+  "notes" text
+  "created_at" timestamptz [not null, default: `now()`]
+}
+
+Table "payments"."reconciliation_discrepancies" {
+  "id" bigint [pk, increment]
+  "reconciliation_run_id" bigint [not null, note: "FK -> payments.reconciliation_runs.id"]
+  "organization_id" bigint [note: "FK -> organization.organizations.id"]
+  
+  "discrepancy_type" varchar(50) [not null, note: "'missing_in_db', 'amount_mismatch', 'status_mismatch', 'missing_in_gateway'"]
+  "gateway_reference_id" varchar(255) [note: "Payment/Refund/Payout ID from provider file"]
+  "internal_reference_id" varchar(255) [note: "Local order or payment attempt ID"]
+  
+  "gateway_amount" bigint [note: "Amount reported by gateway in paise"]
+  "internal_amount" bigint [note: "Amount recorded in local database in paise"]
+  
+  "status" "payments"."discrepancy_status" [not null, default: 'open']
+  "resolution_notes" text
+  "resolved_by" bigint [note: "Admin user ID who marked as resolved"]
+  "resolved_at" timestamptz
+  
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    reconciliation_run_id [name: "idx_recon_discrepancies_run_id"]
+    status [name: "idx_recon_discrepancies_status"]
+    gateway_reference_id [name: "idx_recon_discrepancies_gw_ref"]
+  }
+}
+
+// ------------------------------------------------------------------------------
+// RELATIONS & FOREIGN KEYS
+// ------------------------------------------------------------------------------
+
+Ref: "payments"."payment_orders"."id" - "payments"."fee_snapshots"."payment_order_id"
+Ref: "payments"."payment_orders"."id" < "payments"."payment_attempts"."payment_order_id"
+Ref: "payments"."payment_orders"."id" < "payments"."refunds"."payment_order_id"
+Ref: "payments"."payment_attempts"."id" < "payments"."refunds"."payment_attempt_id"
+
+// Correct Schema References: organization.organizations
+Ref: "payments"."organization_wallets"."organization_id" > "organization"."organizations"."id"
+Ref: "payments"."shadow_wallets"."organization_id" > "organization"."organizations"."id"
+Ref: "payments"."shadow_ledger_audits"."organization_id" > "organization"."organizations"."id"
+Ref: "payments"."payment_orders"."organization_id" > "organization"."organizations"."id"
+Ref: "payments"."settlements"."organization_id" > "organization"."organizations"."id"
+Ref: "payments"."payouts"."organization_id" > "organization"."organizations"."id"
+Ref: "payments"."refunds"."organization_id" > "organization"."organizations"."id"
+Ref: "payments"."ledger_entries"."organization_id" > "organization"."organizations"."id"
+
+// Correct Schema References: organization.organization_bank_accounts
+Ref: "payments"."payouts"."bank_account_id" > "organization"."organization_bank_accounts"."id"
+
+// Correct Schema References: identity.users
+Ref: "payments"."payment_orders"."user_id" > "identity"."users"."id"
+
+// Event References
+Ref: "payments"."payment_orders"."event_id" > "public"."events"."id"
+Ref: "payments"."settlements"."event_id" - "public"."events"."id"
+
+// Reconciliation References
+Ref: "payments"."reconciliation_discrepancies"."reconciliation_run_id" > "payments"."reconciliation_runs"."id"
+Ref: "payments"."reconciliation_discrepancies"."organization_id" > "organization"."organizations"."id"
