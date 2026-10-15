@@ -1,0 +1,17 @@
+tunnel: ${CLOUDFLARED_TUNNEL_ID}
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: dev.orgatick.site
+    service: http://host.docker.internal:3000
+
+  - hostname: dev-api.orgatick.site
+    service: http://host.docker.internal:5050
+
+  - hostname: dev-admin.orgatick.site
+    service: http://host.docker.internal:3002
+
+  - hostname: dev-org.orgatick.site
+    service: http://host.docker.internal:3001
+
+  - service: http_status:404

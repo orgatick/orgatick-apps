@@ -1,0 +1,21 @@
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: orgatick-cloudflared
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    command:
+      - tunnel
+      - --config
+      - /etc/cloudflared/config.yml
+      - run
+
+    volumes:
+      - ./config.yml:/etc/cloudflared/config.yml:ro
+      - ./credentials/tunnel-credential.json:/etc/cloudflared/credentials.json:ro
+      
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
