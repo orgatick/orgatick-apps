@@ -4,6 +4,7 @@ import {
   type ResendVerifyEmailDTO,
   type SignupDTO,
   type VerifyEmailDTO,
+  loginSchema,
   resendVerifyEmailSchema,
   signupSchema,
   verifyEmailSchema,
@@ -33,7 +34,7 @@ export class AuthenticationController {
   @HttpCode(200)
   async loginUser(
     @Res({ passthrough: true }) response: Response,
-    @Body() loginUserDto: LoginDTO,
+    @Body({ schema: loginSchema }) loginUserDto: LoginDTO,
     @ClientInfo() clientInfo: ClientMetadata,
   ) {
     const user = await this.authenticationService.loginUser(loginUserDto, response, clientInfo);

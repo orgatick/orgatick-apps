@@ -1,8 +1,7 @@
-import { Body, Controller, Get, Param, Patch, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Param, Patch, Req, UseGuards } from "@nestjs/common";
 import { PlatformAdminGuard } from "@/common/authorization";
 import type { AuthRequest } from "@/common/types/auth-request.types";
 import { AdminVerificationService } from "../services/admin-verification.service";
-import { AdminTrackingRepository } from "../repositories/admin-tracking.repository";
 import {
   VerificationApproveSchema,
   VerificationRejectSchema,
@@ -17,10 +16,14 @@ import {
 @UseGuards(PlatformAdminGuard)
 @Controller("admin/organizations/:id/verification")
 export class AdminVerificationController {
-  constructor(
-    private readonly adminVerificationService: AdminVerificationService,
-    private readonly trackingRepository: AdminTrackingRepository,
-  ) {}
+  constructor(private readonly adminVerificationService: AdminVerificationService) {}
+
+  private parseOrgId(id: string): bigint {
+    if (!/^\d+$/.test(id)) {
+      throw new BadRequestException("Invalid organization ID format");
+    }
+    return BigInt(id);
+  }
 
   @Patch("approve")
   async approve(
@@ -29,7 +32,7 @@ export class AdminVerificationController {
     @Body({ schema: VerificationApproveSchema }) dto: VerificationApproveDto,
   ) {
     return this.adminVerificationService.approve(
-      BigInt(id),
+      this.parseOrgId(id),
       { id: BigInt(req.user.id), name: req.user.name },
       dto.note,
     );
@@ -42,7 +45,7 @@ export class AdminVerificationController {
     @Body({ schema: VerificationRejectSchema }) dto: VerificationRejectDto,
   ) {
     return this.adminVerificationService.reject(
-      BigInt(id),
+      this.parseOrgId(id),
       { id: BigInt(req.user.id), name: req.user.name },
       dto.reason,
     );
@@ -55,7 +58,7 @@ export class AdminVerificationController {
     @Body({ schema: VerificationRevokeSchema }) dto: VerificationRevokeDto,
   ) {
     return this.adminVerificationService.revoke(
-      BigInt(id),
+      this.parseOrgId(id),
       { id: BigInt(req.user.id), name: req.user.name },
       dto.reason,
     );
@@ -68,7 +71,7 @@ export class AdminVerificationController {
     @Body({ schema: VerificationDocumentsSchema }) dto: VerificationDocumentsDto,
   ) {
     return this.adminVerificationService.requestDocuments(
-      BigInt(id),
+      this.parseOrgId(id),
       { id: BigInt(req.user.id), name: req.user.name },
       dto.note,
     );
@@ -81,7 +84,7 @@ export class AdminVerificationController {
     @Body({ schema: VerificationApproveSchema }) dto: VerificationApproveDto,
   ) {
     return this.adminVerificationService.reverify(
-      BigInt(id),
+      this.parseOrgId(id),
       { id: BigInt(req.user.id), name: req.user.name },
       dto.note,
     );
@@ -89,6 +92,6 @@ export class AdminVerificationController {
 
   @Get("history")
   async history(@Param("id") id: string) {
-    return this.trackingRepository.getVerificationHistory(BigInt(id));
+    return this.adminVerificationService.getVerificationHistory(this.parseOrgId(id));
   }
 }

@@ -19,7 +19,7 @@ import { Button } from "@orgatick/ui/components/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@orgatick/ui/components/card";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@orgatick/ui/components/field";
 import { Input } from "@orgatick/ui/components/input";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 import {
   OrganizationBankAccountStatus,
   OrganizationBankAccountType,

@@ -37,6 +37,10 @@ export class OrganizationMemberService {
     }
   }
 
+  async findActiveMembership(organizationId: bigint, userId: bigint): Promise<OrganizationMember | null> {
+    return await this.memberRepository.findActiveMembership(organizationId, userId);
+  }
+
   async getOrganizationMembers(organizationId: bigint): Promise<OrganizationMember[]> {
     return await this.memberRepository.findActiveMembersByOrg(organizationId);
   }

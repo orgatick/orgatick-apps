@@ -16,7 +16,13 @@ export class OrganizationFinanceRepository extends Repository<OrganizationCommis
     const existing = await this.findByOrganizationId(organizationId);
     if (existing) return existing;
 
-    return this.createCommissionSetting(organizationId, defaultPercentage);
+    try {
+      return await this.createCommissionSetting(organizationId, defaultPercentage);
+    } catch {
+      const retried = await this.findByOrganizationId(organizationId);
+      if (retried) return retried;
+      throw new Error(`Failed to ensure commission setting for organization ${organizationId}`);
+    }
   }
 
   async createCommissionSetting(

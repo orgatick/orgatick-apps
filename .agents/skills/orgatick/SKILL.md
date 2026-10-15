@@ -156,6 +156,10 @@ Load these on demand; do not read all of them up front.
 Load these alongside this one when relevant — they cover a single subsystem in
 depth:
 
+- `backend-guidelines` — engineering standard for `apps/backend`: NestJS architecture,
+  controller/service/repository split, TypeORM (prefer repository methods over QueryBuilder),
+  transactions, concurrency locking, tenant isolation, and database conventions.
+  Full reference in `docs/backend-coding-guidelines.md`.
 - `organization-context` — current-org cookie, `OrganizationContextGuard`,
   `@CurrentOrganization()`, membership Redis cache.
 - `orgatick-design-system` — UI conventions for `packages/ui` and the three

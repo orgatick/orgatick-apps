@@ -34,7 +34,7 @@ describe("Session Lifecycle & Token Refresh Resilience", () => {
         {} as unknown as SessionService,
         mockCookieService,
         mockTokenService as unknown as TokenService,
-        {} as unknown as any,
+        {} as never,
       );
 
       const mockContext = {
@@ -44,7 +44,7 @@ describe("Session Lifecycle & Token Refresh Resilience", () => {
         }),
         getHandler: () => ({}),
         getClass: () => ({}),
-      } as unknown as any;
+      } as never;
 
       await assert.rejects(
         async () => {
@@ -65,11 +65,11 @@ describe("Session Lifecycle & Token Refresh Resilience", () => {
 
   describe("TokenRefreshService Grace & Multi-Tab Handling", () => {
     it("returns cached grace tokens for concurrent requests within grace period", async () => {
-      let cookiesSet: unknown = null;
+      let cookiesSet: { accessToken?: string } | null = null;
       const mockCookieService = {
         getRefreshToken: () => "valid-refresh-token",
         setAuthCookies: (_res: unknown, tokens: unknown) => {
-          cookiesSet = tokens;
+          cookiesSet = tokens as { accessToken?: string };
         },
         clearAuthCookies: () => {},
       } as unknown as CookieService;
@@ -116,20 +116,20 @@ describe("Session Lifecycle & Token Refresh Resilience", () => {
       };
 
       const service = new TokenRefreshService(
-        mockUserRepository as unknown as any,
-        {} as unknown as any,
+        mockUserRepository as never,
+        {} as never,
         mockCookieService,
-        mockTokenService as unknown as any,
-        mockSessionService as unknown as any,
-        {} as unknown as any,
-        { set: async () => {} } as unknown as any,
-        mockRedis as unknown as any,
+        mockTokenService as never,
+        mockSessionService as never,
+        {} as never,
+        { set: async () => {} } as never,
+        mockRedis as never,
       );
 
-      const res = await service.refreshToken({ cookies: {} } as unknown as any, {} as unknown as any);
+      const res = await service.refreshToken({ cookies: {} } as never, {} as never);
 
       assert.strictEqual(res.accessToken, "new-access-token");
-      assert.strictEqual((cookiesSet as any)?.accessToken, "new-access-token");
+      assert.strictEqual((cookiesSet as { accessToken?: string } | null)?.accessToken, "new-access-token");
     });
 
     it("rejects immediate predecessor without revoking active session when grace cache expired", async () => {
@@ -178,19 +178,19 @@ describe("Session Lifecycle & Token Refresh Resilience", () => {
       };
 
       const service = new TokenRefreshService(
-        { findOne: async () => ({ id: 1, email: "user@example.com" }) } as unknown as any,
-        {} as unknown as any,
+        { findOne: async () => ({ id: 1, email: "user@example.com" }) } as never,
+        {} as never,
         mockCookieService,
-        mockTokenService as unknown as any,
-        mockSessionService as unknown as any,
-        {} as unknown as any,
-        { set: async () => {} } as unknown as any,
-        mockRedis as unknown as any,
+        mockTokenService as never,
+        mockSessionService as never,
+        {} as never,
+        { set: async () => {} } as never,
+        mockRedis as never,
       );
 
       await assert.rejects(
         async () => {
-          await service.refreshToken({ cookies: {} } as unknown as any, {} as unknown as any);
+          await service.refreshToken({ cookies: {} } as never, {} as never);
         },
         {
           name: "UnauthorizedException",

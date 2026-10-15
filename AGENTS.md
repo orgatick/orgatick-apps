@@ -17,6 +17,7 @@ contracts-first workflow. It is in `.agents/skills/orgatick/`.
 | Skill                                              | Covers                                                          |
 | -------------------------------------------------- | --------------------------------------------------------------- |
 | `orgatick`                                         | Repo map, ownership, dependency direction, validation workflow   |
+| `backend-guidelines`                               | NestJS architecture, controllers, services, TypeORM, transactions, locking, tenant isolation |
 | `organization-context`                             | Current-org cookie, `OrganizationContextGuard`, membership cache |
 | `orgatick-design-system`                           | UI conventions: tokens, typography, badges, motion, components   |
 | `api-response-contracts`                           | Response envelope and pagination schema factories                |

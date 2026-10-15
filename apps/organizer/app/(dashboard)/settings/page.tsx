@@ -33,7 +33,7 @@ export default async function OrganizationSettingsPage() {
 
   try {
     const [eligibilityRes, bankRes] = await Promise.all([
-      api.get(`/organizations/${org.id}/pricing-eligibility`),
+      api.get(`/organizations/${org.id}/pricing-eligibility`).catch(() => null),
       api.get(`/organizations/${org.id}/bank-account`).catch(() => null),
     ]);
     eligibility = eligibilityRes?.data?.data ?? null;

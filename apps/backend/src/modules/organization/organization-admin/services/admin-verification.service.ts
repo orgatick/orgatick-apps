@@ -132,4 +132,8 @@ export class AdminVerificationService {
     await this.track(id, "reverified", note ?? null, actor);
     return this.organizationRepository.findAdminById(id);
   }
+
+  async getVerificationHistory(id: bigint) {
+    return this.trackingRepository.getVerificationHistory(id);
+  }
 }

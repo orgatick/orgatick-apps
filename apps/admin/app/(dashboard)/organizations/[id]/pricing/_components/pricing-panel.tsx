@@ -138,9 +138,9 @@ export function PricingPanel({
               <Badge variant={initialSetting.requireBankDetails ? "secondary" : "outline"}>
                 {initialSetting.requireBankDetails ? "Bank Details: Mandatory" : "Bank Details: Optional"}
               </Badge>
-              <Badge variant="outline" className="font-mono text-xs">
+              <span className="inline-flex items-center rounded-lg border border-border/80 bg-muted/30 px-2.5 py-0.5 font-mono text-xs font-medium text-muted-foreground">
                 Commission: {savedCommission}%
-              </Badge>
+              </span>
             </div>
           </div>
         </CardHeader>

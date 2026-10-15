@@ -19,14 +19,20 @@ export class OrganizationPricingRepository extends Repository<OrganizationPricin
     const existing = await this.findByOrganizationId(organizationId);
     if (existing) return existing;
 
-    const created = this.create({
-      organizationId,
-      paidEventsEnabled: defaults.paidEventsEnabled ?? false,
-      requireBankDetails: defaults.requireBankDetails ?? true,
-      disabledReason: null,
-      updatedBy: null,
-    } satisfies DeepPartial<OrganizationPricingSetting>);
+    try {
+      const created = this.create({
+        organizationId,
+        paidEventsEnabled: defaults.paidEventsEnabled ?? false,
+        requireBankDetails: defaults.requireBankDetails ?? true,
+        disabledReason: null,
+        updatedBy: null,
+      } satisfies DeepPartial<OrganizationPricingSetting>);
 
-    return this.save(created);
+      return await this.save(created);
+    } catch {
+      const retried = await this.findByOrganizationId(organizationId);
+      if (retried) return retried;
+      throw new Error(`Failed to ensure pricing settings for organization ${organizationId}`);
+    }
   }
 }
