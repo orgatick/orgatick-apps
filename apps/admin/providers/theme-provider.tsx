@@ -8,14 +8,8 @@ import { getCookieDomain, isThemeValue, THEME_COOKIE_NAME, THEME_STORAGE_KEY } f
 const THEME_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 export function ThemeProvider({ children, ...props }: React.ComponentProps<typeof NextThemesProvider>) {
-  // React 19 refuses to execute a <script> it creates during a client render (and logs an
-  // error for it), so the no-flash script is only emitted from the server, where it runs as the
-  // HTML parses. On the client it is re-created inert — its job is already done by then, and the
-  // effect above re-applies the theme on any remount. See next-themes issue #387.
-  const scriptProps = typeof window === "undefined" ? undefined : ({ type: "application/json" } as const);
-
   return (
-    <NextThemesProvider {...props} storageKey={THEME_STORAGE_KEY} scriptProps={scriptProps}>
+    <NextThemesProvider {...props} storageKey={THEME_STORAGE_KEY} disableTransitionOnChange>
       <ThemeCookieSync />
       {children}
     </NextThemesProvider>
@@ -23,127 +17,102 @@ export function ThemeProvider({ children, ...props }: React.ComponentProps<typeo
 }
 
 /**
- * Mirrors the theme into a cookie so all apps sharing the domain (e.g. .orgatick.site)
- * and the Next.js server can read the choice.
+ * Synchronizes the theme across all Orgatick subdomains using the shared domain cookie (.orgatick.site).
+ *
+ * Rules:
+ * 1. The shared cookie is the single source of truth across apps.
+ * 2. On mount, if a cookie exists from another app, this app adopts it and NEVER overwrites it with stale localStorage.
+ * 3. Only explicit user changes in this app write to the domain cookie.
+ * 4. When switching back to this tab, it checks if another app updated the cookie and synchronizes smoothly.
  */
 function ThemeCookieSync() {
   const { theme, setTheme } = useTheme();
-  const themeRef = useRef(theme);
-  themeRef.current = theme;
-  const isInitialMount = useRef(true);
+  const hasInitializedRef = useRef(false);
+  const lastSyncedThemeRef = useRef<string | null>(null);
 
-  // 1. Initial mount: check cookie to see if another app (e.g. client or organizer) set a theme
+  // 1. Initial mount: domain cookie is the authority across all subdomains.
+  // If a cookie exists from another app, adopt it without overwriting it.
   useEffect(() => {
-    let isSubscribed = true;
+    if (hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
 
-    async function initFromCookie() {
-      const cookie = await readClientThemeCookie();
-      if (!isSubscribed) return;
-
-      const currentTheme = themeRef.current;
-      if (isThemeValue(cookie) && cookie !== currentTheme) {
-        setTheme(cookie);
-      } else if (currentTheme) {
-        writeThemeCookie(currentTheme);
+    const cookieTheme = readClientThemeCookie();
+    if (isThemeValue(cookieTheme)) {
+      lastSyncedThemeRef.current = cookieTheme;
+      if (cookieTheme !== theme) {
+        setTheme(cookieTheme);
       }
-      isInitialMount.current = false;
+    } else if (theme && isThemeValue(theme)) {
+      // First-ever visit across all apps: seed the domain cookie
+      lastSyncedThemeRef.current = theme;
+      writeThemeCookie(theme);
     }
+  }, [theme, setTheme]);
 
-    void initFromCookie();
-
-    return () => {
-      isSubscribed = false;
-    };
-  }, [setTheme]);
-
-  // 2. Subsequent user changes: write to cookie with domain
+  // 2. Active user change in this app: update the shared domain cookie
   useEffect(() => {
-    if (isInitialMount.current) return;
-    if (theme) {
+    if (!hasInitializedRef.current) return;
+    if (!theme || !isThemeValue(theme)) return;
+
+    if (lastSyncedThemeRef.current !== null && lastSyncedThemeRef.current !== theme) {
+      lastSyncedThemeRef.current = theme;
       writeThemeCookie(theme);
     }
   }, [theme]);
 
-  // 3. Listen for changes from other tabs or other subdomains
+  // 3. Tab visibility / focus: if another app updated the cookie, sync without writing back
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    if ("cookieStore" in window && window.cookieStore) {
-      const handleCookieChange = (event: Event) => {
-        const changeEvent = event as { changed?: Array<{ name: string; value?: string }> };
-        const changed = changeEvent.changed?.find((c) => c.name === THEME_COOKIE_NAME);
-        if (changed?.value && isThemeValue(changed.value) && changed.value !== theme) {
-          setTheme(changed.value);
-        }
-      };
-
-      window.cookieStore.addEventListener("change", handleCookieChange);
-      return () => {
-        window.cookieStore?.removeEventListener("change", handleCookieChange);
-      };
-    }
-
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === THEME_STORAGE_KEY && event.newValue && isThemeValue(event.newValue)) {
-        if (event.newValue !== theme) {
-          setTheme(event.newValue);
+    const syncFromCookie = () => {
+      const cookieTheme = readClientThemeCookie();
+      if (isThemeValue(cookieTheme) && cookieTheme !== lastSyncedThemeRef.current) {
+        lastSyncedThemeRef.current = cookieTheme;
+        if (cookieTheme !== theme) {
+          setTheme(cookieTheme);
         }
       }
     };
 
-    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("focus", syncFromCookie);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        syncFromCookie();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("focus", syncFromCookie);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [theme, setTheme]);
 
   return null;
 }
 
-export async function readClientThemeCookie(): Promise<string | undefined> {
-  if (typeof window !== "undefined" && "cookieStore" in window && window.cookieStore) {
-    try {
-      const entry = await window.cookieStore.get(THEME_COOKIE_NAME);
-      if (entry?.value) return decodeURIComponent(entry.value);
-    } catch {
-      // Fallback to legacy document.cookie reader
-    }
-  }
-
+export function readClientThemeCookie(): string | undefined {
   if (typeof document === "undefined") return undefined;
   const match = document.cookie.match(new RegExp(`(?:^|; )${THEME_COOKIE_NAME}=([^;]*)`));
-
-  return match?.[1] ? decodeURIComponent(match[1]) : undefined;
+  const raw = match?.[1] ? decodeURIComponent(match[1]).trim() : undefined;
+  if (raw?.startsWith('"') && raw.endsWith('"')) {
+    return raw.slice(1, -1);
+  }
+  return raw;
 }
 
 export function writeThemeCookie(theme: string): void {
+  if (typeof document === "undefined") return;
+
   const domain = getCookieDomain();
   const domainAttr = domain ? `; domain=${domain}` : "";
 
-  if (domain && typeof document !== "undefined") {
+  if (domain) {
+    // Clear any conflicting host-only cookie so the domain cookie is the sole cookie
     // biome-ignore lint/suspicious/noDocumentCookie: Clear host-only cookie
     document.cookie = `${THEME_COOKIE_NAME}=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
   }
 
-  if (typeof window !== "undefined" && "cookieStore" in window && window.cookieStore) {
-    window.cookieStore
-      .set({
-        name: THEME_COOKIE_NAME,
-        value: theme,
-        path: "/",
-        expires: Date.now() + THEME_COOKIE_MAX_AGE_SECONDS * 1000,
-        sameSite: "lax",
-        ...(domain ? { domain } : {}),
-      })
-      .catch(() => {
-        // biome-ignore lint/suspicious/noDocumentCookie: Cookie Store API fallback
-        document.cookie = `${THEME_COOKIE_NAME}=${encodeURIComponent(theme)}; path=/; max-age=${THEME_COOKIE_MAX_AGE_SECONDS}; samesite=lax${domainAttr}`;
-      });
-    return;
-  }
-
-  if (typeof document !== "undefined") {
-    // biome-ignore lint/suspicious/noDocumentCookie: Cookie Store API fallback for non-Chromium browsers
-    document.cookie = `${THEME_COOKIE_NAME}=${encodeURIComponent(theme)}; path=/; max-age=${THEME_COOKIE_MAX_AGE_SECONDS}; samesite=lax${domainAttr}`;
-  }
+  // biome-ignore lint/suspicious/noDocumentCookie: Standard theme cookie persistence
+  document.cookie = `${THEME_COOKIE_NAME}=${encodeURIComponent(theme)}; path=/; max-age=${THEME_COOKIE_MAX_AGE_SECONDS}; samesite=lax${domainAttr}`;
 }
