@@ -22,7 +22,7 @@ export const GoogleLoginButton = ({
   disabled,
 }: GoogleLoginButtonProps) => {
   const searchParams = useSearchParams();
-  const callbackUrl = redirectIntent || searchParams.get("callbackUrl") || "/dashboard";
+  const callbackUrl = redirectIntent || searchParams.get("callbackUrl") || "/events";
   const { startGoogleAuth, loading } = useGoogleAuth();
 
   const handleClick = () => {

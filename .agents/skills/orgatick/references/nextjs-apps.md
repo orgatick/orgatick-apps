@@ -4,10 +4,10 @@ Next.js 16 App Router, React 19, Tailwind v4, TypeScript. All three apps share
 the same shape; only `client` and `organizer` currently have substantial pages,
 `admin` is partially built.
 
-| App         | Port | Audience                          | Implemented                                      |
-| ----------- | ---- | --------------------------------- | ------------------------------------------------ |
-| `client`    | 3000 | attendees + public marketing site | marketing, legal, auth, account, events           |
-| `organizer` | 3001 | organization operators            | dashboard shell, org create flow, verification    |
+| App         | Port | Audience                          | Implemented                                              |
+| ----------- | ---- | --------------------------------- | -------------------------------------------------------- |
+| `client`    | 3000 | attendees + public marketing site | marketing, legal, auth, account, events                  |
+| `organizer` | 3001 | organization operators            | dashboard shell, org create flow, verification           |
 | `admin`     | 3002 | platform staff                    | users + organizations (members/access/documents/closure) |
 
 ## Directory conventions
@@ -78,13 +78,13 @@ Only `apps/client` and `apps/organizer` depend on `@orgatick/address`;
 
 Two clients, both axios, both `withCredentials: true`:
 
-| File                                   | Used for                                                     |
-| -------------------------------------- | ------------------------------------------------------------ |
-| `lib/apis/base.api.ts`                 | plain instance, no auth header (rarely used directly)          |
-| `lib/apis/auth.api.ts`                 | default export `api` — in-memory token + Bearer + 401 refresh/queue |
-| `lib/apis/server-auth-api.ts`          | `serverApi()` for Server Components/Actions; forwards HttpOnly cookies |
-| `lib/apis/api-error.ts`                | `getApiErrorMessage`, `handleApiError`, `isEmailUnverifiedError` |
-| `lib/fetcher.ts`                       | tiny SWR-style fetcher around `api.get`                        |
+| File                          | Used for                                                               |
+| ----------------------------- | ---------------------------------------------------------------------- |
+| `lib/apis/base.api.ts`        | plain instance, no auth header (rarely used directly)                  |
+| `lib/apis/auth.api.ts`        | default export `api` — in-memory token + Bearer + 401 refresh/queue    |
+| `lib/apis/server-auth-api.ts` | `serverApi()` for Server Components/Actions; forwards HttpOnly cookies |
+| `lib/apis/api-error.ts`       | `getApiErrorMessage`, `handleApiError`, `isEmailUnverifiedError`       |
+| `lib/fetcher.ts`              | tiny SWR-style fetcher around `api.get`                                |
 
 Base URL comes from `NEXT_PUBLIC_API_URL` (default `http://localhost:5050`).
 Feature-specific clients live beside their route (`app/(auth)/_services/auth.service.ts`)
@@ -164,8 +164,15 @@ in `@orgatick/ui`, controlled per field:
   render={({ field, fieldState }) => (
     <Field data-invalid={fieldState.invalid}>
       <FieldLabel className="text-md">Email</FieldLabel>
-      <Input {...field} type="email" aria-invalid={fieldState.invalid}
-        onChange={(e) => { field.onChange(e); if (shouldRevalidate("email")) void form.trigger("email"); }} />
+      <Input
+        {...field}
+        type="email"
+        aria-invalid={fieldState.invalid}
+        onChange={(e) => {
+          field.onChange(e);
+          if (shouldRevalidate("email")) void form.trigger("email");
+        }}
+      />
       {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
     </Field>
   )}
@@ -182,8 +189,18 @@ Import per-component subpaths; there is no barrel:
 
 ```tsx
 import { Button } from "@orgatick/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@orgatick/ui/components/card";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@orgatick/ui/components/field";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@orgatick/ui/components/card";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@orgatick/ui/components/field";
 import { cn } from "@orgatick/ui/lib/utils";
 ```
 
@@ -243,7 +260,11 @@ from `packages/ui/src/styles/globals.css`.
 const nextConfig = {
   poweredByHeader: false,
   allowedDevOrigins: ["192.168.1.60", "10.224.52.173", "dev.orgatick.site"],
-  images: { remotePatterns: [{ protocol: "https", hostname: "assets.orgatick.in", pathname: "/**" }] },
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "assets.orgatick.in", pathname: "/**" },
+    ],
+  },
 };
 ```
 

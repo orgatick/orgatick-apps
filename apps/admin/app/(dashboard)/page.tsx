@@ -93,7 +93,6 @@ function RecentOrganizations({ organizations }: { organizations: AdminOrganizati
           >
             <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-secondary text-secondary-foreground">
               {organization.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <Image src={organization.logo} alt="" className="size-6 rounded object-cover" />
               ) : (
                 <IconBuildingStore className="size-4" />

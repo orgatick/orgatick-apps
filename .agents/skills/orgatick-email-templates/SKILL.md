@@ -202,17 +202,17 @@ The email should remain readable on mobile devices.
 Prefer:
 
 Outer background (#f4f7fc)
-    ↓
+↓
 Email container (#ffffff, border: #c6ccd5 or #e7ecf3, rounded: 10px)
-    ↓
+↓
 Header (Logo: https://assets.orgatick.in/public/icons/icon-512.png)
-    ↓
+↓
 Main content (Text: #1a2b4c, Muted: #6c7480)
-    ↓
+↓
 CTA (Button background: #204b90, Text: #ffffff)
-    ↓
+↓
 Supporting content
-    ↓
+↓
 Footer
 
 Avoid unnecessarily complicated nested layouts.
@@ -254,13 +254,13 @@ Use a safe system font stack unless the design system explicitly specifies anoth
 Example:
 
 font-family:
-  -apple-system,
-  BlinkMacSystemFont,
-  "Segoe UI",
-  Roboto,
-  Helvetica,
-  Arial,
-  sans-serif;
+-apple-system,
+BlinkMacSystemFont,
+"Segoe UI",
+Roboto,
+Helvetica,
+Arial,
+sans-serif;
 
 Use clear differences between:
 
@@ -279,6 +279,7 @@ Do not use tiny text for important information.
 ORGATICK uses the following official design tokens across the application and email templates. Always adhere to these semantic color values.
 
 ### Light Theme (Default for Emails)
+
 ```css
 --background: #f4f7fc;
 --foreground: #1a2b4c;
@@ -332,6 +333,7 @@ ORGATICK uses the following official design tokens across the application and em
 ```
 
 ### Dark Theme (Reference Tokens)
+
 ```css
 --background: #090f1a;
 --foreground: #eaf2ff;
@@ -358,52 +360,54 @@ ORGATICK uses the following official design tokens across the application and em
 ```
 
 ### Tailwind Config Standard for ORGATICK Emails
+
 When configuring `<Tailwind>` in React Email templates, extend the theme using:
+
 ```tsx
-import { Tailwind, pixelBasedPreset } from 'react-email';
+import { Tailwind, pixelBasedPreset } from "react-email";
 
 export const orgatickTailwindConfig = {
   presets: [pixelBasedPreset],
   theme: {
     extend: {
       colors: {
-        background: '#f4f7fc',
-        foreground: '#1a2b4c',
-        card: '#ffffff',
-        'card-foreground': '#1a2b4c',
+        background: "#f4f7fc",
+        foreground: "#1a2b4c",
+        card: "#ffffff",
+        "card-foreground": "#1a2b4c",
         primary: {
-          DEFAULT: '#204b90',
-          foreground: '#ffffff',
-          dark: '#1c458f',
-          light: '#2a56a5',
+          DEFAULT: "#204b90",
+          foreground: "#ffffff",
+          dark: "#1c458f",
+          light: "#2a56a5",
         },
         secondary: {
-          DEFAULT: '#6355a4',
-          foreground: '#ffffff',
+          DEFAULT: "#6355a4",
+          foreground: "#ffffff",
         },
         accent: {
-          DEFAULT: '#5d82d9',
-          foreground: '#ffffff',
-          light: '#e9eef8',
+          DEFAULT: "#5d82d9",
+          foreground: "#ffffff",
+          light: "#e9eef8",
         },
-        success: '#2ecc71',
-        warning: '#f1c40f',
-        info: '#3498db',
+        success: "#2ecc71",
+        warning: "#f1c40f",
+        info: "#3498db",
         destructive: {
-          DEFAULT: '#d9534f',
-          foreground: '#ffffff',
+          DEFAULT: "#d9534f",
+          foreground: "#ffffff",
         },
         muted: {
-          DEFAULT: '#e7ecf3',
-          foreground: '#6c7480',
+          DEFAULT: "#e7ecf3",
+          foreground: "#6c7480",
         },
-        border: '#c6ccd5',
-        input: '#d8dde6',
-        ring: '#2a56a5',
+        border: "#c6ccd5",
+        input: "#d8dde6",
+        ring: "#2a56a5",
       },
       borderRadius: {
-        DEFAULT: '10px',
-        lg: '10px',
+        DEFAULT: "10px",
+        lg: "10px",
       },
     },
   },
@@ -411,6 +415,7 @@ export const orgatickTailwindConfig = {
 ```
 
 ### Semantic Usage Guidelines:
+
 - **Body Background**: `#f4f7fc` (`bg-background`)
 - **Main Container**: `#ffffff` (`bg-card`), Border: `#c6ccd5` (`border-border`) or `#e7ecf3` (`border-muted`), Radius: `10px` (`rounded-[10px]`)
 - **Headings & Primary Text**: `#1a2b4c` (`text-foreground`)
@@ -455,24 +460,24 @@ Example:
 
 src/templates/
 ├── auth/
-│   ├── VerifyEmail.tsx
-│   ├── Welcome.tsx
-│   ├── ResetPassword.tsx
-│   └── SecurityAlert.tsx
+│ ├── VerifyEmail.tsx
+│ ├── Welcome.tsx
+│ ├── ResetPassword.tsx
+│ └── SecurityAlert.tsx
 │
 ├── account/
-│   ├── EmailChanged.tsx
-│   └── OrganizationInvitation.tsx
+│ ├── EmailChanged.tsx
+│ └── OrganizationInvitation.tsx
 │
 ├── commerce/
-│   ├── OrderConfirmation.tsx
-│   ├── PaymentFailed.tsx
-│   └── RefundIssued.tsx
+│ ├── OrderConfirmation.tsx
+│ ├── PaymentFailed.tsx
+│ └── RefundIssued.tsx
 │
 └── shipment/
-    ├── ShipmentCreated.tsx
-    ├── ShipmentDispatched.tsx
-    └── ShipmentDelivered.tsx
+├── ShipmentCreated.tsx
+├── ShipmentDispatched.tsx
+└── ShipmentDelivered.tsx
 
 Use PascalCase for React component/template names.
 
@@ -485,9 +490,9 @@ Templates should receive typed data.
 Example:
 
 interface VerifyEmailEmailProps {
-  userName?: string;
-  verificationUrl: string;
-  expiresInMinutes: number;
+userName?: string;
+verificationUrl: string;
+expiresInMinutes: number;
 }
 
 Avoid hardcoding dynamic values.
@@ -639,6 +644,7 @@ with optional visual emphasis.
 Use images only when they provide meaningful value.
 
 The logo may be used in the header:
+
 - Official Icon URL: `https://assets.orgatick.in/public/icons/icon-512.png`
 
 Avoid unnecessary images because they:
@@ -826,7 +832,7 @@ The React template should not contain business logic.
 Bad:
 
 if (user.isVerified) {
-  // business decision
+// business decision
 }
 
 Prefer:
@@ -845,17 +851,17 @@ The backend determines what email to send and what data it receives.
 Every template should behave approximately like:
 
 Backend
-   ↓
+↓
 Email Service
-   ↓
+↓
 Template Resolver
-   ↓
+↓
 React Email Template
-   ↓
+↓
 HTML
-   ↓
+↓
 SMTP / Email Provider
-   ↓
+↓
 Recipient
 
 The template's responsibility ends at producing valid email markup.
@@ -886,10 +892,8 @@ Keep changes focused.
 
 A new email should normally contain:
 
-template
-+
-required reusable component(s)
-+
+template +
+required reusable component(s) +
 tests/preview if applicable
 
 Do not modify unrelated templates while creating a new email.

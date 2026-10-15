@@ -9,6 +9,7 @@ import { serverFetchUserDetail, type UserDetail } from "@/lib/admin.api";
 import type { Membership } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { RoleSwitch } from "@/components/users/role-switch";
+import Image from "next/image";
 
 export const metadata: Metadata = { title: "User Details" };
 
@@ -50,8 +51,7 @@ function MembershipsList({ memberships }: { memberships: Membership[] }) {
           >
             <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-secondary-foreground">
               {membership.organization?.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={membership.organization.logo} alt="" className="size-7 rounded object-cover" />
+                <Image src={membership.organization.logo} alt="" className="size-7 rounded object-cover" sizes="100" />
               ) : (
                 <IconBuildingStore className="size-4" />
               )}

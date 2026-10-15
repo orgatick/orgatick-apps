@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "@orgatick/ui/components/button";
 import {
   DropdownMenu,
@@ -19,7 +20,12 @@ const THEME_OPTIONS: ReadonlyArray<{
   description: string;
   icon: typeof IconMoon;
 }> = [
-  { value: "system", label: "Device", description: "Follow system", icon: IconDeviceDesktop },
+  {
+    value: "system",
+    label: "Device",
+    description: "Follow system",
+    icon: IconDeviceDesktop,
+  },
   { value: "light", label: "Light", description: "Sunny vibes", icon: IconSun },
   { value: "dark", label: "Dark", description: "Night mode", icon: IconMoon },
 ];
@@ -30,11 +36,18 @@ interface ThemeToggleProps {
    * idea which icon the client is about to render, which is a hydration mismatch.
    */
   initialTheme?: ThemeValue;
+  className?: string;
 }
 
-export function ThemeToggle({ initialTheme = DEFAULT_THEME }: ThemeToggleProps) {
+export function ThemeToggle({ initialTheme = DEFAULT_THEME, className }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
-  const current = (theme ?? initialTheme) as ThemeValue;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const current = (mounted ? (theme ?? initialTheme) : initialTheme) as ThemeValue;
   const CurrentIcon = THEME_OPTIONS.find((option) => option.value === current)?.icon ?? IconDeviceDesktop;
 
   return (
@@ -45,14 +58,14 @@ export function ThemeToggle({ initialTheme = DEFAULT_THEME }: ThemeToggleProps) 
             type="button"
             variant="ghost"
             size="icon"
-            aria-label="Switch theme"
-            title="Switch theme"
-            className="aria-expanded:bg-muted/80"
+            aria-label={`Switch theme (currently ${current})`}
+            title={`Switch theme (currently ${current})`}
+            className="aria-expanded:bg-muted/80 cursor-pointer"
           >
             <CurrentIcon className="size-4.5" />
           </Button>
         }
-        className={"hidden lg:flex"}
+        className={cn("hidden sm:flex", className)}
       />
       <DropdownMenuContent align="end" sideOffset={8} className="w-48 p-1.5">
         <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Appearance</div>
@@ -65,7 +78,7 @@ export function ThemeToggle({ initialTheme = DEFAULT_THEME }: ThemeToggleProps) 
               key={option.value}
               onClick={() => setTheme(option.value)}
               className={cn(
-                "gap-2.5 py-2 ps-2",
+                "gap-2.5 py-2 ps-2 cursor-pointer",
                 isActive && "bg-primary/10 font-medium text-primary focus:bg-primary/10 focus:text-primary",
               )}
             >

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Header from "../_components/Header";
+import Header from "../_components/header";
 import Link from "next/link";
 import SignupForm from "./components/signup-form";
 import GoogleLoginButton from "../_components/google-login-button";

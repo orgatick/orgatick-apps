@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 
-import Header from "@/app/(auth)/_components/Header";
+import Header from "@/app/(auth)/_components/header";
 import { useAuthStore } from "@/app/(auth)/_store";
 import { useGoogleAuth } from "@/hooks/use-google-auth";
 

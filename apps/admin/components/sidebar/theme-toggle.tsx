@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "@orgatick/ui/components/button";
 import {
   DropdownMenu,
@@ -11,14 +12,18 @@ import {
 import { cn } from "@orgatick/ui/lib/utils";
 import { IconCheck, IconDeviceDesktop, IconMoon, IconSun } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
+import { type ThemeValue } from "@/lib/theme";
 
 const THEME_OPTIONS = [
-  { value: "system", label: "Device", description: "Follow system", icon: IconDeviceDesktop },
+  {
+    value: "system",
+    label: "Device",
+    description: "Follow system",
+    icon: IconDeviceDesktop,
+  },
   { value: "light", label: "Light", description: "Sunny vibes", icon: IconSun },
   { value: "dark", label: "Dark", description: "Night mode", icon: IconMoon },
 ] as const;
-
-type ThemeValue = (typeof THEME_OPTIONS)[number]["value"];
 
 interface ThemeToggleProps {
   collapsed?: boolean;
@@ -29,7 +34,13 @@ interface ThemeToggleProps {
 
 export function ThemeToggle({ collapsed = false, compact = false, align = "end", className }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
-  const current = (theme ?? "system") as ThemeValue;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const current = (mounted ? (theme ?? "system") : "system") as ThemeValue;
   const CurrentIcon = THEME_OPTIONS.find((option) => option.value === current)?.icon ?? IconDeviceDesktop;
   const iconOnly = collapsed || compact;
 
@@ -44,7 +55,7 @@ export function ThemeToggle({ collapsed = false, compact = false, align = "end",
             aria-label="Switch theme"
             title="Switch theme"
             className={cn(
-              "rounded-xl text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground aria-expanded:bg-muted/80",
+              "rounded-xl text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground aria-expanded:bg-muted/80 cursor-pointer",
               iconOnly ? "size-8 justify-center" : "h-10 w-full justify-start gap-2.5 px-3",
               className,
             )}
@@ -65,7 +76,7 @@ export function ThemeToggle({ collapsed = false, compact = false, align = "end",
               key={option.value}
               onClick={() => setTheme(option.value)}
               className={cn(
-                "gap-2.5 py-2 ps-2",
+                "gap-2.5 py-2 ps-2 cursor-pointer",
                 isActive && "bg-primary/10 font-medium text-primary focus:bg-primary/10 focus:text-primary",
               )}
             >
@@ -85,7 +96,13 @@ export function ThemeToggle({ collapsed = false, compact = false, align = "end",
 
 export function ThemeOptions({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
-  const current = (theme ?? "system") as ThemeValue;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const current = (mounted ? (theme ?? "system") : "system") as ThemeValue;
 
   return (
     <div className={cn("flex flex-col gap-1", className)}>
@@ -98,7 +115,7 @@ export function ThemeOptions({ className }: { className?: string }) {
             type="button"
             onClick={() => setTheme(option.value)}
             className={cn(
-              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start text-sm font-medium transition-colors",
+              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start text-sm font-medium transition-colors cursor-pointer",
               isActive
                 ? "bg-primary/10 font-semibold text-primary"
                 : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",

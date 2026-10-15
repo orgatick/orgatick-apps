@@ -54,8 +54,8 @@ Where the two conflict, this skill wins — the divergences are listed below.
 
 ## Badges
 
-Ask: *does this value describe a state that changes over time and that a user
-must scan for or act on?*
+Ask: _does this value describe a state that changes over time and that a user
+must scan for or act on?_
 
 - ✅ Badge: organization `pending` / `active` / `suspended`, application
   `approved` / `rejected`, payment `succeeded` / `failed`.
@@ -156,7 +156,7 @@ validation, `toast` for transient confirmations.
   auto-advancing carousels.
 - `animate-pulse` is a loading affordance, never a decorative icon.
 - One-shot entrances (`animate-in fade-in slide-in-from-bottom-4
-  duration-500`) are fine once per section, not stacked.
+duration-500`) are fine once per section, not stacked.
 
 ## Anti-patterns
 

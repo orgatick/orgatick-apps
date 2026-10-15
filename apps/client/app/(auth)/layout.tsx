@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import Footer from "./_components/Footer";
-import DesktopInfo from "./_components/DesktopInfo";
+import Footer from "./_components/footer";
+import DesktopInfo from "./_components/desktop-info";
 import { serverApi } from "@/lib/apis/server-auth-api";
 
 const Layout = async ({ children }: { children: React.ReactNode }) => {

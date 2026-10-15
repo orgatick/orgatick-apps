@@ -9,7 +9,7 @@ import { Button } from "@orgatick/ui/components/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@orgatick/ui/components/field";
 import PasswordInput from "@orgatick/ui/components/password-input";
 import type { LoginData } from "@orgatick/contracts";
-import EmailView from "@/app/(auth)/_components/EmailView";
+import EmailView from "@/app/(auth)/_components/email-view";
 
 interface Step2FormProps {
   form: UseFormReturn<LoginData>;

@@ -72,9 +72,9 @@ export function NavbarMobile({ user: initialUser, initialTheme = DEFAULT_THEME }
   const [open, setOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const logout = useLogout();
-  const currentTheme = (theme ?? initialTheme) as ThemeValue;
-  const storeUser = useAuthStore((state) => state.user);
   const [mounted, setMounted] = useState(false);
+  const storeUser = useAuthStore((state) => state.user);
+  const currentTheme = (mounted ? (theme ?? initialTheme) : initialTheme) as ThemeValue;
 
   useEffect(() => {
     setMounted(true);
@@ -234,8 +234,16 @@ export function NavbarMobile({ user: initialUser, initialTheme = DEFAULT_THEME }
                   <SectionLabel>Get started</SectionLabel>
                   {[
                     { label: "Sign in", href: "/login", icon: IconLogin2 },
-                    { label: "Create account", href: "/signup", icon: IconUserPlus },
-                    { label: "Host an event", href: "/contact", icon: IconCalendarPlus },
+                    {
+                      label: "Create account",
+                      href: "/signup",
+                      icon: IconUserPlus,
+                    },
+                    {
+                      label: "Host an event",
+                      href: "/contact",
+                      icon: IconCalendarPlus,
+                    },
                   ].map((item) => {
                     const Icon = item.icon;
                     return (

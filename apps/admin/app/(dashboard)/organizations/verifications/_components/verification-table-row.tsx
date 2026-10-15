@@ -3,6 +3,7 @@ import { IconArrowUpRight } from "@tabler/icons-react";
 import { Badge } from "@orgatick/ui/components/badge";
 import { Avatar, AvatarFallback } from "@orgatick/ui/components/avatar";
 import type { VerificationQueueItem } from "@/lib/types";
+import Image from "next/image";
 
 function getVerificationBadgeVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
   if (status === "verified") return "default";
@@ -33,8 +34,7 @@ export function VerificationTableRow({ item }: { item: VerificationQueueItem }) 
         <div className="flex items-center gap-3">
           <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-secondary text-secondary-foreground">
             {item.logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.logo} alt="" className="size-7 rounded object-cover" />
+              <Image src={item.logo} alt="" className="size-7 rounded object-cover" sizes="100" />
             ) : (
               <span className="font-mono text-xs">{item.organizationId}</span>
             )}

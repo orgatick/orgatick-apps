@@ -1,4 +1,4 @@
-import Header from "./_components/Header";
+import Header from "./_components/header";
 import { Skeleton } from "@orgatick/ui/components/skeleton";
 
 const Loading = () => {

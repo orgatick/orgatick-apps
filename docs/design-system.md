@@ -19,12 +19,12 @@ trust the code and fix this document.
 
 ### Where UI code lives
 
-| Path | Owns |
-| --- | --- |
-| `packages/ui/src/components/` | Shared primitives. Source-only, no build step. |
-| `packages/ui/src/styles/globals.css` | The single source of design tokens. |
-| `apps/*/components/` | App-specific composition and app-local wrappers. |
-| `apps/*/app/**` | Routes, layouts, page composition. |
+| Path                                 | Owns                                             |
+| ------------------------------------ | ------------------------------------------------ |
+| `packages/ui/src/components/`        | Shared primitives. Source-only, no build step.   |
+| `packages/ui/src/styles/globals.css` | The single source of design tokens.              |
+| `apps/*/components/`                 | App-specific composition and app-local wrappers. |
+| `apps/*/app/**`                      | Routes, layouts, page composition.               |
 
 Apps consume shared primitives through the `@orgatick/ui/components/*` subpath
 import. `packages/*` never imports from `apps/*`.
@@ -36,12 +36,12 @@ import. `packages/*` never imports from `apps/*`.
 Orgatick has four distinct surfaces with different density and motion budgets.
 A pattern that is right on the marketing site is usually wrong in a console.
 
-| Surface | Location | Density | Motion budget |
-| --- | --- | --- | --- |
-| Marketing | `apps/client/app/(marketing)`, `apps/client/components/sections/` | Spacious, `max-w-7xl` | One-shot entrances only |
-| Participant | `apps/client/app/(account)`, `(auth)`, `events` | Standard | Minimal |
-| Operator console | `apps/organizer` | Dense | Minimal |
-| Platform console | `apps/admin/app/(dashboard)` | Densest | Minimal |
+| Surface          | Location                                                          | Density               | Motion budget           |
+| ---------------- | ----------------------------------------------------------------- | --------------------- | ----------------------- |
+| Marketing        | `apps/client/app/(marketing)`, `apps/client/components/sections/` | Spacious, `max-w-7xl` | One-shot entrances only |
+| Participant      | `apps/client/app/(account)`, `(auth)`, `events`                   | Standard              | Minimal                 |
+| Operator console | `apps/organizer`                                                  | Dense                 | Minimal                 |
+| Platform console | `apps/admin/app/(dashboard)`                                      | Densest               | Minimal                 |
 
 Rule: **a marketing pattern must be re-justified before it appears in a
 console.** Consoles optimize for scanning and completing tasks, not for
@@ -57,23 +57,23 @@ All tokens live in `packages/ui/src/styles/globals.css`. Dark mode is
 class-based through `next-themes` (`.dark` variant, declared with
 `@custom-variant dark (&:is(.dark *))`).
 
-| Token | Light | Dark | Use for |
-| --- | --- | --- | --- |
-| `--background` | `#f4f7fc` | `#090f1a` | Page base |
-| `--foreground` | `#1a2b4c` | `#eaf2ff` | Primary text |
-| `--card` / `--popover` | `#ffffff` | `#0d141f` | Raised surfaces |
-| `--primary` | `#204b90` | `#5d8ff4` | Primary actions, links, active nav |
-| `--secondary` | `#6355a4` | `#8a7af2` | Secondary emphasis |
-| `--accent` | `#5d82d9` | `#3d5fb2` | Accent surfaces |
-| `--muted` | `#e7ecf3` | `#1b2433` | Subtle fills, hover rows |
-| `--muted-foreground` | `#6c7480` | `#b6c1d6` | Secondary text |
-| `--border` | `#c6ccd5` | `#2c364a` | Dividers, outlines |
-| `--input` | `#d8dde6` | `#37435a` | Form control borders |
-| `--ring` | `#2a56a5` | `#4d76d1` | Focus rings |
-| `--success` | `#2ecc71` | `#3ad578` | Success state |
-| `--warning` | `#f1c40f` | `#f4c542` | Warning state |
-| `--info` | `#3498db` | `#58a6ff` | Informational state |
-| `--destructive` | `#d9534f` | `#ff6b6b` | Errors, destructive actions |
+| Token                  | Light     | Dark      | Use for                            |
+| ---------------------- | --------- | --------- | ---------------------------------- |
+| `--background`         | `#f4f7fc` | `#090f1a` | Page base                          |
+| `--foreground`         | `#1a2b4c` | `#eaf2ff` | Primary text                       |
+| `--card` / `--popover` | `#ffffff` | `#0d141f` | Raised surfaces                    |
+| `--primary`            | `#204b90` | `#5d8ff4` | Primary actions, links, active nav |
+| `--secondary`          | `#6355a4` | `#8a7af2` | Secondary emphasis                 |
+| `--accent`             | `#5d82d9` | `#3d5fb2` | Accent surfaces                    |
+| `--muted`              | `#e7ecf3` | `#1b2433` | Subtle fills, hover rows           |
+| `--muted-foreground`   | `#6c7480` | `#b6c1d6` | Secondary text                     |
+| `--border`             | `#c6ccd5` | `#2c364a` | Dividers, outlines                 |
+| `--input`              | `#d8dde6` | `#37435a` | Form control borders               |
+| `--ring`               | `#2a56a5` | `#4d76d1` | Focus rings                        |
+| `--success`            | `#2ecc71` | `#3ad578` | Success state                      |
+| `--warning`            | `#f1c40f` | `#f4c542` | Warning state                      |
+| `--info`               | `#3498db` | `#58a6ff` | Informational state                |
+| `--destructive`        | `#d9534f` | `#ff6b6b` | Errors, destructive actions        |
 
 Sidebar and chart token sets are also defined; see the file.
 
@@ -92,10 +92,10 @@ Sidebar and chart token sets are also defined; see the file.
 
 Two families, both self-hosted via `next/font/google`:
 
-| Role | Font | Variable | Tailwind |
-| --- | --- | --- | --- |
-| Sans / heading | Source Sans 3 | `--font-sans` | `font-sans`, `font-heading` |
-| Mono | Source Code Pro | `--font-source-code-pro` | `font-mono` |
+| Role           | Font            | Variable                 | Tailwind                    |
+| -------------- | --------------- | ------------------------ | --------------------------- |
+| Sans / heading | Source Sans 3   | `--font-sans`            | `font-sans`, `font-heading` |
+| Mono           | Source Code Pro | `--font-source-code-pro` | `font-mono`                 |
 
 `--font-heading` intentionally maps to the same family as `--font-sans`; there
 is no separate display face.
@@ -119,14 +119,14 @@ const sourceCodePro = Source_Code_Pro({ subsets: ["latin"], variable: "--font-so
 Observed frequencies across `apps/*/app`, `apps/*/components`, and
 `packages/ui/src`:
 
-| Step | Class | Approx. uses | Role |
-| --- | --- | --- | --- |
-| Micro | `text-[9px]`, `text-[10px]`, `text-[11px]` | 59 + 41 | Mono micro-labels, dense metadata |
-| Small | `text-xs` (12px) | 410 | Labels, table cells, help text |
-| Body-sm | `text-sm` (14px) | 307 | Default body inside components |
-| Base | `text-base` (16px) | 101 | Card titles, page intros |
-| Large | `text-lg` (18px) | 49 | Section subheads |
-| Display | `text-xl` → `text-4xl`+ | 36 / 36 / 41 / 28 | Marketing and page headings |
+| Step    | Class                                      | Approx. uses      | Role                              |
+| ------- | ------------------------------------------ | ----------------- | --------------------------------- |
+| Micro   | `text-[9px]`, `text-[10px]`, `text-[11px]` | 59 + 41           | Mono micro-labels, dense metadata |
+| Small   | `text-xs` (12px)                           | 410               | Labels, table cells, help text    |
+| Body-sm | `text-sm` (14px)                           | 307               | Default body inside components    |
+| Base    | `text-base` (16px)                         | 101               | Card titles, page intros          |
+| Large   | `text-lg` (18px)                           | 49                | Section subheads                  |
+| Display | `text-xl` → `text-4xl`+                    | 36 / 36 / 41 / 28 | Marketing and page headings       |
 
 `Card` sets `text-sm` as its base; `CardTitle` overrides to `text-base`.
 
@@ -143,12 +143,12 @@ font-mono text-[10px] font-semibold uppercase tracking-widest text-muted-foregro
 
 Variants in use:
 
-| Variant | Class string | Use |
-| --- | --- | --- |
-| Muted | `font-mono text-[10px] font-semibold uppercase tracking-widest text-muted-foreground` | Default eyebrow / group label |
-| Faded | same with `text-muted-foreground/70` | Tertiary grouping, inactive |
-| Primary | `font-mono text-[10px] font-semibold uppercase tracking-widest text-primary` | Current step, active group |
-| Plain | `font-mono text-[10px] font-semibold leading-none text-primary` | Inline numeric / step indicator |
+| Variant | Class string                                                                          | Use                             |
+| ------- | ------------------------------------------------------------------------------------- | ------------------------------- |
+| Muted   | `font-mono text-[10px] font-semibold uppercase tracking-widest text-muted-foreground` | Default eyebrow / group label   |
+| Faded   | same with `text-muted-foreground/70`                                                  | Tertiary grouping, inactive     |
+| Primary | `font-mono text-[10px] font-semibold uppercase tracking-widest text-primary`          | Current step, active group      |
+| Plain   | `font-mono text-[10px] font-semibold leading-none text-primary`                       | Inline numeric / step indicator |
 
 Rules:
 
@@ -162,15 +162,15 @@ Rules:
 
 One base value, multiplied into a scale. `--radius: 10px`.
 
-| Token | Formula | Computed | Use |
-| --- | --- | --- | --- |
-| `--radius-sm` | `× 0.6` | 6px | Dense internals, badges |
-| `--radius-md` | `× 0.8` | 8px | Inputs, small controls |
-| `--radius-lg` | `× 1.0` | 10px | Buttons, list rows — the default |
-| `--radius-xl` | `× 1.4` | 14px | Cards, popovers, panels |
-| `--radius-2xl` | `× 1.8` | 18px | Large feature containers |
-| `--radius-3xl` | `× 2.2` | 22px | Rare |
-| `--radius-4xl` | `× 2.6` | 26px | Rare |
+| Token          | Formula | Computed | Use                              |
+| -------------- | ------- | -------- | -------------------------------- |
+| `--radius-sm`  | `× 0.6` | 6px      | Dense internals, badges          |
+| `--radius-md`  | `× 0.8` | 8px      | Inputs, small controls           |
+| `--radius-lg`  | `× 1.0` | 10px     | Buttons, list rows — the default |
+| `--radius-xl`  | `× 1.4` | 14px     | Cards, popovers, panels          |
+| `--radius-2xl` | `× 1.8` | 18px     | Large feature containers         |
+| `--radius-3xl` | `× 2.2` | 22px     | Rare                             |
+| `--radius-4xl` | `× 2.6` | 26px     | Rare                             |
 
 Observed usage: `rounded-full` 159, `rounded-xl` 138, `rounded-lg` 119,
 `rounded-2xl` 71, `rounded-md` 48.
@@ -192,14 +192,14 @@ Standard Tailwind 4px scale. No custom spacing scale exists — do not invent on
 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
 ```
 
-| Width | Use |
-| --- | --- |
-| `max-w-7xl` | Default page container (27 uses) |
-| `max-w-6xl` / `max-w-4xl` | Wide marketing sections |
-| `max-w-3xl` | Prose and long-form reading (19 uses) |
-| `max-w-2xl` | Sub-headlines, focused content |
-| `max-w-md` | Forms, narrow panels (18 uses) |
-| `max-w-sm` | Small widgets |
+| Width                     | Use                                   |
+| ------------------------- | ------------------------------------- |
+| `max-w-7xl`               | Default page container (27 uses)      |
+| `max-w-6xl` / `max-w-4xl` | Wide marketing sections               |
+| `max-w-3xl`               | Prose and long-form reading (19 uses) |
+| `max-w-2xl`               | Sub-headlines, focused content        |
+| `max-w-md`                | Forms, narrow panels (18 uses)        |
+| `max-w-sm`                | Small widgets                         |
 
 **Gap vs space-y.** Shared components in `packages/ui` use `gap-*` and a
 `--card-spacing` custom property. Page-level markup in the consoles still uses
@@ -261,7 +261,7 @@ and `not-found.tsx`.
 - `animate-pulse` is for skeleton/loading affordances only, never a decorative
   icon next to a headline.
 - One-shot entrance animations (`animate-in fade-in slide-in-from-bottom-4
-  duration-500`) are acceptable once per section, not stacked.
+duration-500`) are acceptable once per section, not stacked.
 - New `motion` usage should set `useReducedMotion` or otherwise respect
   `prefers-reduced-motion`. `globals.css` already zeroes theme transitions
   under a reduced-motion media query; extend the same treatment.
@@ -277,12 +277,12 @@ families are the fastest way to make a UI look generated rather than designed.
 
 Sizes follow the control they sit in:
 
-| Context | Size |
-| --- | --- |
-| Button `xs` / `icon-xs` | `size-3` |
+| Context                 | Size       |
+| ----------------------- | ---------- |
+| Button `xs` / `icon-xs` | `size-3`   |
 | Button `sm` / `icon-sm` | `size-3.5` |
-| Button default and up | `size-4` |
-| Standalone emphasis | `size-5` |
+| Button default and up   | `size-4`   |
+| Standalone emphasis     | `size-5`   |
 
 Buttons normalize child icons automatically:
 `[&_svg:not([class*='size-'])]:size-4`. You rarely need to size an icon inside a
@@ -319,15 +319,15 @@ Root layouts set `<body>` height via `h-dvh` / `min-h-full` and apply
 `Card` is a slot-based compound component. Use the slots rather than overriding
 padding.
 
-| Slot | Purpose |
-| --- | --- |
-| `Card` | Container. `rounded-xl`, `bg-card`, `ring-1 ring-foreground/10` |
-| `CardHeader` | Grid, `auto-rows-min`; becomes `1fr auto` when a `card-action` is present |
-| `CardTitle` | `font-heading text-base font-medium` |
-| `CardDescription` | `text-sm text-muted-foreground` |
-| `CardAction` | Trailing control slot; drives the header's column split |
-| `CardContent` | `px-(--card-spacing)` |
-| `CardFooter` | Collapses the container's bottom padding |
+| Slot              | Purpose                                                                   |
+| ----------------- | ------------------------------------------------------------------------- |
+| `Card`            | Container. `rounded-xl`, `bg-card`, `ring-1 ring-foreground/10`           |
+| `CardHeader`      | Grid, `auto-rows-min`; becomes `1fr auto` when a `card-action` is present |
+| `CardTitle`       | `font-heading text-base font-medium`                                      |
+| `CardDescription` | `text-sm text-muted-foreground`                                           |
+| `CardAction`      | Trailing control slot; drives the header's column split                   |
+| `CardContent`     | `px-(--card-spacing)`                                                     |
+| `CardFooter`      | Collapses the container's bottom padding                                  |
 
 `CardHeader` auto-inserts a row when a `card-description` is present, and grows
 bottom padding when it carries a `border-b`.
@@ -338,7 +338,9 @@ Console pattern — a titled card with a trailing control:
 <Card>
   <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
     <CardTitle>Organizations</CardTitle>
-    <Button size="sm" variant="outline">New</Button>
+    <Button size="sm" variant="outline">
+      New
+    </Button>
   </CardHeader>
   <CardContent className="space-y-1">…</CardContent>
 </Card>
@@ -362,19 +364,19 @@ around part of it.
 **Badges are for state. Nothing else.** This is the strictest rule in the
 document.
 
-Ask: *does this value describe a state that changes over time and that a user
-must scan for or act on?*
+Ask: _does this value describe a state that changes over time and that a user
+must scan for or act on?_
 
-| | Example | Verdict |
-| --- | --- | --- |
-| ✅ Badge | organization `pending` / `active` / `suspended` | Genuine status |
-| ✅ Badge | application `approved` / `rejected` | Genuine status |
-| ✅ Badge | payment `succeeded` / `failed` | Genuine status |
-| ❌ Not a badge | `12 items` | Static count |
-| ❌ Not a badge | an organization ID | Static identifier |
-| ❌ Not a badge | a category or plan name on a table row | Static metadata |
-| ❌ Not a badge | a section eyebrow | Use the mono micro-label |
-| ❌ Not a badge | a count next to a nav item | Use plain muted text |
+|                | Example                                         | Verdict                  |
+| -------------- | ----------------------------------------------- | ------------------------ |
+| ✅ Badge       | organization `pending` / `active` / `suspended` | Genuine status           |
+| ✅ Badge       | application `approved` / `rejected`             | Genuine status           |
+| ✅ Badge       | payment `succeeded` / `failed`                  | Genuine status           |
+| ❌ Not a badge | `12 items`                                      | Static count             |
+| ❌ Not a badge | an organization ID                              | Static identifier        |
+| ❌ Not a badge | a category or plan name on a table row          | Static metadata          |
+| ❌ Not a badge | a section eyebrow                               | Use the mono micro-label |
+| ❌ Not a badge | a count next to a nav item                      | Use plain muted text     |
 
 For static metadata use `text-muted-foreground`, or the mono micro-label style
 when it is genuinely a small caps label.
@@ -458,13 +460,13 @@ UI `toast` does not apply here.
 
 Choose the right channel:
 
-| Situation | Use |
-| --- | --- |
-| Transient confirmation of a completed action | `toast` |
-| Persisted empty collection | `Empty` |
-| Field-level validation | `FieldError` |
-| Content-shaped placeholder | `Skeleton` |
-| Short unknown wait | `Spinner` |
+| Situation                                    | Use          |
+| -------------------------------------------- | ------------ |
+| Transient confirmation of a completed action | `toast`      |
+| Persisted empty collection                   | `Empty`      |
+| Field-level validation                       | `FieldError` |
+| Content-shaped placeholder                   | `Skeleton`   |
+| Short unknown wait                           | `Spinner`    |
 
 ### 3.7 Empty, loading, and error states
 
@@ -482,20 +484,20 @@ Choose the right channel:
 Do not add these. Several exist in the current marketing pages; that is
 existing debt, not the standard to follow.
 
-| Anti-pattern | Why it's wrong |
-| --- | --- |
-| Ambient glowing orbs, floating blobs, drifting gradient blobs | Looping decoration with no information value. Reads as generated. |
-| Gradient text on headings (`bg-linear-to-r from-primary via-indigo-500 to-purple-600 bg-clip-text`) | Brand gradient abuse. The primary is a solid brand color. |
-| `animate-pulse` on a decorative icon beside a headline | Motion with no state meaning. |
-| Badges for counts, IDs, categories, or section eyebrows | Misuses the one component reserved for state. See [§3.4](#34-status-and-badges). |
-| A badge in every card of a grid, or on every table row | Noise; destroys scannability. |
-| `transition-all` as a blanket | Animates layout; causes unintended motion. |
-| Raw palette colors (`emerald-600`, `indigo-500`) for meaning | Breaks light/dark parity and the token contract. |
-| Mixing Tabler with another icon family | Instantly reads as assembled rather than designed. |
-| Copy-pasted class strings instead of a `cva` variant | The override hack is why the badge situation is messy. |
-| Hardcoded hex values in components | Bypasses theming. |
-| Stacking multiple entrance animations in one section | Reads as a slideshow. |
-| Inventing a new spacing, radius, or type scale | The existing scales are the system. |
+| Anti-pattern                                                                                        | Why it's wrong                                                                   |
+| --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Ambient glowing orbs, floating blobs, drifting gradient blobs                                       | Looping decoration with no information value. Reads as generated.                |
+| Gradient text on headings (`bg-linear-to-r from-primary via-indigo-500 to-purple-600 bg-clip-text`) | Brand gradient abuse. The primary is a solid brand color.                        |
+| `animate-pulse` on a decorative icon beside a headline                                              | Motion with no state meaning.                                                    |
+| Badges for counts, IDs, categories, or section eyebrows                                             | Misuses the one component reserved for state. See [§3.4](#34-status-and-badges). |
+| A badge in every card of a grid, or on every table row                                              | Noise; destroys scannability.                                                    |
+| `transition-all` as a blanket                                                                       | Animates layout; causes unintended motion.                                       |
+| Raw palette colors (`emerald-600`, `indigo-500`) for meaning                                        | Breaks light/dark parity and the token contract.                                 |
+| Mixing Tabler with another icon family                                                              | Instantly reads as assembled rather than designed.                               |
+| Copy-pasted class strings instead of a `cva` variant                                                | The override hack is why the badge situation is messy.                           |
+| Hardcoded hex values in components                                                                  | Bypasses theming.                                                                |
+| Stacking multiple entrance animations in one section                                                | Reads as a slideshow.                                                            |
+| Inventing a new spacing, radius, or type scale                                                      | The existing scales are the system.                                              |
 
 The test for any new visual: **if removing it would lose no information, it
 should not be there.**

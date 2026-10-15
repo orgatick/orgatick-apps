@@ -3,12 +3,12 @@
 Four packages, three different consumption models. Getting the model right is what
 prevents "my change has no effect" bugs.
 
-| Package                        | Name                         | Consumption           | Build                |
-| ------------------------------ | ---------------------------- | --------------------- | -------------------- |
-| `packages/contract`            | `@orgatick/contracts`        | **built `dist/`**     | `tsup` → ESM + d.ts  |
-| `packages/ui`                  | `@orgatick/ui`               | raw TS source         | none                 |
-| `packages/address`             | `@orgatick/address`          | raw TS source         | none                 |
-| `packages/email`               | `@orgatick/email-templates`  | React Email CLI       | `email build`        |
+| Package             | Name                        | Consumption       | Build               |
+| ------------------- | --------------------------- | ----------------- | ------------------- |
+| `packages/contract` | `@orgatick/contracts`       | **built `dist/`** | `tsup` → ESM + d.ts |
+| `packages/ui`       | `@orgatick/ui`              | raw TS source     | none                |
+| `packages/address`  | `@orgatick/address`         | raw TS source     | none                |
+| `packages/email`    | `@orgatick/email-templates` | React Email CLI   | `email build`       |
 
 ## packages/contract — `@orgatick/contracts`
 
@@ -42,11 +42,11 @@ barrel that re-exports upward, and `src/index.ts` re-exports the domains.
 Each schema exports 2–4 aliases so consumers can pick a readable name:
 
 ```ts
-export const CreateAddressSchema = z.object({ /* ... */ });
-export const CreateAddressDtoSchema = CreateAddressSchema;   // alias
-export type CreateAddressDto    = z.infer<typeof CreateAddressSchema>;
-export type CreateAddressRequest = CreateAddressDto;          // alias
-export type CreateAddressInput  = z.input<typeof CreateAddressSchema>;
+export const CreateAddressSchema = z.object({/* ... */});
+export const CreateAddressDtoSchema = CreateAddressSchema; // alias
+export type CreateAddressDto = z.infer<typeof CreateAddressSchema>;
+export type CreateAddressRequest = CreateAddressDto; // alias
+export type CreateAddressInput = z.input<typeof CreateAddressSchema>;
 ```
 
 Roles: `Schema` (the value), `DtoSchema` (alias), `Dto`/`Query` (`z.infer`),
@@ -60,8 +60,17 @@ Query params arrive as strings from the URL, so query schemas use `z.coerce`:
 export const QueryCitySchema = z.object({
   countryId: z.coerce.bigint("Invalid country ID").optional(),
   search: z.string().optional(),
-  page: z.coerce.number().int("Page must be an integer").min(1, "Page must be at least 1").optional(),
-  limit: z.coerce.number().int("Limit must be an integer").min(1).max(100).optional(),
+  page: z.coerce
+    .number()
+    .int("Page must be an integer")
+    .min(1, "Page must be at least 1")
+    .optional(),
+  limit: z.coerce
+    .number()
+    .int("Limit must be an integer")
+    .min(1)
+    .max(100)
+    .optional(),
 });
 ```
 
@@ -69,7 +78,10 @@ Booleans need explicit handling — either `z.preprocess` (organization category
 query) or a union transform (country query):
 
 ```ts
-isActive: z.union([z.boolean(), z.enum(["true", "false"]).transform((v) => v === "true")]).optional()
+isActive: z.union([
+  z.boolean(),
+  z.enum(["true", "false"]).transform((v) => v === "true"),
+]).optional();
 ```
 
 Defaults belong in the query schema (`page: 1`, `limit: 20`, `sortBy`, `sortOrder`).
@@ -79,9 +91,9 @@ Defaults belong in the query schema (`page: 1`, `limit: 20`, `sortBy`, `sortOrde
 `src/common/response.ts` provides the documented envelope factories:
 
 ```ts
-createApiResponseSchema(dataSchema)            // { success, statusCode, data, timestamp }
-createPaginatedDataSchema(itemSchema)          // { items, meta: PaginationMeta }
-createPaginatedApiResponseSchema(itemSchema)   // envelope + { items, meta }
+createApiResponseSchema(dataSchema); // { success, statusCode, data, timestamp }
+createPaginatedDataSchema(itemSchema); // { items, meta: PaginationMeta }
+createPaginatedApiResponseSchema(itemSchema); // envelope + { items, meta }
 ```
 
 `PaginationMeta` is `{ total, page, limit, totalPages }` **nested under `meta`**.
@@ -91,7 +103,9 @@ The shape actually returned by live endpoints is the flat
 `total`/`page`/`limit`/`totalPages` sit at the **top level**:
 
 ```ts
-export const createPaginatedResultSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
+export const createPaginatedResultSchema = <T extends z.ZodTypeAny>(
+  itemSchema: T,
+) =>
   z.object({
     items: z.array(itemSchema),
     total: z.number().int().nonnegative(),
@@ -114,7 +128,10 @@ flat foreign keys:
 
 ```ts
 export const AddressCountryRefSchema = z.object({
-  id: z.bigint("Invalid country ID"), code: z.string(), code3: z.string(), name: z.string(),
+  id: z.bigint("Invalid country ID"),
+  code: z.string(),
+  code3: z.string(),
+  name: z.string(),
 });
 export const AddressResponseSchema = z.object({
   uuid: z.string("Invalid address UUID"),
@@ -204,19 +221,33 @@ imported by subpath. No `build` script: apps compile it directly.
 Component recipe (shadcn-style, on `@base-ui/react` + `cva`):
 
 ```tsx
-"use client";                                  // only when interactive
+"use client"; // only when interactive
 import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@orgatick/ui/lib/utils";
 
 const buttonVariants = cva("base classes...", {
-  variants: { variant: { default: "...", outline: "..." }, size: { default: "...", icon: "..." } },
+  variants: {
+    variant: { default: "...", outline: "..." },
+    size: { default: "...", icon: "..." },
+  },
   defaultVariants: { variant: "default", size: "default" },
 });
 
-function Button({ className, variant, size, ...props }: React.ComponentProps<typeof ButtonPrimitive> &
+function Button({
+  className,
+  variant,
+  size,
+  ...props
+}: React.ComponentProps<typeof ButtonPrimitive> &
   VariantProps<typeof buttonVariants>) {
-  return <ButtonPrimitive data-slot="button" className={cn(buttonVariants({ variant, size }), className)} {...props} />;
+  return (
+    <ButtonPrimitive
+      data-slot="button"
+      className={cn(buttonVariants({ variant, size }), className)}
+      {...props}
+    />
+  );
 }
 
 export { Button, buttonVariants };
@@ -273,7 +304,7 @@ Key patterns:
   client. `use-address-hierarchy.ts` is the reference implementation (loading and
   error state per level, `isMounted` guards).
 - **Form values derive from the contract:** `AddressFormValues =
-  Partial<CreateAddressDto> & { uuid?: string; [key: string]: unknown }`. Nested
+Partial<CreateAddressDto> & { uuid?: string; [key: string]: unknown }`. Nested
   fields use the `name` prop to build paths like `${name}.${field}`.
 - `build-formatted-address.ts` mirrors the backend's `formatAddressString`; both
   derive from the same address fields.

@@ -14,9 +14,24 @@ import { IconCheck, IconDeviceDesktop, IconMoon, IconSun } from "@tabler/icons-r
 import { useTheme } from "next-themes";
 
 export const THEME_OPTIONS = [
-  { value: "system", label: "System", description: "Follow device settings", icon: IconDeviceDesktop },
-  { value: "light", label: "Light", description: "Clean & bright", icon: IconSun },
-  { value: "dark", label: "Dark", description: "Easy on the eyes", icon: IconMoon },
+  {
+    value: "system",
+    label: "System",
+    description: "Follow device settings",
+    icon: IconDeviceDesktop,
+  },
+  {
+    value: "light",
+    label: "Light",
+    description: "Clean & bright",
+    icon: IconSun,
+  },
+  {
+    value: "dark",
+    label: "Dark",
+    description: "Easy on the eyes",
+    icon: IconMoon,
+  },
 ] as const;
 
 export type ThemeValue = (typeof THEME_OPTIONS)[number]["value"];

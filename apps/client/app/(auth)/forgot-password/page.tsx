@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import Header from "../_components/Header";
+import Header from "../_components/header";
 import ForgotPasswordForm from "./components/forgot-password-form";
 import ResetPasswordSkeleton from "../reset-password/components/reset-password-skeleton";
 

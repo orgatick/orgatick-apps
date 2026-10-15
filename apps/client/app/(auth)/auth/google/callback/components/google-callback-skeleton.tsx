@@ -1,4 +1,4 @@
-import Header from "@/app/(auth)/_components/Header";
+import Header from "@/app/(auth)/_components/header";
 import { IconBrandGoogle } from "@tabler/icons-react";
 
 export default function GoogleCallbackSkeleton() {

@@ -9,10 +9,22 @@ export const COOKIE_SECTIONS = [
   { id: "overview", number: "01", title: "Overview & Cookie Definition" },
   { id: "cookie-types", number: "02", title: "Types of Cookies We Use" },
   { id: "cookie-table", number: "03", title: "Inventory of Cookies & Storage" },
-  { id: "offline-cache", number: "04", title: "IndexedDB & Offline Gate Storage" },
+  {
+    id: "offline-cache",
+    number: "04",
+    title: "IndexedDB & Offline Gate Storage",
+  },
   { id: "third-party", number: "05", title: "Third-Party Gateways & Webhooks" },
-  { id: "control-settings", number: "06", title: "Managing Your Cookie Choices" },
-  { id: "updates-contact", number: "07", title: "Policy Updates & Legal Contact" },
+  {
+    id: "control-settings",
+    number: "06",
+    title: "Managing Your Cookie Choices",
+  },
+  {
+    id: "updates-contact",
+    number: "07",
+    title: "Policy Updates & Legal Contact",
+  },
 ];
 
 export const COOKIE_SUMMARY_BULLETS = [
