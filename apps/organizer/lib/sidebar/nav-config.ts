@@ -5,7 +5,14 @@ import type {
   OrganizationStatus,
   OrganizationVerificationStatus,
 } from "@orgatick/contracts";
-import { IconLayoutDashboard, IconPlus, IconSettings, IconShieldCheck, IconUsersGroup } from "@tabler/icons-react";
+import {
+  IconLayoutDashboard,
+  IconPlus,
+  IconSettings,
+  IconShieldCheck,
+  IconTicket,
+  IconUsersGroup,
+} from "@tabler/icons-react";
 
 export const NAV_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -84,6 +91,7 @@ export const SIDEBAR_NAV_GROUPS: SidebarNavGroup[] = [
     label: "Organization",
     items: [
       { href: "/", label: "Overview", icon: IconLayoutDashboard, exact: true },
+      { href: "/ticket-templates", label: "Ticket Templates", icon: IconTicket },
       { href: "/members", label: "Members", icon: IconUsersGroup },
       { href: "/verification", label: "Verification", icon: IconShieldCheck },
       { href: "/settings", label: "Settings", icon: IconSettings },

@@ -6,6 +6,8 @@
   "exports": {
     "./globals.css": "./src/styles/globals.css",
     "./components/*": "./src/components/*.tsx",
+    "./components/reui/*": "./src/components/reui/*.tsx",
+    "./components/color-picker": "./src/components/reui/color-picker.tsx",
     "./lib/*": "./src/lib/*.ts",
     "./utils": "./src/lib/utils.ts",
     "./assets/*": "./src/assets/*.tsx",
