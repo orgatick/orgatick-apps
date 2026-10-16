@@ -138,6 +138,14 @@ pnpm check-types                                     # then the whole repo
 pnpm lint
 ```
 
+## File size and splitting rules
+
+Maintain modularity, separation of concerns, and clean architectural boundaries:
+- **Target: < 200 lines of code**: The standard and preferred size for cohesive, readable components, services, and modules.
+- **250+ lines**: Actively consider splitting. Review responsibility growth, extract subcomponents, custom hooks/stores, helpers, or types.
+- **300+ lines**: Think twice — you need to split immediately. Exceeding 300 lines indicates an architectural violation or missed separation of concerns (e.g. monolithic dialogs, mixed UI and state, unextracted sub-views).
+- **Zustand for complex state**: For interactive UI flows with multiple sub-views, modal tabs, or complex state (like role creation, builders, multi-step dialogs), use a dedicated **Zustand store** to separate state/actions from UI components rather than bloating a single component file with prop-drilling.
+
 ## Reference files
 
 Load these on demand; do not read all of them up front.

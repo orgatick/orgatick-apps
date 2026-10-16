@@ -68,16 +68,6 @@ export function MembersListCard({ members, roles, canUpdate, canRemove }: Member
               Organization Members{" "}
               <span className="text-xs font-normal text-muted-foreground">({filteredMembers.length})</span>
             </CardTitle>
-            <AddMemberDialog
-              roles={roles}
-              defaultMethod="direct"
-              trigger={
-                <Button size="xs" variant="outline" className="gap-1 text-xs h-7">
-                  <IconUserPlus className="size-3" />
-                  Add Member
-                </Button>
-              }
-            />
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

@@ -1,5 +1,9 @@
 import { CACHE_MANAGER, type Cache } from "@nestjs/cache-manager";
-import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { In } from "typeorm";
+import { Permission } from "../../../../common/authorization/entities/permission.entity";
+import { RolePermission } from "../../../../common/authorization/entities/role-permission.entity";
+import { Role } from "../../../../common/authorization/entities/role.entity";
 import { normalizeEmail } from "../../../../common/utils/email.util";
 import { User } from "../../../users/entities/user.entity";
 import { membershipCacheKey } from "../../context/constants/organization-context.constants";
@@ -64,8 +68,192 @@ export class OrganizationMemberService {
     return await this.memberRepository.searchMembers(organizationId, query);
   }
 
+  async searchCandidateUsers(organizationId: bigint, options: { q?: string; limit?: number } = {}) {
+    return await this.memberRepository.searchCandidateUsers(organizationId, options);
+  }
+
   async getAvailableRoles(organizationId: bigint) {
     return await this.memberRepository.findAvailableRoles(organizationId);
+  }
+
+  async getDetailedRoles(organizationId: bigint) {
+    return await this.memberRepository.getDetailedRoles(organizationId);
+  }
+
+  async getAvailablePermissions() {
+    const permissions = await this.memberRepository.getAvailablePermissions();
+    return permissions.map((p) => ({
+      id: p.id.toString(),
+      key: p.key,
+      name: p.name,
+      description: p.description ?? null,
+      category: p.category,
+      resource: p.resource,
+      action: p.action,
+    }));
+  }
+
+  async createCustomRole(
+    organizationId: bigint,
+    dto: { name: string; description?: string | null; permissions: string[] },
+  ) {
+    const trimmedName = dto.name.trim();
+    const baseSlug = trimmedName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 50);
+
+    if (!baseSlug) {
+      throw new BadRequestException("Role name contains no valid alphanumeric characters.");
+    }
+
+    if (baseSlug === "owner") {
+      throw new BadRequestException("The 'owner' role is reserved and cannot be created.");
+    }
+
+    let key = baseSlug;
+    const existingRoleWithKey = await this.memberRepository.manager.findOne(Role, {
+      where: { organizationId, key },
+    });
+    if (existingRoleWithKey) {
+      key = `${baseSlug}_${Math.random().toString(36).slice(2, 6)}`;
+    }
+
+    const validPermissions = await this.memberRepository.manager.find(Permission, {
+      where: {
+        key: In(dto.permissions),
+        scope: In(["organization", "event"]),
+        isActive: true,
+      },
+    });
+
+    if (validPermissions.length === 0) {
+      throw new BadRequestException("Please select at least one valid organization or event permission.");
+    }
+
+    const newRole = await this.memberRepository.manager.save(
+      Role,
+      this.memberRepository.manager.create(Role, {
+        organizationId,
+        key,
+        name: trimmedName,
+        description: dto.description?.trim() || null,
+        isActive: true,
+      }),
+    );
+
+    const rolePermissions = validPermissions.map((permission) =>
+      this.memberRepository.manager.create(RolePermission, {
+        roleId: newRole.id,
+        permissionId: permission.id,
+      }),
+    );
+    await this.memberRepository.manager.save(RolePermission, rolePermissions);
+
+    return {
+      id: newRole.id.toString(),
+      key: newRole.key,
+      name: newRole.name,
+      description: newRole.description ?? null,
+      isCustom: true,
+      memberCount: 0,
+      permissions: validPermissions.map((p) => p.key),
+      createdAt: newRole.createdAt.toISOString(),
+    };
+  }
+
+  async updateCustomRole(
+    organizationId: bigint,
+    roleId: bigint,
+    dto: { name?: string; description?: string | null; permissions?: string[] },
+  ) {
+    const role = await this.memberRepository.findCustomRoleById(organizationId, roleId);
+    if (!role) {
+      throw new NotFoundException("Custom role not found in this organization or is a system default role.");
+    }
+
+    if (dto.name) {
+      role.name = dto.name.trim();
+    }
+    if (dto.description !== undefined) {
+      role.description = dto.description?.trim() || null;
+    }
+    await this.memberRepository.manager.save(Role, role);
+
+    if (dto.permissions) {
+      const validPermissions = await this.memberRepository.manager.find(Permission, {
+        where: {
+          key: In(dto.permissions),
+          scope: In(["organization", "event"]),
+          isActive: true,
+        },
+      });
+
+      if (validPermissions.length === 0) {
+        throw new BadRequestException("Please select at least one valid organization or event permission.");
+      }
+
+      await this.memberRepository.manager.delete(RolePermission, { roleId: role.id });
+      const rolePermissions = validPermissions.map((permission) =>
+        this.memberRepository.manager.create(RolePermission, {
+          roleId: role.id,
+          permissionId: permission.id,
+        }),
+      );
+      await this.memberRepository.manager.save(RolePermission, rolePermissions);
+    }
+
+    const assignedMembers = await this.memberRepository.findMembersWithRole(organizationId, role.id);
+    for (const member of assignedMembers) {
+      await this.invalidateMembershipCache(member.userId, organizationId);
+    }
+
+    const updated = await this.memberRepository.findCustomRoleById(organizationId, role.id);
+    const memberCount = await this.memberRepository.countMembersWithRole(organizationId, role.id);
+
+    return {
+      id: role.id.toString(),
+      key: role.key,
+      name: role.name,
+      description: role.description ?? null,
+      isCustom: true,
+      memberCount,
+      permissions: (updated?.permissions ?? []).filter((p) => p.isActive).map((p) => p.key),
+      createdAt: role.createdAt ? role.createdAt.toISOString() : undefined,
+    };
+  }
+
+  async deleteCustomRole(organizationId: bigint, roleId: bigint): Promise<{ id: string; deleted: boolean }> {
+    const role = await this.memberRepository.findCustomRoleById(organizationId, roleId);
+    if (!role) {
+      throw new NotFoundException("Custom role not found in this organization or is a system default role.");
+    }
+
+    const memberCount = await this.memberRepository.countMembersWithRole(organizationId, role.id);
+    if (memberCount > 0) {
+      throw new ConflictException(
+        `Cannot delete role "${role.name}" because ${memberCount} member(s) are currently assigned to it. Reassign those members first.`,
+      );
+    }
+
+    const pendingInviteCount = await this.memberRepository.manager.getRepository(OrganizationInvitation).count({
+      where: {
+        organizationId,
+        role: role.key,
+        status: OrganizationInvitationStatus.PENDING,
+      },
+    });
+    if (pendingInviteCount > 0) {
+      throw new ConflictException(
+        `Cannot delete role "${role.name}" because ${pendingInviteCount} pending invitation(s) use it. Revoke or update those invitations first.`,
+      );
+    }
+
+    await this.memberRepository.manager.delete(RolePermission, { roleId: role.id });
+    await this.memberRepository.manager.remove(Role, role);
+
+    return { id: role.id.toString(), deleted: true };
   }
 
   private async activeOwnerCount(organizationId: bigint): Promise<number> {

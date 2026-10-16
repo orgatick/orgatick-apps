@@ -2,6 +2,7 @@
 
 import { useTicketEditorStore } from "@/lib/ticket-editor/editor.store";
 import { EditorElementView } from "./editor-element-view";
+import Image from "next/image";
 
 export function EditorCanvas() {
   const canvas = useTicketEditorStore((s) => s.canvas);
@@ -48,7 +49,7 @@ export function EditorCanvas() {
         >
           {/* Background Image Layer */}
           {background?.url && (
-            <img
+            <Image
               src={background.url}
               alt="Ticket background"
               style={{ opacity: background.opacity ?? 1 }}

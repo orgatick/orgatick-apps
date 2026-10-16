@@ -170,8 +170,9 @@ Rules: install in the workspace that owns the usage; never hoist to the root
 `typeorm` and `ioredis`) — a new native or postinstall-heavy dependency may need an
 entry there.
 
-## Code size
+## Code size & splitting rules
 
-Keep files under roughly 200 lines where practical. When a file grows, split by
-responsibility, not to hit a number. Avoid giant `common/` folders and
-giant utility modules.
+- **Target: < 200 lines**: Standard and preferred size across both frontend and backend.
+- **250+ lines**: Actively consider splitting. Review responsibilities, extract subcomponents, stores, or helpers.
+- **300+ lines**: Think twice — you need to split immediately. If a file exceeds 300 lines, something is architecturally wrong (e.g. monolithic dialogs, mixed UI and state).
+- **Zustand for UI flows**: Use dedicated Zustand stores to decouple state and actions from UI rendering for modals, wizards, and interactive builders. Avoid giant single-file components.

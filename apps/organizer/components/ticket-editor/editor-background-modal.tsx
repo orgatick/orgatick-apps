@@ -6,6 +6,7 @@ import { Button } from "@orgatick/ui/components/button";
 import { useTicketEditorStore } from "@/lib/ticket-editor/editor.store";
 import { loadAndInspectImage } from "@/lib/ticket-editor/canvas-resize-helpers";
 import { BackgroundUploader } from "./background-uploader";
+import Image from "next/image";
 
 interface EditorBackgroundModalProps {
   open: boolean;
@@ -122,7 +123,7 @@ export function EditorBackgroundModal({ open, onClose }: EditorBackgroundModalPr
                   onClick={() => applyBaseImage(sample.url, sample.width, sample.height, true)}
                   className="group relative aspect-video rounded-lg overflow-hidden border border-border hover:border-primary transition-all text-left"
                 >
-                  <img src={sample.url} alt={sample.name} className="size-full object-cover" />
+                  <Image src={sample.url} alt={sample.name} className="size-full object-cover" />
                   <span className="absolute inset-x-0 bottom-0 bg-black/70 text-[9px] text-white p-1 truncate block font-mono">
                     {sample.width}×{sample.height}
                   </span>

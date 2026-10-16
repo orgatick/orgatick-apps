@@ -4,13 +4,14 @@ import { StorageModule } from "../../../infrastructure/storage/storage.module";
 import { OrganizationDocument, OrganizationRisk, OrganizationVerification, OrganizationWarning } from "./entities";
 import { OrganizationGovernanceRepository } from "./repositories/governance.repository";
 import { OrganizationGovernanceService } from "./services/governance.service";
+import { OrganizationNotificationMailerService } from "./services/organization-notification-mailer.service";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([OrganizationVerification, OrganizationRisk, OrganizationDocument, OrganizationWarning]),
     StorageModule,
   ],
-  providers: [OrganizationGovernanceService, OrganizationGovernanceRepository],
-  exports: [OrganizationGovernanceService, TypeOrmModule],
+  providers: [OrganizationGovernanceService, OrganizationGovernanceRepository, OrganizationNotificationMailerService],
+  exports: [OrganizationGovernanceService, OrganizationNotificationMailerService, TypeOrmModule],
 })
 export class OrganizationGovernanceModule {}

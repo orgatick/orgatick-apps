@@ -20,6 +20,7 @@ import { OrganizationMemberService } from "../../organization-member/services/me
 import { OrganizationFinanceService } from "../../organization-finance/services/finance.service";
 import { OrganizationPricingService } from "../../organization-finance/services/pricing.service";
 import { OrganizationGovernanceService } from "../../organization-governance/services/governance.service";
+import { OrganizationNotificationMailerService } from "../../organization-governance/services/organization-notification-mailer.service";
 import type { CreateOrganizationDto, OrganizationQueryDto, UpdateOrganizationDto } from "../dto";
 import type { Organization } from "../entities";
 import type CreateOrganizationRepo from "../interfaces/create-organization-repo.interface";
@@ -39,6 +40,7 @@ export class OrganizationService {
     @InjectRepository(OrganizationVerification)
     private readonly verificationRepository: Repository<OrganizationVerification>,
     private readonly trackingRepository: AdminTrackingRepository,
+    private readonly notificationMailer: OrganizationNotificationMailerService,
   ) {}
 
   private async generateUniqueSlug(name: string, customSlug?: string): Promise<string> {
@@ -74,7 +76,19 @@ export class OrganizationService {
 
     const organization = await this.createOrganization({ body, slug, userId, logo: logoUrl, files });
 
-    return await this.findById(organization.id);
+    const fullOrg = await this.findById(organization.id);
+
+    const recipientEmail = body.basicInfo.email;
+    if (recipientEmail) {
+      await this.notificationMailer.sendOrganizationCreated({
+        recipientEmail,
+        ownerName: fullOrg.creator?.name ?? body.basicInfo.name,
+        organizationName: fullOrg.name,
+        organizationSlug: fullOrg.slug,
+      });
+    }
+
+    return fullOrg;
   }
 
   @Transactional()
@@ -256,6 +270,16 @@ export class OrganizationService {
       actorId: actor.id,
       actorName: actor.name,
     });
+
+    const recipientEmail = org.email || userMember?.user?.email;
+    if (recipientEmail) {
+      await this.notificationMailer.sendVerificationRequestReceived({
+        recipientEmail,
+        ownerName: actor.name,
+        organizationName: org.name,
+        verificationReference: `VER-${organizationId.toString()}`,
+      });
+    }
 
     return verification;
   }

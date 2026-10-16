@@ -1,7 +1,13 @@
 import { Injectable } from "@nestjs/common";
-import { DataSource, type DeepPartial, IsNull, Repository } from "typeorm";
+import { DataSource, type DeepPartial, In, IsNull, Repository } from "typeorm";
 import { DEFAULT_ROLE_KEYS } from "../../../../common/authorization/roles/default-roles";
+import { Permission } from "../../../../common/authorization/entities/permission.entity";
 import { Role } from "../../../../common/authorization/entities/role.entity";
+
+import { normalizeEmail } from "../../../../common/utils/email.util";
+import { User } from "../../../users/entities/user.entity";
+import { OrganizationInvitation } from "../../organization-invitation/entities/organization-invitation.entity";
+import { OrganizationInvitationStatus } from "../../organization-invitation/enums/organization-invitation-status.enum";
 import { OrganizationMember } from "../entities/organization-member.entity";
 import { OrganizationMemberStatus } from "../enums/organization-member-status.enum";
 
@@ -123,7 +129,79 @@ export class OrganizationMemberRepository extends Repository<OrganizationMember>
         { organizationId, isActive: true },
         { organizationId: IsNull(), isActive: true },
       ],
+      relations: { permissions: true },
       order: { name: "ASC" },
+    });
+  }
+
+  async getAvailablePermissions(): Promise<Permission[]> {
+    return await this.manager.find(Permission, {
+      where: {
+        scope: In(["organization", "event"]),
+        isActive: true,
+      },
+      order: {
+        category: "ASC",
+        name: "ASC",
+      },
+    });
+  }
+
+  async getDetailedRoles(organizationId: bigint) {
+    const roles = await this.manager.find(Role, {
+      where: [
+        { organizationId, isActive: true },
+        { organizationId: IsNull(), isActive: true },
+      ],
+      relations: { permissions: true },
+      order: { name: "ASC" },
+    });
+
+    const memberCounts = await this.createQueryBuilder("member")
+      .select("member.role_id", "roleId")
+      .addSelect("COUNT(member.id)", "count")
+      .where("member.organization_id = :organizationId", { organizationId: organizationId.toString() })
+      .andWhere("member.status = :status", { status: OrganizationMemberStatus.ACTIVE })
+      .groupBy("member.role_id")
+      .getRawMany<{ roleId: string; count: string }>();
+
+    const countMap = new Map<string, number>();
+    for (const mc of memberCounts) {
+      countMap.set(mc.roleId, Number.parseInt(mc.count, 10));
+    }
+
+    return roles.map((role) => {
+      const roleIdStr = role.id.toString();
+      return {
+        id: roleIdStr,
+        key: role.key,
+        name: role.name,
+        description: role.description ?? null,
+        isCustom: role.organizationId !== null && role.organizationId !== undefined,
+        memberCount: countMap.get(roleIdStr) ?? 0,
+        permissions: (role.permissions ?? []).filter((p) => p.isActive).map((p) => p.key),
+        createdAt: role.createdAt ? role.createdAt.toISOString() : undefined,
+      };
+    });
+  }
+
+  async findCustomRoleById(organizationId: bigint, roleId: bigint): Promise<Role | null> {
+    return await this.manager.findOne(Role, {
+      where: { id: roleId, organizationId },
+      relations: { permissions: true },
+    });
+  }
+
+  async countMembersWithRole(organizationId: bigint, roleId: bigint): Promise<number> {
+    return await this.count({
+      where: { organizationId, roleId },
+    });
+  }
+
+  async findMembersWithRole(organizationId: bigint, roleId: bigint): Promise<OrganizationMember[]> {
+    return await this.find({
+      where: { organizationId, roleId },
+      select: { userId: true },
     });
   }
 
@@ -135,5 +213,70 @@ export class OrganizationMemberRepository extends Repository<OrganizationMember>
       .andWhere("member.status = :status", { status: OrganizationMemberStatus.ACTIVE })
       .andWhere("user.normalized_email = :normalizedEmail", { normalizedEmail })
       .getOne();
+  }
+
+  async searchCandidateUsers(
+    organizationId: bigint,
+    options: { q?: string; limit?: number } = {},
+  ): Promise<
+    Array<{
+      id: string;
+      name: string;
+      email: string;
+      avatar: string | null;
+      isMember: boolean;
+      isInvited: boolean;
+    }>
+  > {
+    const q = options.q?.trim();
+    const limit = Math.min(Math.max(options.limit ?? 10, 1), 50);
+
+    const qb = this.manager
+      .createQueryBuilder(User, "user")
+      .select(["user.id", "user.name", "user.email", "user.normalizedEmail", "user.avatar"]);
+
+    if (q) {
+      qb.where("user.name ILIKE :q OR user.email ILIKE :q", { q: `%${q}%` });
+    }
+
+    qb.orderBy("user.name", "ASC").take(limit);
+
+    const users = await qb.getMany();
+    if (users.length === 0) {
+      return [];
+    }
+
+    const userIds = users.map((u) => BigInt(u.id));
+    const activeMembers = await this.createQueryBuilder("member")
+      .where("member.organization_id = :organizationId", { organizationId: organizationId.toString() })
+      .andWhere("member.user_id IN (:...userIds)", { userIds })
+      .andWhere("member.status = :status", { status: OrganizationMemberStatus.ACTIVE })
+      .getMany();
+
+    const memberUserIds = new Set(activeMembers.map((m) => m.userId.toString()));
+
+    const normalizedEmails = users.map((u) => u.normalizedEmail || normalizeEmail(u.email));
+    const pendingInvites = await this.manager
+      .getRepository(OrganizationInvitation)
+      .createQueryBuilder("invitation")
+      .where("invitation.organization_id = :organizationId", { organizationId: organizationId.toString() })
+      .andWhere("invitation.email IN (:...normalizedEmails)", { normalizedEmails })
+      .andWhere("invitation.status = :status", { status: OrganizationInvitationStatus.PENDING })
+      .getMany();
+
+    const pendingEmails = new Set(pendingInvites.map((i) => i.email.toLowerCase()));
+
+    return users.map((u) => {
+      const email = u.email;
+      const normalized = (u.normalizedEmail || normalizeEmail(email)).toLowerCase();
+      return {
+        id: u.id.toString(),
+        name: u.name,
+        email,
+        avatar: u.avatar ?? null,
+        isMember: memberUserIds.has(u.id.toString()),
+        isInvited: pendingEmails.has(normalized),
+      };
+    });
   }
 }

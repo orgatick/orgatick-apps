@@ -481,7 +481,7 @@ function readChannels(name: string, parts: string[]): { space: ColorPickerColorS
     if (rgb.some((value) => value === null)) return null;
     return {
       space: "rgb",
-      channels: rgb.map((value) => clamp(value!, 0, 255)) as Triple,
+      channels: rgb.map((value) => clamp(value ?? 0, 0, 255)) as Triple,
     };
   }
   if (name === "hsl" || name === "hsv" || name === "hsb" || name === "hwb") {
@@ -1186,6 +1186,7 @@ export function ColorPicker({
      reset's default action, because any listener may still cancel it. */
   const hasField = !!name || required;
   useEffect(() => {
+    if (!hasField) return;
     const root = fieldRef.current?.getRootNode();
     if (!root) return;
     let pending = 0;
@@ -1555,7 +1556,7 @@ export function ColorPickerPanel({ className, children, ...props }: ColorPickerP
   const inline = useContext(SurfaceContext) === "inline";
   return (
     <div
-      role={inline ? "group" : undefined}
+      role="group"
       aria-labelledby={inline ? context.labelledBy : undefined}
       aria-label={inline && !context.labelledBy ? (context.label ?? context.i18n.labels.panelLabel) : undefined}
       data-slot="color-picker-panel"
@@ -2526,9 +2527,10 @@ export function ColorPickerSwatches({
         {...props}
       >
         {children ??
-          colors?.map((item, index) => {
+          colors?.map((item) => {
             const swatch = typeof item === "string" ? { value: item } : item;
-            return <ColorPickerSwatchItem key={`${index}-${swatch.value}`} value={swatch.value} label={swatch.label} />;
+            const key = swatch.label ? `${swatch.value}-${swatch.label}` : swatch.value;
+            return <ColorPickerSwatchItem key={key} value={swatch.value} label={swatch.label} />;
           })}
       </div>
     </SwatchesContext.Provider>
@@ -2558,6 +2560,7 @@ export function ColorPickerSwatchItem({
   className,
   style,
   onClick,
+  onKeyDown,
   ...props
 }: ColorPickerSwatchItemProps) {
   const context = useColorPickerContext("ColorPickerSwatchItem");
@@ -2587,6 +2590,15 @@ export function ColorPickerSwatchItem({
         if (event.defaultPrevented || inactive || !context.editable) return;
         swatches.setActiveId(id);
         context.change(color);
+      }}
+      onKeyDown={(event) => {
+        onKeyDown?.(event);
+        if (event.defaultPrevented || inactive || !context.editable) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          swatches.setActiveId(id);
+          context.change(color);
+        }
       }}
       {...props}
     >

@@ -183,9 +183,9 @@ Use domain-specific names. Avoid vague names like `data`, `item`, `manager`, `he
 ## 5. File Size and Splitting
 
 - **Under ~200 lines**: Normal and preferred if responsibility is coherent.
-- **200–300 lines**: Review responsibility and dependency growth.
-- **300–500 lines**: Actively consider splitting.
-- **500+ lines**: Split immediately unless there is a strong documented reason.
+- **200–250 lines**: Review responsibility and dependency growth.
+- **250+ lines**: Actively consider splitting into focused services, handlers, repositories, or submodules.
+- **300+ lines**: Think twice — split immediately. Exceeding 300 lines indicates an architectural violation or missed separation of concerns.
 - **Split by responsibility, not by method count.** Split when a class has multiple reasons to change, unrelated workflows, excessive dependencies, or large conditional trees.
 
 ```text

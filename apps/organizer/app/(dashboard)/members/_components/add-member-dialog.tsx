@@ -25,6 +25,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@orgatick/ui/componen
 import { Input } from "@orgatick/ui/components/input";
 import { handleApiError } from "@/lib/apis/api-error";
 import { addDirectMember, createTeamInvitation } from "@/lib/apis/organization.api";
+import { MemberUserAutocomplete } from "./member-user-autocomplete";
 import { RoleSelectField } from "./role-select-field";
 
 type AddMethod = "direct" | "invite";
@@ -95,7 +96,7 @@ export function AddMemberDialog({ roles, trigger, defaultMethod = "direct" }: Ad
           <DialogTitle>{method === "direct" ? "Add member directly" : "Invite member via email"}</DialogTitle>
           <DialogDescription>
             {method === "direct"
-              ? "Directly adds a registered user to your organization roster with immediate access."
+              ? "Select an existing Orgatick user to add them directly to your organization roster."
               : "Sends an email invitation link valid for 7 days so the recipient can join."}
           </DialogDescription>
         </DialogHeader>
@@ -130,15 +131,31 @@ export function AddMemberDialog({ roles, trigger, defaultMethod = "direct" }: Ad
               control={form.control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="member-email">Email address</FieldLabel>
-                  <Input
-                    {...field}
-                    id="member-email"
-                    type="email"
-                    autoComplete="off"
-                    aria-invalid={fieldState.invalid}
-                    placeholder="teammate@example.com"
-                  />
+                  <FieldLabel htmlFor="member-email">
+                    {method === "direct" ? "Registered user" : "Email address"}
+                  </FieldLabel>
+                  {method === "direct" ? (
+                    <MemberUserAutocomplete
+                      value={field.value}
+                      onChange={field.onChange}
+                      hasError={fieldState.invalid}
+                      onSwitchToInvite={(suggestedEmail) => {
+                        setMethod("invite");
+                        if (suggestedEmail) {
+                          form.setValue("email", suggestedEmail, { shouldValidate: true });
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Input
+                      {...field}
+                      id="member-email"
+                      type="email"
+                      autoComplete="off"
+                      aria-invalid={fieldState.invalid}
+                      placeholder="teammate@example.com"
+                    />
+                  )}
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                 </Field>
               )}

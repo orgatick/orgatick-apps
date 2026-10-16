@@ -10,13 +10,19 @@ import { OrganizationMemberService } from "../../organization-member/services/me
 import { OrganizationPermissionService } from "../../organization-member/services/organization-permission.service";
 import {
   AddOrganizationMemberSchema,
+  CreateOrganizationRoleSchema,
+  OrganizationCandidateUserQuerySchema,
   OrganizationMemberQuerySchema,
   UpdateMemberRoleSchema,
   UpdateMemberStatusSchema,
+  UpdateOrganizationRoleSchema,
   type AddOrganizationMemberDto,
+  type CreateOrganizationRoleDto,
+  type OrganizationCandidateUserQueryDto,
   type OrganizationMemberQueryDto,
   type UpdateMemberRoleDto,
   type UpdateMemberStatusDto,
+  type UpdateOrganizationRoleDto,
 } from "../dto";
 
 @UseGuards(OrganizationContextGuard, OrganizationPermissionGuard)
@@ -26,6 +32,19 @@ export class TeamMemberController {
     private readonly memberService: OrganizationMemberService,
     private readonly permissionService: OrganizationPermissionService,
   ) {}
+
+  /**
+   * GET /organizations/current/candidate-users
+   * Autocomplete/search registered users across the platform to add or invite.
+   */
+  @Get("candidate-users")
+  @RequirePermission(ORGANIZATION_PERMISSIONS.MEMBER_INVITE)
+  async searchCandidateUsers(
+    @CurrentOrganization() context: OrganizationContext,
+    @Query({ schema: OrganizationCandidateUserQuerySchema }) query: OrganizationCandidateUserQueryDto,
+  ) {
+    return await this.memberService.searchCandidateUsers(context.organizationId, query);
+  }
 
   /**
    * POST /organizations/current/members
@@ -55,12 +74,59 @@ export class TeamMemberController {
 
   /**
    * GET /organizations/current/roles
-   * Assignable roles: organization-scoped roles plus the platform defaults.
+   * Assignable roles: organization-scoped custom roles plus platform defaults, with permission details.
    */
   @Get("roles")
   @RequirePermission(ORGANIZATION_PERMISSIONS.MEMBER_VIEW)
   async listRoles(@CurrentOrganization() context: OrganizationContext) {
-    return await this.memberService.getAvailableRoles(context.organizationId);
+    return await this.memberService.getDetailedRoles(context.organizationId);
+  }
+
+  /**
+   * GET /organizations/current/roles/permissions
+   * Available permissions for creating and updating organization custom roles.
+   */
+  @Get("roles/permissions")
+  @RequirePermission(ORGANIZATION_PERMISSIONS.MEMBER_VIEW)
+  async listAvailablePermissions() {
+    return await this.memberService.getAvailablePermissions();
+  }
+
+  /**
+   * POST /organizations/current/roles
+   * Creates an organization-specific custom role with assigned permissions.
+   */
+  @Post("roles")
+  @RequirePermission(ORGANIZATION_PERMISSIONS.MEMBER_UPDATE)
+  async createCustomRole(
+    @CurrentOrganization() context: OrganizationContext,
+    @Body({ schema: CreateOrganizationRoleSchema }) dto: CreateOrganizationRoleDto,
+  ) {
+    return await this.memberService.createCustomRole(context.organizationId, dto);
+  }
+
+  /**
+   * PATCH /organizations/current/roles/:roleId
+   * Updates an organization custom role's name, description, and permissions.
+   */
+  @Patch("roles/:roleId")
+  @RequirePermission(ORGANIZATION_PERMISSIONS.MEMBER_UPDATE)
+  async updateCustomRole(
+    @CurrentOrganization() context: OrganizationContext,
+    @Param("roleId") roleId: string,
+    @Body({ schema: UpdateOrganizationRoleSchema }) dto: UpdateOrganizationRoleDto,
+  ) {
+    return await this.memberService.updateCustomRole(context.organizationId, BigInt(roleId), dto);
+  }
+
+  /**
+   * DELETE /organizations/current/roles/:roleId
+   * Deletes an organization custom role if no members are assigned to it.
+   */
+  @Delete("roles/:roleId")
+  @RequirePermission(ORGANIZATION_PERMISSIONS.MEMBER_UPDATE)
+  async deleteCustomRole(@CurrentOrganization() context: OrganizationContext, @Param("roleId") roleId: string) {
+    return await this.memberService.deleteCustomRole(context.organizationId, BigInt(roleId));
   }
 
   /**

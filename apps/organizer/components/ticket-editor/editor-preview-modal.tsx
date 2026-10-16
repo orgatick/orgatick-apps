@@ -7,6 +7,7 @@ import { Badge } from "@orgatick/ui/components/badge";
 import { useTicketEditorStore } from "@/lib/ticket-editor/editor.store";
 import { SAMPLE_ATTENDEE_PROFILES } from "@/lib/ticket-editor/sample-attendees";
 import QRCode from "react-qr-code";
+import Image from "next/image";
 
 interface EditorPreviewModalProps {
   open: boolean;
@@ -95,7 +96,7 @@ export function EditorPreviewModal({ open, onClose }: EditorPreviewModalProps) {
               className="absolute top-0 left-0 shadow-2xl rounded-xl overflow-hidden border border-border flex-none"
             >
               {background?.url && (
-                <img
+                <Image
                   src={background.url}
                   alt="Background"
                   className="absolute inset-0 size-full object-cover pointer-events-none"

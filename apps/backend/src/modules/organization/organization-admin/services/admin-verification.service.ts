@@ -4,6 +4,7 @@ import { type Repository } from "typeorm";
 import { OrganizationVerificationStatus } from "@orgatick/contracts";
 import { OrganizationVerification } from "../../organization-governance/entities/organization-verification.entity";
 import { OrganizationDocument } from "../../organization-governance/entities/organization-document.entity";
+import { OrganizationNotificationMailerService } from "../../organization-governance/services/organization-notification-mailer.service";
 import { OrganizationRepository } from "../../organization/repositories/organization.repository";
 import { AdminTrackingRepository } from "../repositories/admin-tracking.repository";
 import type { AdminActor } from "../types/admin.types";
@@ -16,6 +17,7 @@ export class AdminVerificationService {
     private readonly verificationRepository: Repository<OrganizationVerification>,
     private readonly organizationRepository: OrganizationRepository,
     private readonly trackingRepository: AdminTrackingRepository,
+    private readonly notificationMailer: OrganizationNotificationMailerService,
   ) {}
 
   private async getRecord(id: bigint): Promise<OrganizationVerification> {
@@ -91,7 +93,26 @@ export class AdminVerificationService {
     record.lastCheckedBy = actor?.id ?? null;
     await this.verificationRepository.save(record);
     await this.track(id, "approved", note, actor);
-    return this.organizationRepository.findAdminById(id);
+
+    const org = await this.organizationRepository.findAdminById(id);
+    if (org) {
+      const recipientEmail = org.email || org.creator?.email;
+      if (recipientEmail) {
+        await this.notificationMailer.sendVerificationApproved({
+          recipientEmail,
+          ownerName: org.creator?.name ?? org.name,
+          organizationName: org.name,
+          organizationSlug: org.slug,
+          verifiedAt: record.verifiedAt?.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+        });
+      }
+    }
+
+    return org;
   }
 
   async reject(id: bigint, actor: AdminActor | null, reason: string) {
@@ -101,7 +122,21 @@ export class AdminVerificationService {
     record.lastCheckedBy = actor?.id ?? null;
     await this.verificationRepository.save(record);
     await this.track(id, "rejected", reason, actor);
-    return this.organizationRepository.findAdminById(id);
+
+    const org = await this.organizationRepository.findAdminById(id);
+    if (org) {
+      const recipientEmail = org.email || org.creator?.email;
+      if (recipientEmail) {
+        await this.notificationMailer.sendVerificationRejected({
+          recipientEmail,
+          ownerName: org.creator?.name ?? org.name,
+          organizationName: org.name,
+          reason,
+        });
+      }
+    }
+
+    return org;
   }
 
   async revoke(id: bigint, actor: AdminActor | null, reason?: string) {

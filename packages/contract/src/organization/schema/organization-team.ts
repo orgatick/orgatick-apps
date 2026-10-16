@@ -45,3 +45,23 @@ export const AddOrganizationMemberSchema = z.object({
   role: z.string().trim().min(1, "Role is required").max(100),
 });
 export type AddOrganizationMember = z.infer<typeof AddOrganizationMemberSchema>;
+
+export const OrganizationCandidateUserQuerySchema = z.object({
+  q: z.string().trim().max(200).optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(10).optional(),
+});
+export type OrganizationCandidateUserQuery = z.infer<typeof OrganizationCandidateUserQuerySchema>;
+
+export const CreateOrganizationRoleSchema = z.object({
+  name: z.string().trim().min(2, "Role name must be at least 2 characters").max(100),
+  description: z.string().trim().max(500).optional().nullable(),
+  permissions: z.array(z.string().trim().min(1)).min(1, "Select at least one permission"),
+});
+export type CreateOrganizationRole = z.infer<typeof CreateOrganizationRoleSchema>;
+
+export const UpdateOrganizationRoleSchema = z.object({
+  name: z.string().trim().min(2, "Role name must be at least 2 characters").max(100).optional(),
+  description: z.string().trim().max(500).optional().nullable(),
+  permissions: z.array(z.string().trim().min(1)).min(1, "Select at least one permission").optional(),
+});
+export type UpdateOrganizationRole = z.infer<typeof UpdateOrganizationRoleSchema>;

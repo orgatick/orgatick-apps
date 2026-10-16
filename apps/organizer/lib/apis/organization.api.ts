@@ -1,14 +1,19 @@
 import type {
   AddOrganizationMember,
   CreateOrganizationInvitation,
+  CreateOrganizationRole,
   EffectivePermissionsResponse,
   InvitationStatusFilter,
+  OrganizationCandidateUserResponse,
   OrganizationInvitationResponse,
   OrganizationMemberResponse,
+  OrganizationPermissionOptionResponse,
   OrganizationPricingEligibilityResponse,
+  OrganizationRoleDetailResponse,
   OrganizationRoleOptionResponse,
   OrganizationBankAccountResponse,
   SaveOrganizationBankAccountDto,
+  UpdateOrganizationRole,
 } from "@orgatick/contracts";
 import api from "./auth.api";
 
@@ -32,12 +37,38 @@ export async function fetchTeamMembers(): Promise<OrganizationMemberResponse[]> 
   return await unwrap<OrganizationMemberResponse[]>(api.get(`${TEAM_BASE}/members`));
 }
 
+export async function searchCandidateUsers(query?: {
+  q?: string;
+  limit?: number;
+}): Promise<OrganizationCandidateUserResponse[]> {
+  return await unwrap<OrganizationCandidateUserResponse[]>(api.get(`${TEAM_BASE}/candidate-users`, { params: query }));
+}
+
 export async function addDirectMember(input: AddOrganizationMember): Promise<OrganizationMemberResponse> {
   return await unwrap<OrganizationMemberResponse>(api.post(`${TEAM_BASE}/members`, input));
 }
 
 export async function fetchTeamRoles(): Promise<OrganizationRoleOptionResponse[]> {
   return await unwrap<OrganizationRoleOptionResponse[]>(api.get(`${TEAM_BASE}/roles`));
+}
+
+export async function fetchAvailablePermissions(): Promise<OrganizationPermissionOptionResponse[]> {
+  return await unwrap<OrganizationPermissionOptionResponse[]>(api.get(`${TEAM_BASE}/roles/permissions`));
+}
+
+export async function createCustomRole(input: CreateOrganizationRole): Promise<OrganizationRoleDetailResponse> {
+  return await unwrap<OrganizationRoleDetailResponse>(api.post(`${TEAM_BASE}/roles`, input));
+}
+
+export async function updateCustomRole(
+  roleId: string,
+  input: UpdateOrganizationRole,
+): Promise<OrganizationRoleDetailResponse> {
+  return await unwrap<OrganizationRoleDetailResponse>(api.patch(`${TEAM_BASE}/roles/${roleId}`, input));
+}
+
+export async function deleteCustomRole(roleId: string): Promise<{ id: string; deleted: boolean }> {
+  return await unwrap<{ id: string; deleted: boolean }>(api.delete(`${TEAM_BASE}/roles/${roleId}`));
 }
 
 export async function fetchEffectivePermissions(): Promise<EffectivePermissionsResponse> {

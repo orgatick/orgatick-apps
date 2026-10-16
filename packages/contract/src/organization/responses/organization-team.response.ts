@@ -6,6 +6,9 @@ export const OrganizationRoleOptionResponseSchema = z.object({
   key: z.string(),
   name: z.string(),
   description: z.string().nullable(),
+  isCustom: z.boolean().optional(),
+  memberCount: z.number().optional(),
+  permissions: z.array(z.string()).optional(),
 });
 export type OrganizationRoleOptionResponse = z.infer<typeof OrganizationRoleOptionResponseSchema>;
 
@@ -93,3 +96,51 @@ export const OrganizationVerificationRequestResponseSchema = createApiResponseSc
   }),
 );
 export type OrganizationVerificationRequestResponse = z.infer<typeof OrganizationVerificationRequestResponseSchema>;
+
+export const OrganizationCandidateUserResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  avatar: z.string().nullable(),
+  isMember: z.boolean(),
+  isInvited: z.boolean().optional(),
+});
+export type OrganizationCandidateUserResponse = z.infer<typeof OrganizationCandidateUserResponseSchema>;
+
+export const OrganizationCandidateUserListResponseSchema = createApiResponseSchema(
+  z.array(OrganizationCandidateUserResponseSchema),
+);
+export type OrganizationCandidateUserListResponse = z.infer<typeof OrganizationCandidateUserListResponseSchema>;
+
+export const OrganizationPermissionOptionResponseSchema = z.object({
+  id: z.string(),
+  key: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  category: z.string(),
+  resource: z.string(),
+  action: z.string(),
+});
+export type OrganizationPermissionOptionResponse = z.infer<typeof OrganizationPermissionOptionResponseSchema>;
+
+export const OrganizationPermissionListResponseSchema = createApiResponseSchema(
+  z.array(OrganizationPermissionOptionResponseSchema),
+);
+export type OrganizationPermissionListResponse = z.infer<typeof OrganizationPermissionListResponseSchema>;
+
+export const OrganizationRoleDetailResponseSchema = z.object({
+  id: z.string(),
+  key: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  isCustom: z.boolean(),
+  memberCount: z.number().optional(),
+  permissions: z.array(z.string()),
+  createdAt: z.string().datetime().optional(),
+});
+export type OrganizationRoleDetailResponse = z.infer<typeof OrganizationRoleDetailResponseSchema>;
+
+export const OrganizationRoleDetailListResponseSchema = createApiResponseSchema(
+  z.array(OrganizationRoleDetailResponseSchema),
+);
+export type OrganizationRoleDetailListResponse = z.infer<typeof OrganizationRoleDetailListResponseSchema>;
