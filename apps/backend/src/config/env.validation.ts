@@ -9,6 +9,7 @@ export const envSchema = z.object({
   DATABASE_USER: z.string().min(1),
   DATABASE_PASSWORD: z.string().min(1),
   DATABASE_NAME: z.string().min(1),
+  DATABASE_SSL: z.enum(["true", "false"]).default("false"),
 
   /** Full connection string (e.g., rediss://default:password@host:6379) for hosted Redis like Upstash */
   REDIS_URL: z.preprocess((value) => (value === "" ? undefined : value), z.string().min(1).optional()),

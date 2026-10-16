@@ -16,6 +16,13 @@ services:
     volumes:
       - ./config.yml:/etc/cloudflared/config.yml:ro
       - ./credentials/tunnel-credential.json:/etc/cloudflared/credentials.json:ro
+
+    networks:
+      - orgatick
       
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+networks:
+  orgatick:
+    external: true

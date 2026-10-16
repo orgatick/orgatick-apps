@@ -14,4 +14,10 @@ ingress:
   - hostname: dev-org.orgatick.site
     service: http://host.docker.internal:3001
 
+  - hostname: dev-db.orgatick.site
+    service: http://pgadmin:80
+
+  - hostname: db.orgatick.site
+    service: http://pgadmin:80
+
   - service: http_status:404

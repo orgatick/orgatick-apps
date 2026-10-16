@@ -1,0 +1,45 @@
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: orgatick-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5000:5432"
+    volumes:
+      - orgatick_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - orgatick
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: orgatick-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    volumes:
+      - orgatick_pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - orgatick
+
+volumes:
+  orgatick_postgres_data:
+  orgatick_pgadmin_data:
+
+networks:
+  orgatick:
+    external: true
