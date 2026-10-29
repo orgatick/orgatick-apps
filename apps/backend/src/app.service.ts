@@ -25,7 +25,7 @@ export class AppService {
   ) {}
 
   getHello(): string {
-    return "Hello World from dev 40!";
+    return "Welcome to orgatick.!";
   }
 
   async getHealth() {
