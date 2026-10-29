@@ -7,5 +7,5 @@ export default defineConfig({
   outDir: "dist",
   dts: true,
   sourcemap: true,
-  clean: true,
+  clean: false,
 });

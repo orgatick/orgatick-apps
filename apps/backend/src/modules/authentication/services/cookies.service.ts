@@ -11,34 +11,29 @@ export class CookieService {
   constructor(private readonly configService: ConfigService) {
     const isProd = this.configService.get<string>("NODE_ENV") === "production";
     const configuredDomain = this.configService.get<string>("COOKIE_DOMAIN");
-    const cookieDomain = isProd
-      ? configuredDomain
-      : configuredDomain && !configuredDomain.includes("localhost")
+    const isLocalhost = !configuredDomain || configuredDomain.includes("localhost") || configuredDomain === "127.0.0.1";
+    const cookieDomain = isLocalhost
+      ? undefined
+      : configuredDomain.startsWith(".")
         ? configuredDomain
-        : undefined;
-    const isSecure = isProd || Boolean(cookieDomain && !cookieDomain.includes("localhost"));
+        : `.${configuredDomain}`;
+
+    const isSecure = isProd || Boolean(cookieDomain);
     this.cookieOptions = {
       httpOnly: true,
       secure: isSecure,
-      sameSite: isSecure ? "none" : "lax",
+      sameSite: "lax",
       ...(cookieDomain ? { domain: cookieDomain } : {}),
       path: "/",
     };
   }
 
   setAuthCookies(response: Response, token: TokenPair) {
-    if (this.cookieOptions.domain) {
-      response.clearCookie("access_token", { path: "/" });
-      response.clearCookie("refresh_token", { path: "/" });
-    }
     response.cookie("access_token", token.accessToken, { ...this.cookieOptions, maxAge: this.accessTokenTime });
     response.cookie("refresh_token", token.refreshToken, { ...this.cookieOptions, maxAge: this.refreshTokenTime });
   }
 
   setAccessToken(response: Response, accessToken: string) {
-    if (this.cookieOptions.domain) {
-      response.clearCookie("access_token", { path: "/" });
-    }
     response.cookie("access_token", accessToken, { ...this.cookieOptions, maxAge: this.accessTokenTime });
   }
 

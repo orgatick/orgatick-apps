@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
 import { cookies } from "next/headers";
-import { createServerApiClient } from "@/lib/apis/server-auth-api";
+import { createServerApiClient, isRedirectError } from "@/lib/apis/server-auth-api";
 import { redirect } from "next/navigation";
 
 export default async function AccountLayout({ children }: { children: ReactNode }) {
@@ -13,7 +13,10 @@ export default async function AccountLayout({ children }: { children: ReactNode 
     if (!response.data?.data) {
       redirect("/login?error=unauthorized");
     }
-  } catch {
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
     redirect("/login?error=unauthorized");
   }
 

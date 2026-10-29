@@ -24,6 +24,7 @@
     "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
+    "dev": "tsup --watch",
     "build": "tsup",
     "check-types": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
@@ -37,14 +38,13 @@
     "clean": "rm -rf .next dist out .turbo"
   },
   "dependencies": {
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "peerDependencies": {
     "zod": ">=3.20.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.9",
-    "@changesets/cli": "^3.0.1",
+    "@changesets/cli": "^3.0.3",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"

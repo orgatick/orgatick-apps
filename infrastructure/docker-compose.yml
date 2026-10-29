@@ -1,4 +1,4 @@
 include:
   - ./cloudflared/docker-compose.yml
   - ./redis/docker-compose.yml
-  - ./postgres/docker-compose.yml
+  # - ./postgres/docker-compose.yml

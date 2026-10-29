@@ -1,5 +1,5 @@
 import api from "@/lib/apis/auth.api";
-import serverApi from "@/lib/apis/server-auth-api";
+import serverApi, { isRedirectError } from "@/lib/apis/server-auth-api";
 import type { UserResponse } from "@orgatick/contracts";
 import type { UpdateProfileInput, UserProfileApiResponse } from "../_types/user.types";
 
@@ -26,7 +26,10 @@ export const userService = {
       const client = await serverApi();
       const response = await client.get<UserProfileApiResponse>("/users/me");
       return response.data.data || response.data.user || null;
-    } catch {
+    } catch (error) {
+      if (isRedirectError(error)) {
+        throw error;
+      }
       return null;
     }
   },

@@ -5,8 +5,8 @@ export const AdminOrganizationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   search: z.string().trim().max(255).optional(),
-  status: z.enum(Object.values(OrganizationStatus)).optional(),
-  verificationStatus: z.enum(Object.values(OrganizationVerificationStatus)).optional(),
+  status: z.nativeEnum(OrganizationStatus).optional(),
+  verificationStatus: z.nativeEnum(OrganizationVerificationStatus).optional(),
   categoryId: z.coerce.number().int().positive().optional(),
   blocked: z.preprocess(
     (value) => (value === undefined ? undefined : value === "true" || value === true),
@@ -22,7 +22,7 @@ export const AdminOrganizationQuerySchema = z.object({
 export type AdminOrganizationQueryDto = z.infer<typeof AdminOrganizationQuerySchema>;
 
 export const UpdateOrganizationStatusSchema = z.object({
-  status: z.enum(Object.values(OrganizationStatus)),
+  status: z.nativeEnum(OrganizationStatus),
   reason: z.string().trim().max(500).optional(),
 });
 export type UpdateOrganizationStatusDto = z.infer<typeof UpdateOrganizationStatusSchema>;

@@ -8,7 +8,8 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "format": "biome format --write .",
-    "check": "biome check --write .",
+    "check": "biome check .",
+    "check:write": "biome check --write .",
     "check-types": "turbo run check-types",
     "typecheck": "turbo run check-types",
     "clean": "turbo run clean && rm -rf node_modules",
@@ -16,11 +17,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.8",
-    "turbo": "^2.11.8",
+    "turbo": "^2.11.10",
     "typescript": "5.9.2"
   },
-  "packageManager": "pnpm@11.23.0",
+  "packageManager": "pnpm@12.15.0",
   "engines": {
-    "node": ">=24"
+    "node": "26.12.1"
   }
 }

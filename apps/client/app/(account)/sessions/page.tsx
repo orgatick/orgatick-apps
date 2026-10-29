@@ -12,7 +12,7 @@ import {
   BreadcrumbSeparator,
 } from "@orgatick/ui/components/breadcrumb";
 import { IconChevronRight, IconDevices, IconHome } from "@tabler/icons-react";
-import { createServerApiClient } from "@/lib/apis/server-auth-api";
+import { createServerApiClient, isRedirectError } from "@/lib/apis/server-auth-api";
 import { CurrentSessionCard } from "./_components/current-session-card";
 import { SessionsHeader } from "./_components/sessions-header";
 import { SessionsList } from "./_components/sessions-list";
@@ -40,6 +40,9 @@ export default async function SessionsPage() {
       initialSessions = response.data as unknown as SessionResponse[];
     }
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
     const status = (error as { response?: { status?: number } })?.response?.status;
     throw new Error(`Failed to fetch sessions. Status: ${status || "unknown"}`);
   }

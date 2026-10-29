@@ -39,7 +39,7 @@ export class UserRegistrationService {
   }
 
   @Transactional()
-  private async createUser(registerUserDto: SignupDTO, normalizedEmail: string, provider: AuthProvider) {
+  private async createUser(registerUserDto: SignupDTO, normalizedEmail: string, provider: AuthProvider): Promise<User> {
     const user = this.userRepository.create({
       ...registerUserDto,
       normalizedEmail,

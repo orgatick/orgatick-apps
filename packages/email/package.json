@@ -13,14 +13,13 @@
     "preview:build": "email build"
   },
   "dependencies": {
-    "@react-email/render": "^2.1.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-email": "6.9.5"
+    "@react-email/render": "^2.1.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-email": "6.11.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.13",
-    "@react-email/ui": "6.9.5",
+    "@react-email/ui": "6.11.3",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "typescript": "5.9.2"

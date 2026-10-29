@@ -24,7 +24,6 @@ The robust, scalable, and modular backend API for **Orgatick**, built with [Nest
 ## Overview
 
 `orgatick-backend` powers the core identity, authentication, user management, geographic addressing, and file management services of the Orgatick ecosystem. It features:
-
 - Standardized API contracts and input validation using [Zod](https://zod.dev/) via `@orgatick/contracts`.
 - Transactional consistency with `typeorm-transactional`.
 - Resilient distributed caching and rate-limiting backed by Redis.
@@ -53,24 +52,29 @@ The robust, scalable, and modular backend API for **Orgatick**, built with [Nest
 ## Features & Modules
 
 ### 1. Authentication (`src/modules/authentication`)
+
 - **Sign In / Sign Up**: Email & password authentication with secure bcrypt password hashing.
 - **Session Management**: Multi-device session tracking, refresh token rotation, cookie-based token storage, and session revocation.
 - **Password Recovery**: Secure password reset flow and change password operations.
 
 ### 2. Identity & Security (`src/modules/identity`)
+
 - **Security & Multi-Factor**: Backup codes, passkeys (WebAuthn), and verification tokens.
 - **Login Auditing**: Tracking login attempts, devices, and security logs.
 
 ### 3. Users (`src/modules/users`)
+
 - **Profile Management**: Get current user profile (`/me`), update user info, avatar management.
 - **User CRUD**: Management endpoints for administrative and platform operations.
 
 ### 4. Address & Geography (`src/modules/address`)
+
 - **Hierarchical Geo Data**: Countries, Administrative Divisions (States / Provinces), and Cities.
 - **User Addresses**: CRUD operations for managing shipping and billing addresses.
 - **Built-in Seeders**: Pre-populated datasets for countries, administrative divisions, and cities.
 
 ### 5. Infrastructure (`src/infrastructure`)
+
 - **Storage**: Cloudflare R2 (S3-compatible) support for both public and private buckets with secure presigned URL generation.
 - **Rate Limiting**: Sliding-window Redis-based rate limiting guard with route-level configuration.
 - **Mail**: Asynchronous email delivery via Resend API.
@@ -119,7 +123,6 @@ orgatick-backend/
 ## Prerequisites
 
 Ensure you have the following installed on your system:
-
 - [Node.js](https://nodejs.org/) (>= 22.x or 24.x recommended)
 - [pnpm](https://pnpm.io/) (>= 9.x)
 - [PostgreSQL](https://www.postgresql.org/) (>= 15.x)
@@ -193,20 +196,20 @@ pnpm run seed
 
 ## Available Scripts
 
-| Command | Description |
-| :--- | :--- |
-| `pnpm run start` | Starts the application with Nest CLI |
-| `pnpm run start:dev` | Starts the application in watch mode |
-| `pnpm run start:debug` | Starts the application in debug mode |
-| `pnpm run build` | Builds the application to `dist/` |
-| `pnpm run start:prod` | Runs the compiled production build from `dist/main` |
-| `pnpm run check` | Checks formatting and linter issues using Biome |
-| `pnpm run format` | Auto-formats codebase using Biome |
-| `pnpm run lint` | Lints and auto-fixes issues using Biome |
-| `pnpm run migration:generate` | Generates a new migration against compiled data-source |
-| `pnpm run migration:run` | Runs all pending database migrations |
-| `pnpm run migration:revert` | Reverts the last migration |
-| `pnpm run seed` | Seeds geographical data (countries, administrative divisions, cities) |
+| Command                       | Description                                                           |
+| :---------------------------- | :-------------------------------------------------------------------- |
+| `pnpm run start`              | Starts the application with Nest CLI                                  |
+| `pnpm run start:dev`          | Starts the application in watch mode                                  |
+| `pnpm run start:debug`        | Starts the application in debug mode                                  |
+| `pnpm run build`              | Builds the application to `dist/`                                     |
+| `pnpm run start:prod`         | Runs the compiled production build from `dist/main`                   |
+| `pnpm run check`              | Checks formatting and linter issues using Biome                       |
+| `pnpm run format`             | Auto-formats codebase using Biome                                     |
+| `pnpm run lint`               | Lints and auto-fixes issues using Biome                               |
+| `pnpm run migration:generate` | Generates a new migration against compiled data-source                |
+| `pnpm run migration:run`      | Runs all pending database migrations                                  |
+| `pnpm run migration:revert`   | Reverts the last migration                                            |
+| `pnpm run seed`               | Seeds geographical data (countries, administrative divisions, cities) |
 
 ---
 

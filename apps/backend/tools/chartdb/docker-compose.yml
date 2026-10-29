@@ -4,11 +4,11 @@ services:
     container_name: orgatick-chartdb
 
     ports:
-      - "6060:80" 
+      - "6060:80"
 
     env_file:
       - ../../.env
- 
+
     environment:
       DISABLE_ANALYTICS: "true"
 
