@@ -21,6 +21,7 @@ import { OrganizationFinanceService } from "../../organization-finance/services/
 import { OrganizationPricingService } from "../../organization-finance/services/pricing.service";
 import { OrganizationGovernanceService } from "../../organization-governance/services/governance.service";
 import { OrganizationNotificationMailerService } from "../../organization-governance/services/organization-notification-mailer.service";
+import { SubscriptionLifecycleService } from "../../../subscription/services/subscription-lifecycle.service";
 import type { CreateOrganizationDto, OrganizationQueryDto, UpdateOrganizationDto } from "../dto";
 import type { Organization } from "../entities";
 import type CreateOrganizationRepo from "../interfaces/create-organization-repo.interface";
@@ -41,6 +42,7 @@ export class OrganizationService {
     private readonly verificationRepository: Repository<OrganizationVerification>,
     private readonly trackingRepository: AdminTrackingRepository,
     private readonly notificationMailer: OrganizationNotificationMailerService,
+    private readonly subscriptionLifecycleService: SubscriptionLifecycleService,
   ) {}
 
   private async generateUniqueSlug(name: string, customSlug?: string): Promise<string> {
@@ -114,6 +116,9 @@ export class OrganizationService {
       await this.organizationRepository.createStats(organization.id);
       await this.organizationRepository.addSocialLinks(organization.id, data.body.socialLinks ?? []);
       await this.organizationRepository.addSupportContacts(organization.id, data.body.supportContacts ?? []);
+
+      // Subscription: Auto-assign Free plan and initialize usage counters
+      await this.subscriptionLifecycleService.assignFreeSubscription(organization.id);
 
       // Governance: KYC Documents
       if (data.body.document && data.body.document.length > 0) {
