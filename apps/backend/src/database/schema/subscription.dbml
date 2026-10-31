@@ -1,0 +1,613 @@
+// ==============================================================================
+// ORGATICK - SUBSCRIPTION & ENTITLEMENT SUBSYSTEM (DBML SPECIFICATION)
+// Target: PostgreSQL 16+
+// Conventions:
+//   - Schema: "subscription" (with cross-schema foreign keys to "organization", "identity", "payments")
+//   - Primary Keys: bigint identity generated increment (BIGINT GENERATED ALWAYS AS IDENTITY)
+//   - Monetary amounts: bigint (minor units, e.g. Paise for INR, Cents for USD) to eliminate rounding errors
+//   - Timestamps: timestamptz with default `now()`
+//   - Multi-Tenant & Auditability: Versioned entitlements, immutable invoice line items, immutable history
+// ==============================================================================
+
+// ------------------------------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------------------------------
+
+Enum "subscription"."subscription_status" {
+  "trialing"            [note: "In trial period; payment method authorized or pending"]
+  "active"              [note: "Current, paid, and valid subscription"]
+  "past_due"            [note: "Renewal payment attempt failed; dunning active"]
+  "grace_period"        [note: "Temporary 7-day operational grace period while retrying"]
+  "paused"              [note: "Temporarily frozen by administrative or tenant action"]
+  "canceled"            [note: "Canceled by user; active until current_period_end"]
+  "expired"             [note: "Fully lapsed; non-destructive read-only freeze active"]
+}
+
+Enum "subscription"."billing_interval" {
+  "none"                [note: "Perpetual lifetime (used for Free tier)"]
+  "month"               [note: "Monthly recurring billing cycle"]
+  "year"                [note: "Annual recurring billing cycle (typically discounted)"]
+}
+
+Enum "subscription"."limit_scope_type" {
+  "concurrent"          [note: "Active simultaneous resource instances (e.g. active events)"]
+  "total"               [note: "Total cumulative resource allocations (e.g. seats, storage bytes)"]
+  "monthly_quota"       [note: "Resetting periodic consumption (e.g. monthly API calls)"]
+  "retention_window"    [note: "Time-series data query horizon (e.g. analytics retention days)"]
+}
+
+Enum "subscription"."metric_type" {
+  "gauge"               [note: "Current continuous value that can increase or decrease"]
+  "counter"             [note: "Monotonically increasing metered value over a time window"]
+  "time_interval"       [note: "Temporal window expressed in days or hours"]
+}
+
+Enum "subscription"."metric_unit" {
+  "count"               [note: "Unit count of discrete objects (seats, roles, events)"]
+  "bytes"               [note: "Storage capacity measured in bytes"]
+  "days"                [note: "Calendar duration in days"]
+  "requests"            [note: "HTTP or API execution request count"]
+}
+
+Enum "subscription"."addon_type" {
+  "limit_increase"      [note: "Additively expands an existing numerical limit definition"]
+  "feature_unlock"      [note: "Unlocks an otherwise restricted boolean feature"]
+}
+
+Enum "subscription"."subscription_item_type" {
+  "plan"                [note: "Base subscription plan tier"]
+  "addon"               [note: "Supplementary purchased add-on item"]
+}
+
+Enum "subscription"."override_target_type" {
+  "feature"             [note: "Overrides a boolean functional capability"]
+  "limit"               [note: "Overrides a numerical metric limit"]
+}
+
+Enum "subscription"."subscription_history_event_type" {
+  "created"             [note: "Initial subscription established"]
+  "renewed"             [note: "Subscription billing cycle renewed successfully"]
+  "upgraded"            [note: "Immediate upgrade with prorated balance credit"]
+  "downgrade_scheduled" [note: "Downgrade requested; pending execution at period end"]
+  "downgrade_executed"  [note: "Scheduled downgrade enacted upon cycle boundary"]
+  "canceled"            [note: "Auto-renew disabled; set to expire at period end"]
+  "expired"             [note: "Subscription expired; reverted to Free tier"]
+  "grace_period_entered"[note: "Renewal failed; entered 7-day operational grace period"]
+  "payment_failed"      [note: "Payment attempt failed during renewal or upgrade"]
+  "addon_added"         [note: "Purchased add-on attached to subscription"]
+  "addon_removed"       [note: "Add-on detached or canceled"]
+  "override_granted"    [note: "Platform administrator granted bespoke exception"]
+  "override_revoked"    [note: "Administrative exception revoked or expired"]
+}
+
+Enum "subscription"."invoice_billing_reason" {
+  "subscription_create" [note: "Initial paid subscription purchase"]
+  "subscription_cycle"  [note: "Regular recurring renewal invoice"]
+  "subscription_upgrade"[note: "Mid-cycle upgrade with proration credit offset"]
+  "addon_purchase"      [note: "Independent add-on purchase mid-cycle"]
+  "manual_adjustment"   [note: "Platform staff issued manual invoice adjustment"]
+}
+
+Enum "subscription"."invoice_status" {
+  "draft"               [note: "Constructing line items; not finalized or sent"]
+  "open"                [note: "Finalized invoice awaiting customer or auto-debit payment"]
+  "paid"                [note: "Settled in full; entitlements provisioned"]
+  "uncollectible"       [note: "Payment retries exhausted; write-off"]
+  "void"                [note: "Invoice cancelled and invalidated"]
+}
+
+Enum "subscription"."invoice_item_type" {
+  "plan_subscription"   [note: "Base plan fee for billing period"]
+  "addon_charge"        [note: "Recurring or one-time add-on line item"]
+  "proration_credit"    [note: "Negative offset line item for unused time on previous plan"]
+  "manual_adjustment"   [note: "Audited debit or credit adjustment"]
+}
+
+Enum "subscription"."tax_type" {
+  "GST"                 [note: "Goods and Services Tax (e.g. India CGST+SGST or IGST)"]
+  "VAT"                 [note: "Value Added Tax (e.g. EU, UK)"]
+  "SALES_TAX"           [note: "State/Regional Sales Tax (e.g. US)"]
+  "EXEMPT"              [note: "Zero-rated export or verified tax exemption"]
+}
+
+Enum "subscription"."payment_status" {
+  "pending"             [note: "Payment order created; awaiting customer completion"]
+  "authorized"          [note: "Payment funds authorized by banking provider"]
+  "captured"            [note: "Funds confirmed settled on gateway"]
+  "failed"              [note: "Payment attempt rejected by bank or gateway"]
+  "refunded"            [note: "Payment refunded back to customer"]
+}
+
+// ------------------------------------------------------------------------------
+// EXTERNAL CONTEXTUAL SCHEMAS (CROSS-SCHEMA FOREIGN KEYS)
+// ------------------------------------------------------------------------------
+
+Table "organization"."organizations" {
+  "id" bigint [pk, increment]
+  "name" varchar(255) [not null]
+  "slug" varchar(255) [unique, not null]
+  "status" varchar(30) [not null, default: 'active']
+  "created_at" timestamptz [not null, default: `now()`]
+
+  note: "Authoritative organization aggregate in 'organization' schema"
+}
+
+Table "identity"."users" {
+  "id" bigint [pk, increment]
+  "name" varchar(255) [not null]
+  "email" varchar(320) [not null]
+  "role" varchar(20) [not null, default: 'user']
+  "created_at" timestamptz [not null, default: `now()`]
+
+  note: "Platform user aggregate in 'identity' schema"
+}
+
+Table "payments"."payment_orders" {
+  "id" bigint [pk, increment]
+  "public_id" varchar(36) [not null, unique]
+  "organization_id" bigint [not null]
+  "gross_amount" bigint [not null]
+  "currency" varchar(3) [not null, default: 'INR']
+  "status" varchar(30) [not null]
+
+  note: "Payment order core in 'payments' financial schema (planned DBML specification)"
+}
+
+// ------------------------------------------------------------------------------
+// SUBSCRIPTION MASTER CATALOG
+// ------------------------------------------------------------------------------
+
+Table "subscription"."subscription_plans" {
+  "id" bigint [pk, increment, note: "Unique plan tier ID"]
+  "code" varchar(50) [not null, unique, note: "Machine slug: 'free', 'starter', 'professional', 'enterprise'"]
+  "name" varchar(100) [not null, note: "Display title: 'Professional Plan'"]
+  "description" text [note: "Marketing description of the plan"]
+  "tier_level" int [not null, note: "Ordinal rank for hierarchy: Free=0, Starter=10, Pro=20, Enterprise=30"]
+  "is_active" boolean [not null, default: true, note: "Whether new subscriptions can select this plan"]
+  "is_public" boolean [not null, default: true, note: "Public in pricing UI vs private/custom enterprise"]
+  "trial_period_days" int [not null, default: 0, note: "Default trial duration in days"]
+  "sort_order" int [not null, default: 0, note: "Display sequence in comparison matrices"]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (is_active, is_public) [name: "idx_sub_plans_active_public"]
+    tier_level [name: "idx_sub_plans_tier_level"]
+  }
+
+  note: "Master catalog of Orgatick subscription tiers"
+}
+
+Table "subscription"."subscription_features" {
+  "id" bigint [pk, increment]
+  "code" varchar(100) [not null, unique, note: "Machine key: 'custom_branding', 'ticket_template_editor', 'api_access'"]
+  "name" varchar(150) [not null, note: "Human-readable feature name"]
+  "description" text
+  "category" varchar(50) [not null, note: "Functional grouping: 'branding', 'ticketing', 'governance', 'developer'"]
+  "is_active" boolean [not null, default: true]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (category, is_active) [name: "idx_sub_features_category_active"]
+  }
+
+  note: "Dictionary of discrete functional capabilities Orgatick gates by tier"
+}
+
+Table "subscription"."subscription_plan_features" {
+  "id" bigint [pk, increment]
+  "plan_id" bigint [not null, note: "FK -> subscription.subscription_plans.id"]
+  "feature_id" bigint [not null, note: "FK -> subscription.subscription_features.id"]
+  "is_included" boolean [not null, default: true, note: "Whether feature is unlocked for this plan"]
+  "feature_level" varchar(50) [note: "Tier level qualifier: 'basic', 'advanced', 'custom'"]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (plan_id, feature_id) [unique, name: "uq_plan_features_plan_feature"]
+  }
+
+  note: "Matrix mapping features to specific subscription tiers"
+}
+
+Table "subscription"."subscription_limit_definitions" {
+  "id" bigint [pk, increment]
+  "code" varchar(100) [not null, unique, note: "Master metric code: 'max_active_events', 'max_team_members', 'max_storage_bytes'"]
+  "name" varchar(150) [not null]
+  "description" text
+  "limit_scope" "subscription"."limit_scope_type" [not null, note: "concurrent | total | monthly_quota | retention_window"]
+  "metric_type" "subscription"."metric_type" [not null, note: "gauge | counter | time_interval"]
+  "unit" "subscription"."metric_unit" [not null, note: "count | bytes | days | requests"]
+  "is_active" boolean [not null, default: true]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  note: "Master registry defining physical dimensions, units, and scopes of metered limits"
+}
+
+Table "subscription"."subscription_plan_limits" {
+  "id" bigint [pk, increment]
+  "plan_id" bigint [not null, note: "FK -> subscription.subscription_plans.id"]
+  "limit_def_id" bigint [not null, note: "FK -> subscription.subscription_limit_definitions.id"]
+  "is_unlimited" boolean [not null, default: false, note: "Explicit flag replacing the -1 magic number"]
+  "limit_value" bigint [note: "Numerical limit value (NULL if is_unlimited = true)"]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (plan_id, limit_def_id) [unique, name: "uq_plan_limits_plan_limit_def"]
+  }
+
+  note: "Capacity allocations configured for each plan tier (with strict unlimited constraints)"
+}
+
+Table "subscription"."subscription_prices" {
+  "id" bigint [pk, increment]
+  "plan_id" bigint [not null, note: "FK -> subscription.subscription_plans.id"]
+  "currency" varchar(3) [not null, default: 'INR', note: "ISO 4217 Currency Code"]
+  "billing_interval" "subscription"."billing_interval" [not null, note: "month | year"]
+  "price_in_minor_units" bigint [not null, note: "Cost in smallest currency unit (e.g. 199900 paise = ₹1,999.00)"]
+  "is_active" boolean [not null, default: true]
+  "valid_from" timestamptz [not null, default: `now()`, note: "Effective start timestamp"]
+  "valid_to" timestamptz [note: "Superseded timestamp (NULL denotes current price)"]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (plan_id, currency, billing_interval, valid_from) [unique, name: "uq_sub_prices_temporal_interval"]
+    (plan_id, is_active) [name: "idx_sub_prices_plan_active"]
+  }
+
+  note: "Temporal price matrix per currency and billing interval supporting historical immutability"
+}
+
+Table "subscription"."subscription_addons" {
+  "id" bigint [pk, increment]
+  "code" varchar(100) [not null, unique, note: "Machine key: 'addon_storage_50gb', 'addon_seats_5'"]
+  "name" varchar(150) [not null]
+  "description" text
+  "addon_type" "subscription"."addon_type" [not null, note: "limit_increase | feature_unlock"]
+  "target_limit_def_id" bigint [note: "FK -> subscription.subscription_limit_definitions.id (if limit_increase)"]
+  "target_feature_id" bigint [note: "FK -> subscription.subscription_features.id (if feature_unlock)"]
+  "is_unlimited" boolean [not null, default: false]
+  "increase_value" bigint [note: "Capacity delta granted (e.g. 53687091200 bytes for 50GB; NULL if is_unlimited)"]
+  "currency" varchar(3) [not null, default: 'INR']
+  "billing_interval" "subscription"."billing_interval" [not null, default: 'month']
+  "price_in_minor_units" bigint [not null, note: "Price per billing interval in minor units"]
+  "is_active" boolean [not null, default: true]
+  "valid_from" timestamptz [not null, default: `now()`]
+  "valid_to" timestamptz
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (is_active, addon_type) [name: "idx_sub_addons_active_type"]
+  }
+
+  note: "Purchasable add-on catalog for modular capacity expansion or feature unbundling"
+}
+
+// ------------------------------------------------------------------------------
+// TENANT SUBSCRIPTION STATE & ENTITLEMENTS
+// ------------------------------------------------------------------------------
+
+Table "subscription"."organization_subscriptions" {
+  "id" bigint [pk, increment]
+  "organization_id" bigint [not null, note: "FK -> organization.organizations.id"]
+  "plan_id" bigint [not null, note: "FK -> subscription.subscription_plans.id"]
+  "price_id" bigint [note: "FK -> subscription.subscription_prices.id (NULL for Free tier)"]
+  "status" "subscription"."subscription_status" [not null, default: 'active']
+  "billing_interval" "subscription"."billing_interval" [not null, default: 'none']
+  "currency" varchar(3) [not null, default: 'INR']
+  
+  "current_period_start" timestamptz [not null, default: `now()`]
+  "current_period_end" timestamptz [note: "End of paid billing cycle (NULL for perpetual Free plan)"]
+  "trial_start" timestamptz
+  "trial_end" timestamptz
+  "grace_period_end" timestamptz [note: "Cutoff threshold when retrying past_due payments"]
+  
+  "cancel_at_period_end" boolean [not null, default: false, note: "If true, expires at current_period_end"]
+  "canceled_at" timestamptz
+  "cancellation_reason" varchar(500)
+  
+  "pending_plan_id" bigint [note: "Target plan for scheduled downgrades taking effect at period end"]
+  "pending_price_id" bigint [note: "Target price for scheduled downgrades"]
+  "pending_change_effective_at" timestamptz [note: "When scheduled downgrade takes effect"]
+  
+  "auto_renew" boolean [not null, default: true]
+  "version" int [not null, default: 1, note: "Optimistic concurrency lock counter"]
+  "entitlements_version" int [not null, default: 1, note: "Increments on mutation to trigger Redis cache invalidation"]
+  
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    organization_id [name: "idx_org_subs_organization_id"]
+    (status, current_period_end) [name: "idx_org_subs_status_period_end"]
+    (status, grace_period_end) [name: "idx_org_subs_status_grace"]
+    // Enforced in PostgreSQL via partial unique index:
+    // CREATE UNIQUE INDEX uq_org_subscriptions_active_status ON subscription.organization_subscriptions (organization_id) WHERE status IN ('active', 'trialing', 'past_due', 'grace_period');
+  }
+
+  note: "Tenant subscription contract state. Supports complete history with single active subscription enforcement"
+}
+
+Table "subscription"."organization_subscription_items" {
+  "id" bigint [pk, increment]
+  "subscription_id" bigint [not null, note: "FK -> subscription.organization_subscriptions.id"]
+  "item_type" "subscription"."subscription_item_type" [not null, note: "plan | addon"]
+  "plan_id" bigint [note: "FK -> subscription.subscription_plans.id (if item_type = plan)"]
+  "addon_id" bigint [note: "FK -> subscription.subscription_addons.id (if item_type = addon)"]
+  "quantity" int [not null, default: 1, note: "Multiplier for capacity units"]
+  "unit_price_minor_units" bigint [not null, default: 0]
+  "currency" varchar(3) [not null, default: 'INR']
+  "is_active" boolean [not null, default: true]
+  "started_at" timestamptz [not null, default: `now()`]
+  "ended_at" timestamptz
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (subscription_id, is_active) [name: "idx_sub_items_subscription_active"]
+  }
+
+  note: "Itemized line items attached to an active subscription agreement (base plan + add-ons)"
+}
+
+Table "subscription"."organization_entitlement_overrides" {
+  "id" bigint [pk, increment]
+  "organization_id" bigint [not null, note: "FK -> organization.organizations.id"]
+  "override_target" "subscription"."override_target_type" [not null, note: "feature | limit"]
+  "feature_id" bigint [note: "FK -> subscription.subscription_features.id (if override_target = feature)"]
+  "limit_def_id" bigint [note: "FK -> subscription.subscription_limit_definitions.id (if override_target = limit)"]
+  "is_unlimited" boolean [not null, default: false]
+  "override_limit_value" bigint [note: "Bespoke numerical capacity allocation"]
+  "override_boolean_value" boolean [note: "Bespoke boolean toggle"]
+  "reason" varchar(500) [not null, note: "Mandatory administrative business explanation"]
+  "authorized_by" bigint [not null, note: "FK -> identity.users.id (Platform Admin auditor)"]
+  "valid_from" timestamptz [not null, default: `now()`]
+  "valid_until" timestamptz [note: "Expiration cutoff (NULL denotes permanent contractual override)"]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (organization_id, valid_from, valid_until) [name: "idx_entitlement_overrides_lookup"]
+  }
+
+  note: "Dedicated table for bespoke, temporal administrative exceptions taking top precedence"
+}
+
+Table "subscription"."subscription_history" {
+  "id" bigint [pk, increment]
+  "organization_id" bigint [not null, note: "FK -> organization.organizations.id"]
+  "subscription_id" bigint [not null, note: "FK -> subscription.organization_subscriptions.id"]
+  "event_type" "subscription"."subscription_history_event_type" [not null]
+  "from_plan_id" bigint [note: "FK -> subscription.subscription_plans.id"]
+  "to_plan_id" bigint [note: "FK -> subscription.subscription_plans.id"]
+  "from_status" "subscription"."subscription_status"
+  "to_status" "subscription"."subscription_status"
+  "reason" varchar(500)
+  "metadata" jsonb [note: "Snapshot of prorated amounts, deltas, or cancellation surveys"]
+  "actor_type" varchar(30) [not null, default: 'system', note: "'user', 'admin', 'system', 'webhook'"]
+  "actor_id" bigint [note: "FK -> identity.users.id"]
+  "actor_name" varchar(255)
+  "created_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (organization_id, created_at) [name: "idx_sub_history_org_created"]
+    (subscription_id, created_at) [name: "idx_sub_history_subscription_created"]
+  }
+
+  note: "Immutable chronological audit log of all subscription and billing transitions"
+}
+
+// ------------------------------------------------------------------------------
+// USAGE TRACKING & METERING
+// ------------------------------------------------------------------------------
+
+Table "subscription"."subscription_usage_counters" {
+  "id" bigint [pk, increment]
+  "organization_id" bigint [not null, note: "FK -> organization.organizations.id"]
+  "limit_def_id" bigint [not null, note: "FK -> subscription.subscription_limit_definitions.id"]
+  "current_value" bigint [not null, default: 0, note: "Authoritative continuous gauge count (events, seats, bytes)"]
+  "last_recalculated_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (organization_id, limit_def_id) [unique, name: "uq_usage_counters_org_limit"]
+  }
+
+  note: "Live authoritative counters for continuous gauge limits protected by database locks"
+}
+
+Table "subscription"."subscription_usage_periods" {
+  "id" bigint [pk, increment]
+  "organization_id" bigint [not null, note: "FK -> organization.organizations.id"]
+  "limit_def_id" bigint [not null, note: "FK -> subscription.subscription_limit_definitions.id"]
+  "period_start" timestamptz [not null, note: "Rolling window or billing cycle start boundary"]
+  "period_end" timestamptz [not null, note: "Rolling window or billing cycle end boundary"]
+  "usage_count" bigint [not null, default: 0, note: "Metered consumption accumulated within window"]
+  "limit_snapshot" bigint [note: "Historical record of the numerical limit governing this window"]
+  "is_unlimited" boolean [not null, default: false]
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (organization_id, limit_def_id, period_start, period_end) [unique, name: "uq_usage_periods_org_limit_window"]
+  }
+
+  note: "Historical and active periodic quota meter records (e.g. monthly API execution counts)"
+}
+
+// ------------------------------------------------------------------------------
+// BILLING & INVOICING
+// ------------------------------------------------------------------------------
+
+Table "subscription"."subscription_invoices" {
+  "id" bigint [pk, increment]
+  "public_id" varchar(36) [not null, unique, note: "External ULID/UUID for client and billing portal reference"]
+  "invoice_number" varchar(100) [not null, unique, note: "Sequential tax invoice code, e.g. 'INV-SUB-2026-00042'"]
+  "organization_id" bigint [not null, note: "FK -> organization.organizations.id"]
+  "subscription_id" bigint [not null, note: "FK -> subscription.organization_subscriptions.id"]
+  "billing_reason" "subscription"."invoice_billing_reason" [not null]
+  "status" "subscription"."invoice_status" [not null, default: 'draft']
+  
+  "currency" varchar(3) [not null, default: 'INR']
+  "subtotal_minor_units" bigint [not null, default: 0, note: "Total before tax and proration credits"]
+  "tax_amount_minor_units" bigint [not null, default: 0, note: "Aggregated tax calculated across line items"]
+  "total_minor_units" bigint [not null, default: 0, note: "Final payable amount in minor units"]
+  "proration_credit_minor_units" bigint [not null, default: 0, note: "Total credit applied from previous plan"]
+  
+  "period_start" timestamptz [not null]
+  "period_end" timestamptz [not null]
+  "due_date" timestamptz [not null]
+  "paid_at" timestamptz
+  "pdf_url" varchar(1000) [note: "Cloudflare R2 storage URI of generated PDF invoice"]
+  
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (organization_id, status) [name: "idx_sub_invoices_org_status"]
+    (due_date, status) [name: "idx_sub_invoices_due_date_status"]
+  }
+
+  note: "Formal B2B tax invoice headers for subscription cycles, upgrades, and add-on purchases"
+}
+
+Table "subscription"."subscription_invoice_items" {
+  "id" bigint [pk, increment]
+  "invoice_id" bigint [not null, note: "FK -> subscription.subscription_invoices.id"]
+  "item_type" "subscription"."invoice_item_type" [not null]
+  "description" varchar(255) [not null, note: "Invoice line description, e.g. 'Professional Plan - Prorated (18 Days)'"]
+  "plan_id" bigint [note: "FK -> subscription.subscription_plans.id (nullable)"]
+  "addon_id" bigint [note: "FK -> subscription.subscription_addons.id (nullable)"]
+  "price_id" bigint [note: "FK -> subscription.subscription_prices.id (nullable)"]
+  "quantity" int [not null, default: 1]
+  "unit_price_minor_units" bigint [not null, default: 0]
+  "subtotal_minor_units" bigint [not null, default: 0]
+  
+  "tax_type" "subscription"."tax_type" [not null, default: 'GST', note: "Configurable tax category"]
+  "tax_rate_bps" int [not null, note: "Tax rate in basis points (1800 = 18.00% GST, 0 = Export Exempt)"]
+  "tax_amount_minor_units" bigint [not null, default: 0]
+  "total_minor_units" bigint [not null, default: 0]
+  
+  "period_start" timestamptz [not null]
+  "period_end" timestamptz [not null]
+  "created_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    invoice_id [name: "idx_sub_invoice_items_invoice_id"]
+  }
+
+  note: "Immutable invoice line items detailing prorations, add-ons, and itemized jurisdiction taxes"
+}
+
+Table "subscription"."subscription_payments" {
+  "id" bigint [pk, increment]
+  "invoice_id" bigint [not null, note: "FK -> subscription.subscription_invoices.id"]
+  "organization_id" bigint [not null, note: "FK -> organization.organizations.id"]
+  "payment_order_id" bigint [note: "FK -> payments.payment_orders.id in existing financial subsystem"]
+  "amount_minor_units" bigint [not null]
+  "currency" varchar(3) [not null, default: 'INR']
+  "status" "subscription"."payment_status" [not null, default: 'pending']
+  "idempotency_key" varchar(255) [not null, unique, note: "Deterministic key preventing duplicate billing charges"]
+  "error_code" varchar(100)
+  "error_description" text
+  "created_at" timestamptz [not null, default: `now()`]
+  "updated_at" timestamptz [not null, default: `now()`]
+
+  Indexes {
+    (invoice_id, status) [name: "idx_sub_payments_invoice_status"]
+    payment_order_id [name: "idx_sub_payments_payment_order_id"]
+  }
+
+  note: "Payment attempt records delegating gateway execution to the planned payments subsystem"
+}
+
+// ------------------------------------------------------------------------------
+// RELATIONSHIPS (FOREIGN KEYS)
+// ------------------------------------------------------------------------------
+
+Ref: "subscription"."subscription_plan_features"."plan_id" > "subscription"."subscription_plans"."id" [delete: cascade]
+Ref: "subscription"."subscription_plan_features"."feature_id" > "subscription"."subscription_features"."id" [delete: cascade]
+
+Ref: "subscription"."subscription_plan_limits"."plan_id" > "subscription"."subscription_plans"."id" [delete: cascade]
+Ref: "subscription"."subscription_plan_limits"."limit_def_id" > "subscription"."subscription_limit_definitions"."id" [delete: restrict]
+
+Ref: "subscription"."subscription_prices"."plan_id" > "subscription"."subscription_plans"."id" [delete: cascade]
+
+Ref: "subscription"."subscription_addons"."target_limit_def_id" > "subscription"."subscription_limit_definitions"."id" [delete: restrict]
+Ref: "subscription"."subscription_addons"."target_feature_id" > "subscription"."subscription_features"."id" [delete: restrict]
+
+Ref: "subscription"."organization_subscriptions"."organization_id" > "organization"."organizations"."id" [delete: restrict]
+Ref: "subscription"."organization_subscriptions"."plan_id" > "subscription"."subscription_plans"."id" [delete: restrict]
+Ref: "subscription"."organization_subscriptions"."price_id" > "subscription"."subscription_prices"."id" [delete: restrict]
+Ref: "subscription"."organization_subscriptions"."pending_plan_id" > "subscription"."subscription_plans"."id" [delete: restrict]
+Ref: "subscription"."organization_subscriptions"."pending_price_id" > "subscription"."subscription_prices"."id" [delete: restrict]
+
+Ref: "subscription"."organization_subscription_items"."subscription_id" > "subscription"."organization_subscriptions"."id" [delete: cascade]
+Ref: "subscription"."organization_subscription_items"."plan_id" > "subscription"."subscription_plans"."id" [delete: restrict]
+Ref: "subscription"."organization_subscription_items"."addon_id" > "subscription"."subscription_addons"."id" [delete: restrict]
+
+Ref: "subscription"."organization_entitlement_overrides"."organization_id" > "organization"."organizations"."id" [delete: cascade]
+Ref: "subscription"."organization_entitlement_overrides"."feature_id" > "subscription"."subscription_features"."id" [delete: cascade]
+Ref: "subscription"."organization_entitlement_overrides"."limit_def_id" > "subscription"."subscription_limit_definitions"."id" [delete: cascade]
+Ref: "subscription"."organization_entitlement_overrides"."authorized_by" > "identity"."users"."id" [delete: restrict]
+
+Ref: "subscription"."subscription_history"."organization_id" > "organization"."organizations"."id" [delete: cascade]
+Ref: "subscription"."subscription_history"."subscription_id" > "subscription"."organization_subscriptions"."id" [delete: cascade]
+Ref: "subscription"."subscription_history"."from_plan_id" > "subscription"."subscription_plans"."id" [delete: set null]
+Ref: "subscription"."subscription_history"."to_plan_id" > "subscription"."subscription_plans"."id" [delete: set null]
+Ref: "subscription"."subscription_history"."actor_id" > "identity"."users"."id" [delete: set null]
+
+Ref: "subscription"."subscription_usage_counters"."organization_id" > "organization"."organizations"."id" [delete: cascade]
+Ref: "subscription"."subscription_usage_counters"."limit_def_id" > "subscription"."subscription_limit_definitions"."id" [delete: restrict]
+
+Ref: "subscription"."subscription_usage_periods"."organization_id" > "organization"."organizations"."id" [delete: cascade]
+Ref: "subscription"."subscription_usage_periods"."limit_def_id" > "subscription"."subscription_limit_definitions"."id" [delete: restrict]
+
+Ref: "subscription"."subscription_invoices"."organization_id" > "organization"."organizations"."id" [delete: restrict]
+Ref: "subscription"."subscription_invoices"."subscription_id" > "subscription"."organization_subscriptions"."id" [delete: restrict]
+
+Ref: "subscription"."subscription_invoice_items"."invoice_id" > "subscription"."subscription_invoices"."id" [delete: cascade]
+Ref: "subscription"."subscription_invoice_items"."plan_id" > "subscription"."subscription_plans"."id" [delete: set null]
+Ref: "subscription"."subscription_invoice_items"."addon_id" > "subscription"."subscription_addons"."id" [delete: set null]
+Ref: "subscription"."subscription_invoice_items"."price_id" > "subscription"."subscription_prices"."id" [delete: set null]
+
+Ref: "subscription"."subscription_payments"."invoice_id" > "subscription"."subscription_invoices"."id" [delete: restrict]
+Ref: "subscription"."subscription_payments"."organization_id" > "organization"."organizations"."id" [delete: restrict]
+Ref: "subscription"."subscription_payments"."payment_order_id" > "payments"."payment_orders"."id" [delete: set null]
+
+// ------------------------------------------------------------------------------
+// TABLE GROUPS
+// ------------------------------------------------------------------------------
+
+TableGroup "Subscription Catalog" {
+  "subscription"."subscription_plans"
+  "subscription"."subscription_features"
+  "subscription"."subscription_plan_features"
+  "subscription"."subscription_limit_definitions"
+  "subscription"."subscription_plan_limits"
+  "subscription"."subscription_prices"
+  "subscription"."subscription_addons"
+}
+
+TableGroup "Tenant Subscriptions & Entitlements" {
+  "subscription"."organization_subscriptions"
+  "subscription"."organization_subscription_items"
+  "subscription"."organization_entitlement_overrides"
+  "subscription"."subscription_history"
+}
+
+TableGroup "Usage Metering" {
+  "subscription"."subscription_usage_counters"
+  "subscription"."subscription_usage_periods"
+}
+
+TableGroup "Subscription Invoicing & Payments" {
+  "subscription"."subscription_invoices"
+  "subscription"."subscription_invoice_items"
+  "subscription"."subscription_payments"
+}
