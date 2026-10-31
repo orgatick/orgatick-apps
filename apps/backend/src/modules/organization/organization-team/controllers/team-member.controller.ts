@@ -8,6 +8,7 @@ import { OrganizationPermissionGuard } from "../../organization-member/guards/or
 import type { OrganizationMemberStatus } from "../../organization-member/enums/organization-member-status.enum";
 import { OrganizationMemberService } from "../../organization-member/services/member.service";
 import { OrganizationPermissionService } from "../../organization-member/services/organization-permission.service";
+import { RequireLimit, SubscriptionLimitGuard } from "../../../subscription/guards";
 import {
   AddOrganizationMemberSchema,
   CreateOrganizationRoleSchema,
@@ -25,7 +26,7 @@ import {
   type UpdateOrganizationRoleDto,
 } from "../dto";
 
-@UseGuards(OrganizationContextGuard, OrganizationPermissionGuard)
+@UseGuards(OrganizationContextGuard, OrganizationPermissionGuard, SubscriptionLimitGuard)
 @Controller("organizations/current")
 export class TeamMemberController {
   constructor(
@@ -49,9 +50,11 @@ export class TeamMemberController {
   /**
    * POST /organizations/current/members
    * Directly adds an existing user to the organization by email.
+   * Enforces the 'max_team_members' quota limit from subscription entitlements.
    */
   @Post("members")
   @RequirePermission(ORGANIZATION_PERMISSIONS.MEMBER_INVITE)
+  @RequireLimit("max_team_members")
   async addMember(
     @CurrentOrganization() context: OrganizationContext,
     @Body({ schema: AddOrganizationMemberSchema }) dto: AddOrganizationMemberDto,
@@ -95,9 +98,11 @@ export class TeamMemberController {
   /**
    * POST /organizations/current/roles
    * Creates an organization-specific custom role with assigned permissions.
+   * Enforces the 'max_custom_roles' quota limit from subscription entitlements.
    */
   @Post("roles")
   @RequirePermission(ORGANIZATION_PERMISSIONS.MEMBER_UPDATE)
+  @RequireLimit("max_custom_roles")
   async createCustomRole(
     @CurrentOrganization() context: OrganizationContext,
     @Body({ schema: CreateOrganizationRoleSchema }) dto: CreateOrganizationRoleDto,

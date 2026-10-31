@@ -1,5 +1,12 @@
 import { CACHE_MANAGER, type Cache } from "@nestjs/cache-manager";
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  Optional,
+} from "@nestjs/common";
 import { In } from "typeorm";
 import { Permission } from "../../../../common/authorization/entities/permission.entity";
 import { RolePermission } from "../../../../common/authorization/entities/role-permission.entity";
@@ -12,6 +19,8 @@ import { OrganizationInvitationStatus } from "../../organization-invitation/enum
 import type { OrganizationMember } from "../entities/organization-member.entity";
 import { OrganizationMemberStatus } from "../enums/organization-member-status.enum";
 import { OrganizationMemberRepository } from "../repositories/member.repository";
+import { EntitlementService } from "../../../subscription/services/entitlement.service";
+import { SubscriptionUsageService } from "../../../subscription/services/subscription-usage.service";
 
 @Injectable()
 export class OrganizationMemberService {
@@ -19,6 +28,8 @@ export class OrganizationMemberService {
     private readonly memberRepository: OrganizationMemberRepository,
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
+    @Optional() private readonly usageService?: SubscriptionUsageService,
+    @Optional() private readonly entitlementService?: EntitlementService,
   ) {}
 
   async addOwner(organizationId: bigint, userId: bigint): Promise<OrganizationMember> {
@@ -30,6 +41,11 @@ export class OrganizationMemberService {
       this.memberRepository.createOwnerMember(organizationId, userId, roleId),
     );
     await this.invalidateMembershipCache(userId, organizationId);
+
+    if (this.usageService) {
+      await this.usageService.incrementCounter(organizationId, "max_team_members", 1n);
+    }
+
     return member;
   }
 
@@ -97,6 +113,10 @@ export class OrganizationMemberService {
     organizationId: bigint,
     dto: { name: string; description?: string | null; permissions: string[] },
   ) {
+    if (this.entitlementService) {
+      await this.entitlementService.assertLimit(organizationId, "max_custom_roles", 1);
+    }
+
     const trimmedName = dto.name.trim();
     const baseSlug = trimmedName
       .toLowerCase()
@@ -150,6 +170,10 @@ export class OrganizationMemberService {
       }),
     );
     await this.memberRepository.manager.save(RolePermission, rolePermissions);
+
+    if (this.usageService) {
+      await this.usageService.incrementCounter(organizationId, "max_custom_roles", 1n);
+    }
 
     return {
       id: newRole.id.toString(),
@@ -253,25 +277,25 @@ export class OrganizationMemberService {
     await this.memberRepository.manager.delete(RolePermission, { roleId: role.id });
     await this.memberRepository.manager.remove(Role, role);
 
+    if (this.usageService) {
+      await this.usageService.decrementCounter(organizationId, "max_custom_roles", 1n);
+    }
+
     return { id: role.id.toString(), deleted: true };
   }
 
   private async activeOwnerCount(organizationId: bigint): Promise<number> {
     const ownerRoleId = await this.memberRepository.findOwnerRoleId(organizationId);
-    if (ownerRoleId === null) return 0;
-    return await this.memberRepository.count({
-      where: {
-        organizationId,
-        roleId: ownerRoleId,
-        status: OrganizationMemberStatus.ACTIVE,
-      },
-    });
+    if (!ownerRoleId) return 0;
+    return await this.memberRepository.countMembersWithRole(organizationId, ownerRoleId);
   }
 
   private async isLastActiveOwner(organizationId: bigint, member: OrganizationMember): Promise<boolean> {
+    if (member.status !== OrganizationMemberStatus.ACTIVE) return false;
     const ownerRoleId = await this.memberRepository.findOwnerRoleId(organizationId);
-    if (ownerRoleId === null || member.roleId !== ownerRoleId) return false;
-    return (await this.activeOwnerCount(organizationId)) <= 1;
+    if (!ownerRoleId || member.roleId !== ownerRoleId) return false;
+    const owners = await this.activeOwnerCount(organizationId);
+    return owners <= 1;
   }
 
   async changeRole(organizationId: bigint, memberId: bigint, roleKey: string): Promise<OrganizationMember> {
@@ -280,16 +304,20 @@ export class OrganizationMemberService {
       throw new NotFoundException("Organization member not found");
     }
 
-    const newRoleId = await this.memberRepository.findRoleIdByKey(organizationId, roleKey);
-    if (newRoleId === null) {
+    const targetRole = await this.memberRepository.findRoleByKey(organizationId, roleKey);
+    if (!targetRole) {
       throw new NotFoundException(`Role "${roleKey}" not found`);
     }
 
-    if (member.roleId !== newRoleId && (await this.isLastActiveOwner(organizationId, member))) {
-      throw new ConflictException("Cannot demote the last active owner. Transfer ownership first.");
+    const ownerRoleId = await this.memberRepository.findOwnerRoleId(organizationId);
+    if (member.roleId === ownerRoleId && targetRole.id !== ownerRoleId) {
+      const owners = await this.activeOwnerCount(organizationId);
+      if (owners <= 1) {
+        throw new ConflictException("Cannot demote the last active owner. Promote another member first.");
+      }
     }
 
-    member.roleId = newRoleId;
+    member.roleId = targetRole.id;
     await this.memberRepository.save(member);
     await this.invalidateMembershipCache(member.userId, organizationId);
 
@@ -313,12 +341,21 @@ export class OrganizationMemberService {
       throw new ConflictException("Cannot suspend the last active owner. Transfer ownership first.");
     }
 
+    const previousStatus = member.status;
     member.status = status;
     if (status === OrganizationMemberStatus.ACTIVE && !member.joinedAt) {
       member.joinedAt = new Date();
     }
     await this.memberRepository.save(member);
     await this.invalidateMembershipCache(member.userId, organizationId);
+
+    if (this.usageService) {
+      if (previousStatus !== OrganizationMemberStatus.ACTIVE && status === OrganizationMemberStatus.ACTIVE) {
+        await this.usageService.incrementCounter(organizationId, "max_team_members", 1n);
+      } else if (previousStatus === OrganizationMemberStatus.ACTIVE && status !== OrganizationMemberStatus.ACTIVE) {
+        await this.usageService.decrementCounter(organizationId, "max_team_members", 1n);
+      }
+    }
 
     return (
       (await this.memberRepository.findOne({ where: { id: member.id }, relations: { user: true, role: true } })) ??
@@ -339,10 +376,18 @@ export class OrganizationMemberService {
     await this.memberRepository.remove(member);
     await this.invalidateMembershipCache(member.userId, organizationId);
 
+    if (this.usageService) {
+      await this.usageService.decrementCounter(organizationId, "max_team_members", 1n);
+    }
+
     return { id: member.id.toString(), removed: true };
   }
 
   async addMemberByEmail(organizationId: bigint, input: { email: string; role: string }): Promise<OrganizationMember> {
+    if (this.entitlementService) {
+      await this.entitlementService.assertLimit(organizationId, "max_team_members", 1);
+    }
+
     const role = await this.memberRepository.findRoleByKey(organizationId, input.role);
     if (!role) {
       throw new NotFoundException(`Role "${input.role}" not found`);
@@ -382,6 +427,10 @@ export class OrganizationMemberService {
     }
 
     await this.invalidateMembershipCache(userId, organizationId);
+
+    if (this.usageService) {
+      await this.usageService.incrementCounter(organizationId, "max_team_members", 1n);
+    }
 
     await this.memberRepository.manager
       .createQueryBuilder()

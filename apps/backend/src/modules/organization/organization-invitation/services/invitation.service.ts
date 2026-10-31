@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, ForbiddenException, Injectable, NotFoundException, Optional } from "@nestjs/common";
 import { normalizeEmail } from "../../../../common/utils/email.util";
 import { User } from "../../../users/entities/user.entity";
 import { Organization } from "../../organization/entities/organization.entity";
@@ -10,6 +10,7 @@ import type { OrganizationInvitation } from "../entities/organization-invitation
 import { OrganizationInvitationStatus } from "../enums/organization-invitation-status.enum";
 import { OrganizationInvitationRepository } from "../repositories/invitation.repository";
 import { OrganizationInvitationMailerService } from "./organization-invitation-mailer.service";
+import { SubscriptionUsageService } from "../../../subscription/services/subscription-usage.service";
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -24,6 +25,7 @@ export class OrganizationInvitationService {
     private readonly invitationRepository: OrganizationInvitationRepository,
     private readonly memberRepository: OrganizationMemberRepository,
     private readonly mailer: OrganizationInvitationMailerService,
+    @Optional() private readonly usageService?: SubscriptionUsageService,
   ) {}
 
   private async loadMember(organizationId: bigint, userId: bigint): Promise<OrganizationMember> {
@@ -250,6 +252,10 @@ export class OrganizationInvitationService {
     invitation.status = OrganizationInvitationStatus.ACCEPTED;
     invitation.acceptedAt = new Date();
     await this.invitationRepository.save(invitation);
+
+    if (this.usageService) {
+      await this.usageService.incrementCounter(invitation.organizationId, "max_team_members");
+    }
 
     return await this.loadMember(invitation.organizationId, userId);
   }

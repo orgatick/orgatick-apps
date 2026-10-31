@@ -20,6 +20,7 @@ import type { OrganizationInvitation } from "../../organization-invitation/entit
 import type { OrganizationInvitationStatus } from "../../organization-invitation/enums/organization-invitation-status.enum";
 import { OrganizationInvitationService } from "../../organization-invitation/services/invitation.service";
 import { OrganizationPermissionGuard } from "../../organization-member/guards/organization-permission.guard";
+import { RequireLimit, SubscriptionLimitGuard } from "../../../subscription/guards";
 import {
   CreateOrganizationInvitationSchema,
   OrganizationInvitationQuerySchema,
@@ -27,7 +28,7 @@ import {
   type OrganizationInvitationQueryDto,
 } from "../dto";
 
-@UseGuards(OrganizationContextGuard, OrganizationPermissionGuard)
+@UseGuards(OrganizationContextGuard, OrganizationPermissionGuard, SubscriptionLimitGuard)
 @Controller("organizations/current")
 export class TeamInvitationController {
   constructor(private readonly invitationService: OrganizationInvitationService) {}
@@ -74,9 +75,11 @@ export class TeamInvitationController {
   /**
    * POST /organizations/current/invitations
    * Creates an invitation for the given email + role and sends the invite email.
+   * Enforces the 'max_team_members' quota limit from subscription entitlements.
    */
   @Post("invitations")
   @RequirePermission(ORGANIZATION_PERMISSIONS.MEMBER_INVITE)
+  @RequireLimit("max_team_members")
   async createInvitation(
     @CurrentOrganization() context: OrganizationContext,
     @Req() req: AuthRequest,
