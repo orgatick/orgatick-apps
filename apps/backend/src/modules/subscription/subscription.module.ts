@@ -2,8 +2,10 @@ import { Global, Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { OrganizationMember } from "../organization/organization-member/entities/organization-member.entity";
 import { Organization } from "../organization/organization/entities/organization.entity";
+import { OrganizationContextModule } from "../organization/context/organization-context.module";
 import { Role } from "../../common/authorization/entities/role.entity";
 import { User } from "../users/entities/user.entity";
+import { AdminSubscriptionController, OrganizationSubscriptionController } from "./controllers";
 import {
   OrganizationEntitlementOverride,
   OrganizationSubscription,
@@ -34,6 +36,7 @@ import {
 @Global()
 @Module({
   imports: [
+    OrganizationContextModule,
     TypeOrmModule.forFeature([
       SubscriptionPlan,
       SubscriptionFeature,
@@ -57,6 +60,7 @@ import {
       User,
     ]),
   ],
+  controllers: [OrganizationSubscriptionController, AdminSubscriptionController],
   providers: [
     EntitlementCacheService,
     SubscriptionCatalogService,

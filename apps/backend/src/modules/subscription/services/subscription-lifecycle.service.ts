@@ -429,6 +429,83 @@ export class SubscriptionLifecycleService {
     return saved;
   }
 
+  async getInvoices(organizationId: bigint): Promise<SubscriptionInvoice[]> {
+    return this.invoiceRepo.find({
+      where: { organizationId },
+      relations: { items: true },
+      order: { createdAt: "DESC" },
+    });
+  }
+
+  async getInvoiceById(organizationId: bigint, invoiceId: bigint): Promise<SubscriptionInvoice> {
+    const invoice = await this.invoiceRepo.findOne({
+      where: { id: invoiceId, organizationId },
+      relations: { items: true },
+    });
+    if (!invoice) {
+      throw new NotFoundException("Subscription invoice not found");
+    }
+    return invoice;
+  }
+
+  async assignPlanDirectly(
+    organizationId: bigint,
+    planId: bigint,
+    authorizerId: bigint,
+    reason?: string,
+  ): Promise<OrganizationSubscription> {
+    const plan = await this.catalogService.getPlanById(planId);
+    let currentSub = await this.subRepo.findOne({
+      where: {
+        organizationId,
+        status: In([
+          SubscriptionStatus.ACTIVE,
+          SubscriptionStatus.TRIALING,
+          SubscriptionStatus.PAST_DUE,
+          SubscriptionStatus.GRACE_PERIOD,
+        ]),
+      },
+    });
+
+    const previousPlanId = currentSub ? currentSub.planId : null;
+    const now = new Date();
+
+    if (!currentSub) {
+      currentSub = this.subRepo.create({
+        organizationId,
+        planId: plan.id,
+        status: SubscriptionStatus.ACTIVE,
+        billingInterval: BillingInterval.NONE,
+        currency: "INR",
+        currentPeriodStart: now,
+        entitlementsVersion: 1,
+      });
+    } else {
+      currentSub.planId = plan.id;
+      currentSub.status = SubscriptionStatus.ACTIVE;
+      currentSub.entitlementsVersion += 1;
+      currentSub.pendingPlanId = null;
+      currentSub.pendingPriceId = null;
+      currentSub.pendingChangeEffectiveAt = null;
+    }
+
+    const saved = await this.subRepo.save(currentSub);
+
+    await this.logHistory({
+      organizationId,
+      subscriptionId: saved.id,
+      eventType: SubscriptionHistoryEventType.UPGRADED,
+      fromPlanId: previousPlanId,
+      toPlanId: plan.id,
+      toStatus: SubscriptionStatus.ACTIVE,
+      reason: reason ?? `Admin directly assigned plan: ${plan.name}`,
+      actorId: authorizerId,
+    });
+
+    await this.cacheService.invalidate(organizationId);
+    return saved;
+  }
+
   private async logHistory(params: {
     organizationId: bigint;
     subscriptionId: bigint;
