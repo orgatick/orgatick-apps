@@ -30,6 +30,7 @@ import {
   EntitlementService,
   SubscriptionCatalogService,
   SubscriptionLifecycleService,
+  SubscriptionSchedulerService,
   SubscriptionUsageService,
 } from "./services";
 
@@ -67,6 +68,7 @@ import {
     SubscriptionUsageService,
     EntitlementService,
     SubscriptionLifecycleService,
+    SubscriptionSchedulerService,
     SubscriptionEntitlementGuard,
     SubscriptionLimitGuard,
   ],
@@ -75,6 +77,7 @@ import {
     SubscriptionUsageService,
     EntitlementService,
     SubscriptionLifecycleService,
+    SubscriptionSchedulerService,
     SubscriptionEntitlementGuard,
     SubscriptionLimitGuard,
   ],
