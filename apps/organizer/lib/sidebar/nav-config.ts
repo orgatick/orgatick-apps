@@ -6,6 +6,7 @@ import type {
   OrganizationVerificationStatus,
 } from "@orgatick/contracts";
 import {
+  IconCreditCard,
   IconLayoutDashboard,
   IconPlus,
   IconSettings,
@@ -94,6 +95,7 @@ export const SIDEBAR_NAV_GROUPS: SidebarNavGroup[] = [
       { href: "/ticket-templates", label: "Ticket Templates", icon: IconTicket },
       { href: "/members", label: "Members", icon: IconUsersGroup },
       { href: "/verification", label: "Verification", icon: IconShieldCheck },
+      { href: "/settings/billing", label: "Billing & Plan", icon: IconCreditCard },
       { href: "/settings", label: "Settings", icon: IconSettings },
     ],
   },
