@@ -2,6 +2,7 @@ import type { Icon } from "@tabler/icons-react";
 import {
   IconAddressBook,
   IconBuildingStore,
+  IconCreditCard,
   IconScale,
   IconCertificate,
   IconFlag,
@@ -37,6 +38,7 @@ export const SIDEBAR_NAV_GROUPS: SidebarNavGroup[] = [
       { href: "/users", label: "Users", icon: IconUsers },
       { href: "/organizations", label: "Organizations", icon: IconBuildingStore },
       { href: "/organizations/verifications", label: "Verification queue", icon: IconCertificate },
+      { href: "/subscriptions", label: "Subscriptions", icon: IconCreditCard },
       { href: "/reports", label: "Reports", icon: IconFlag },
       { href: "/disputes", label: "Ownership disputes", icon: IconScale },
     ],
